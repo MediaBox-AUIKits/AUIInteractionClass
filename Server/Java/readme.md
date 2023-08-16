@@ -60,17 +60,17 @@ spring:
 
 #mybatis-plus相关配置。一般不用调整
 mybatis-plus:
- 	#实体扫描，多个package用逗号或者分号分隔
+  # 实体扫描，多个package用逗号或者分号分隔
   typeAliasesPackage: com.aliyuncs.aui.entity
   configuration:
- 		# 是否输出sql语句，本地开发时建议打开，上线前去掉
+    # 是否输出sql语句，本地开发时建议打开，上线前去掉
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
     # sql执行超时时间
     default-statement-timeout: 10
 
 # pop config
 biz:
-	# pop配置。需要配置账号的ak及as，用于调用IM及VOD相关服务
+  # pop配置。需要配置账号的ak及as，用于调用IM及VOD相关服务
   openapi:
     access:
       key: "*********"
