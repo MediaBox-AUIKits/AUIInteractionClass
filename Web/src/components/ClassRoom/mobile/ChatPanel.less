@@ -1,0 +1,99 @@
+@import './base.less';
+
+.chat-panel {
+  position: relative;
+  display: block;
+  padding: 0;
+}
+
+.chat-list {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0 0.32rem;
+  height: 100%;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 0;
+  }
+}
+
+.chat-list__empty {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  transform: translateY(-50%);
+}
+
+.chat-item {
+  display: inline-block;
+  color: @text-color-darken;
+  background-color: #fff;
+  margin-bottom: 0.24rem;
+  padding: 0.04rem 0.16rem;
+  border-radius: 2px;
+  align-self: flex-start;
+  word-break: break-word;
+  line-height: 0.44rem;
+
+  &:first-of-type {
+    margin-top: 0.24rem;
+  }
+}
+
+.chat-item-notice {
+  margin-top: 0.32rem;
+  padding: 0.2rem 0.16rem;
+  font-size: 0.24rem;
+  line-height: 1.5;
+  color: #3bb346;
+}
+
+.chat-item__nick {
+  color: @text-color-lighten;
+  margin-right: 4px;
+}
+
+.chat-item__mark {
+  margin-right: 0.08rem;
+  padding: 0.04rem 0.08rem;
+  border-radius: 2px;
+  font-size: 0.24rem;
+}
+
+.chat-item__anchor {
+  .chat-item__mark;
+  color: #fff;
+  background-color: @primary-color;
+}
+
+.chat-item__self {
+  .chat-item__mark;
+  color: #fff;
+  background-color: @primary-color;
+}
+
+.chat-new__tip {
+  position: absolute;
+  right: 0;
+  bottom: 0.24rem;
+  padding: 0.1rem 0.12rem;
+  font-size: 0.24rem;
+  text-align: right;
+  color: @text-color-darken;
+  background-color: #fff;
+  box-shadow: 0 4px 8px 0 rgba(20, 20, 22, 0.1);
+  border-radius: 0.32rem 0 0 0.32rem;
+  cursor: pointer;
+  z-index: 10;
+
+  svg {
+    margin-right: 0.08rem;
+    font-size: 0.32rem;
+    color: @primary-color;
+    vertical-align: text-bottom;
+  }
+}

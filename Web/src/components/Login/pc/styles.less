@@ -1,0 +1,59 @@
+@text-color: #3a3d48;
+@text-color-lighten: #747a8c;
+
+.amaui-classroom__pc-login {
+  display: flex;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1160px;
+  height: 648px;
+  transform: translate(-50%, -50%);
+  background-color: #fff;
+  border-radius: 5px;
+  overflow: hidden;
+  font-size: 12px;
+}
+
+.amaui-classroom__pc-login__img {
+  width: 600px;
+  height: 100%;
+}
+
+.amaui-classroom__pc-login__form {
+  width: 560px;
+  padding: 92px 144px 80px;
+
+  .ant-btn-block {
+    margin: 16px 0 8px;
+    height: 36px;
+  }
+
+  .ant-btn-primary[disabled] {
+    background-color: #bbdeff;
+    border-color: #bbdeff;
+    color: #fcfcfd;
+  }
+}
+
+.amaui-classroom__pc-login__title {
+  display: flex;
+  align-items: center;
+  margin-bottom: 36px;
+  color: @text-color;
+  font-size: 28px;
+  line-height: 40px;
+}
+
+.amaui-classroom__pc-login__logo {
+  margin-right: 8px;
+}
+
+.amaui-classroom__pc-login__tip {
+  color: @text-color-lighten;
+  text-align: center;
+
+  span {
+    color: #1597ff;
+  }
+}

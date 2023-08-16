@@ -1,0 +1,66 @@
+@import '../../styles/base.less';
+
+@online-color: @primary-color;
+@offline-color: #bbdeff;
+
+.pc-header {
+  position: relative;
+  width: 100%;
+  height: @pc-header-height;
+  box-shadow: inset 0 -1px 0 0 @divider-color;
+}
+
+.pc-id-block {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  height: 100%;
+  padding: 0 24px 0 16px;
+
+  &::after {
+    display: block;
+    position: absolute;
+    content: ' ';
+    right: 0;
+    height: 24px;
+    width: 1px;
+    background-color: @divider-color;
+  }
+
+  svg {
+    margin-left: 12px;
+    font-size: 18px;
+    transform: rotateY(180deg);
+    cursor: pointer;
+
+    &:hover {
+      color: @primary-color;
+    }
+  }
+}
+
+.classroom-status {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  height: 100%;
+  padding: 0 24px;
+  color: @text-color-lighten;
+}
+
+.classroom-status--online {
+  .classroom-status;
+  color: @text-color;
+
+  .classroom-status-svg {
+    color: @online-color;
+  }
+}
+
+.classroom-status-svg {
+  width: 22px;
+  height: 22px;
+  margin-right: 8px;
+  color: @offline-color;
+}

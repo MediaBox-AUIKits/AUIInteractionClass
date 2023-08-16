@@ -1,0 +1,19 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  width="1em"
+  height="1em"
+  viewBox="0 0 26 26"
+>
+  <defs>
+    <path id="camera_close_svg__a" d="m21.58 0 1.17 1.17-5.688 5.688v1.308l4.404-3.145a.814.814 0 0 1 .845-.065.813.813 0 0 1 .439.731v11.375a.81.81 0 0 1-.439.724.814.814 0 0 1-.845-.065l-4.404-3.145v3.299a1.63 1.63 0 0 1-1.625 1.625H4.42l-3.25 3.25L0 21.58 21.58 0Zm-6.703 3.242L.024 18.102c-.008-.08-.024-.154-.024-.235v-13a1.63 1.63 0 0 1 1.625-1.625h13.252Z"/>
+  </defs>
+  <g fill="none" fill-rule="evenodd" transform="translate(2 2)">
+    <mask id="camera_close_svg__b" fill="#fff">
+      <use xlink:href="#camera_close_svg__a"/>
+    </mask>
+    <use xlink:href="#camera_close_svg__a" fill="#000" fill-rule="nonzero"/>
+    <path fill="currentColor" d="M-1.625-1.633h26v26h-26z" mask="url(#camera_close_svg__b)"/>
+    <path fill="#F53F3F" fill-rule="nonzero" d="m21.596 0 1.146 1.146-7.313 7.312-6.752 6.752-1.145 1.146-1.154 1.153-5.232 5.233L0 21.596z" mask="url(#camera_close_svg__b)"/>
+  </g>
+</svg>

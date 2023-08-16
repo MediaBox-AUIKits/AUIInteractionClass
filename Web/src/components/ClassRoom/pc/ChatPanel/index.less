@@ -1,0 +1,136 @@
+@import '../../styles/base.less';
+
+.chat-panel {
+  .scrollbar();
+  position: relative;
+}
+
+.chat-list {
+  position: relative;
+  height: calc(100% - @chat-opetations-height);
+  margin: 0 2px;
+  padding: 12px 10px;
+  line-height: 1.5;
+  overflow-y: auto;
+  .scrollbar();
+}
+
+.chat-list__empty {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  transform: translateY(-50%);
+}
+
+.chat-item {
+  display: block;
+
+  & + .chat-item {
+    margin-top: 16px;
+  }
+}
+
+.chat-item-notice {
+  margin-top: 4px;
+  padding: 8px 16px;
+  font-size: 12px;
+  color: @text-color;
+  background-color: #fbe9e7;
+}
+
+.chat-item-nickname {
+  display: block;
+  height: 18px;
+  font-size: 12px;
+  line-height: 18px;
+  color: @text-color-lighten;
+}
+
+.chat-item-anchor-tag {
+  margin-right: 4px;
+  padding: 2px 6px;
+  font-size: 10px;
+  color: @primary-color;
+  background-color: @primary-background-color;
+  border-radius: 2px;
+}
+
+.chat-item-content {
+  word-break: break-word;
+}
+
+.chat-opetations {
+  height: @chat-opetations-height;
+  padding: 8px 4px;
+}
+
+.chat-textarea {
+  display: block;
+  width: 100%;
+  height: 58px;
+  margin-bottom: 4px;
+  padding: 6px 12px;
+  color: @text-color-lighten;
+  font-size: 12px;
+  line-height: 1.5;
+  background-color: #fff;
+  resize: none;
+  outline: none;
+  border: 1px solid @divider-color;
+  border-radius: 2px;
+
+  &:disabled {
+    color: #b2b7c4;
+    background-color: #f4f4f6;
+    border-color: #e6e7ec;
+  }
+
+  &:focus {
+    border-color: @primary-color;
+  }
+}
+
+.chat-send-btn {
+  float: right;
+  width: 48px;
+  line-height: 24px;
+  font-size: 12px;
+  text-align: center;
+  background-color: @primary-color;
+  color: #fff;
+  border-radius: 2px;
+  cursor: pointer;
+
+  &:hover {
+    background-color: @primary-color-hover;
+  }
+
+  &:global(.disabled) {
+    color: #fcfcfd;
+    background-color: #e6e7ec;
+    cursor: not-allowed;
+  }
+}
+
+.chat-new-tip {
+  position: absolute;
+  right: 4px;
+  bottom: 102px;
+  width: 112px;
+  padding: 6px 8px;
+  text-align: center;
+  color: @primary-color;
+  background-color: #fff;
+  border: 1px solid #e6e7ec;
+  box-shadow: 0 4px 8px 0 rgba(116, 122, 140, 0.15);
+  border-radius: 2px;
+  cursor: pointer;
+  z-index: 10;
+
+  svg {
+    margin-right: 4px;
+    font-size: 16px;
+    vertical-align: text-bottom;
+  }
+}

@@ -1,0 +1,25 @@
+*,
+::after,
+::before {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background-color: #f4f4f6;
+}
+
+/** 定制 antd mobile 主题 **/
+:root:root {
+  --adm-color-primary: #1597ff;
+  --adm-color-success: #1e8e3e;
+  --adm-color-warning: #ff8f1f;
+  --adm-color-danger: #f53f3f;
+
+  --adm-color-white: #fcfcfd;
+  --adm-color-text: #3a3d48;
+  --adm-color-text-secondary: #747a8c;
+}

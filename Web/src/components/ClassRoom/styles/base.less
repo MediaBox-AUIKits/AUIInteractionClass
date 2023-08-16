@@ -1,0 +1,38 @@
+@pc-header-height: 48px;
+@pc-footer-height: 67px;
+@pc-aside-width: 288px;
+@aside-tab-header-height: 37px;
+@chat-opetations-height: 102px;
+
+@aside-player-width: @pc-aside-width;
+@aside-player-height: 162px;
+
+@page-backgroud-color: #fcfcfd;
+@primary-color: #1597ff;
+@primary-color-hover: #3ca5ff;
+@primary-color-active: #0773d9;
+@primary-background-color: #e3f2ff;
+
+@text-color: #3a3d48;
+@text-color-lighten: #747a8c;
+@text-color-invert: #fcfcfd;
+
+@divider-color: #e6e7ec;
+
+.text-overflow() {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scrollbar(@width: 8px, @height: 8px) {
+  &::-webkit-scrollbar {
+    width: @width;
+    height: @height;
+    background-color: lighten(#000, 90%);
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: lighten(#000, 60%);
+    border-radius: @width / 2 + 1px;
+  }
+}

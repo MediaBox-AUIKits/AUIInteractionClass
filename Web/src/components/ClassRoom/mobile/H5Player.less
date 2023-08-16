@@ -1,0 +1,99 @@
+@import './base.less';
+@box-background-color: rgba(28, 29, 34, 0.4);
+
+.h5player {
+  position: relative;
+  flex-shrink: 0;
+  width: 100%;
+  padding-top: 56.25%;
+  background-color: #1c1d22;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+@media screen and (orientation: landscape) {
+  .h5player {
+    padding-top: 0;
+    height: 33.3vh;
+  }
+ }
+
+.h5player-container {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  color: rgba(255, 255, 255, 0.8);
+
+  :global {
+    .prism-player {
+      background-color: transparent;
+    }
+    .prism-player .prism-ErrorMessage {
+      background-color: transparent;
+      top: 10px !important;
+    }
+    .prism-player .prism-controlbar .prism-controlbar-bg {
+      height: auto;
+      top: 0;
+      background-color: transparent;
+      background-image: linear-gradient(
+        180deg,
+        rgba(20, 20, 22, 0) 0%,
+        rgba(20, 20, 22, 0.7) 100%
+      );
+    }
+    .prism-player .prism-liveshift-progress .prism-progress-played,
+    .prism-player .prism-progress .prism-progress-played {
+      background-color: @primary-color;
+    }
+    .prism-player .prism-progress .prism-progress-cursor {
+      display: block !important; // 移动端很难触发hover事件，所以强制都展示
+      background-image: none;
+      background-color: #fff;
+      border-radius: 50%;
+      top: -7px;
+
+      img {
+        display: none;
+      }
+    }
+    .prism-player .prism-loading .circle {
+      border-color: rgba(21, 151, 255, 0.2) rgba(21, 151, 255, 0.5)
+        rgba(21, 151, 255, 0.7) rgba(21, 151, 255, 0.1);
+    }
+
+    .player-nolive {
+      font-size: 0.32rem;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+
+    .player-playback {
+      margin-top: 0.24rem;
+      font-size: 0.28rem;
+      line-height: 0.44rem;
+
+      .anticon {
+        font-size: 0.44rem;
+        margin-right: 0.08rem;
+        vertical-align: middle;
+      }
+    }
+  }
+}
+
+.h5player__exit {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  top: 0.18rem;
+  left: 0.32rem;
+  width: 0.48rem;
+  height: 0.48rem;
+  font-size: 0.4rem;
+  text-align: center;
+  border-radius: 50%;
+  background-color: @box-background-color;
+  z-index: 100;
+}

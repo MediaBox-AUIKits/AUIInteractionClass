@@ -1,0 +1,38 @@
+{
+  "version": "1.0.0",
+  "author": "zhushijiong",
+  "scripts": {
+    "dev": "umi dev",
+    "build": "umi build",
+    "postinstall": "umi setup",
+    "setup": "umi setup",
+    "start": "npm run dev",
+    "lint": "umi lint --eslint-only"
+  },
+  "dependencies": {
+    "@aliyun-sls/web-track-browser": "^0.2.8",
+    "@ant-design/icons": "^4.7.0",
+    "ahooks": "^3.7.8",
+    "antd": "^4.24.0",
+    "antd-mobile": "^5.31.1",
+    "classnames": "^2.3.2",
+    "cookie-es": "^1.0.0",
+    "immer": "^10.0.2",
+    "js-sha1": "^0.6.0",
+    "resize-observer-polyfill": "^1.5.1",
+    "umi": "^4.0.71",
+    "useragent-utils": "^1.2.0",
+    "uuid": "^9.0.0",
+    "zustand": "^4.3.9"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.33",
+    "@types/react-dom": "^18.0.11",
+    "@types/uuid": "^9.0.2",
+    "@umijs/lint": "^4.0.72",
+    "@umijs/plugins": "^4.0.72",
+    "eslint": "^8.44.0",
+    "typescript": "^5.0.3",
+    "yargs-parser": "^21.1.1"
+  }
+}

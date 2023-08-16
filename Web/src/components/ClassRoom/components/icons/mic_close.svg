@@ -1,0 +1,19 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  width="1em"
+  height="1em"
+  viewBox="0 0 26 26"
+>
+  <defs>
+    <path id="mic_close_svg__a" d="m21.596.008 1.146 1.146-7.313 7.312v3.722a4.064 4.064 0 0 1-4.062 4.062 4.013 4.013 0 0 1-2.69-1.032l-1.145 1.146a5.65 5.65 0 0 0 3.843 1.511 5.683 5.683 0 0 0 5.688-5.688V9.742h1.625v2.437a7.322 7.322 0 0 1-6.5 7.264v1.674h3.25v1.625H7.312v-1.625h3.25v-1.674a7.182 7.182 0 0 1-4.184-1.926L1.146 22.75 0 21.604 21.596.008ZM5.687 9.75v2.438l.017.26-1.438 1.438a7.305 7.305 0 0 1-.204-1.698V9.75h1.625ZM11.375 0a4.034 4.034 0 0 1 3.867 2.909l-7.93 7.93V4.062A4.064 4.064 0 0 1 11.375 0Z"/>
+  </defs>
+  <g fill="none" fill-rule="evenodd" transform="translate(1.625 1.625)">
+    <mask id="mic_close_svg__b" fill="#fff">
+      <use xlink:href="#mic_close_svg__a"/>
+    </mask>
+    <use xlink:href="#mic_close_svg__a" fill="#000" fill-rule="nonzero"/>
+    <path fill="currentColor" d="M-1.625-1.625h26v26h-26z" mask="url(#mic_close_svg__b)"/>
+    <path fill="#F53F3F" fill-rule="nonzero" d="m21.596.008 1.146 1.146-7.313 7.312-6.752 6.752-1.145 1.146-1.154 1.153-5.232 5.233L0 21.604z" mask="url(#mic_close_svg__b)"/>
+  </g>
+</svg>

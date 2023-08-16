@@ -1,0 +1,68 @@
+@import '../../styles/base.less';
+
+.sharing-mask {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: rgba(20, 20, 22, 0.8);
+  color: @text-color-invert;
+  font-size: 26px;
+  text-align: center;
+  z-index: 1000;
+
+  svg {
+    font-size: 78px;
+    margin-bottom: 18px;
+  }
+}
+
+// 定制网易白板部分样式
+.netease-board {
+  :global {
+    .u-btn,
+    .u-progress .u-progress-state,
+    .whiteboard-alert .alert-button-group .alert-confirm {
+      background-color: @primary-color;
+    }
+
+    .u-btn:hover:not([disabled]) {
+      background-color: @primary-color-hover;
+    }
+
+    .docUpload-popup .docUpload-footer .upload .opts {
+      right: 22px;
+
+      div {
+        color: @text-color;
+        &:hover {
+          background-color: @primary-color-hover;
+        }
+      }
+    }
+
+    .docUpload-popup .docUpload-footer,
+    .tc-unit-docSelect .dropdown .option.selected,
+    .page-preview-container .footer {
+      color: @primary-color;
+    }
+
+    .tc-unit.selected,
+    .tc-tool-select-container .tc-tool-select-cell-wrapper.selected,
+    .tc-color-platte .tc-color-row .tc-color-cell-wrapper.selected {
+      outline-color: @primary-color;
+    }
+
+    .page-preview-container .preview-box-list .preview-box {
+      &:hover,
+      &.active {
+        border-color: @primary-color;
+      }
+    }
+  }
+}

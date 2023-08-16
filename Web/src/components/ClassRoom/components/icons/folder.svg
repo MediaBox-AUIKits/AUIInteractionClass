@@ -1,0 +1,10 @@
+<svg 
+  viewBox="0 0 1024 1024"
+  version="1.1"
+  xmlns="http://www.w3.org/2000/svg"
+  width="1em"
+  height="1em"
+  fill="currentColor"
+>
+  <path d="M357.44 128c16.96 0 33.28 6.72 45.44 18.88L512 256h384c35.2 0 64 28.8 64 64v512c0 35.2-28.8 64-64 64H128c-35.2 0-64-28.8-64-64V192c0-35.2 28.8-64 64-64zM768 480H256v64h512v-64z"></path>
+</svg>
