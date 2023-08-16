@@ -1,0 +1,58 @@
+server:
+  port: 8080
+
+# mysql.sql
+spring:
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driverClassName: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://******:3306/*****?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: "******"
+    password: "******"
+  jackson:
+    time-zone: GMT+8
+    date-format: yyyy/MM/dd HH:mm:ss
+    default-property-inclusion: non_null
+
+#mybatis
+mybatis-plus:
+  # Entity scanning, multiple packages are separated by commas or semicolons
+  typeAliasesPackage: com.aliyuncs.aui.entity
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    default-statement-timeout: 10
+
+# pop config
+biz:
+  openapi:
+    access:
+      key: "*********"
+      secret: "*********"
+  live_im:
+    app_id: TY3****
+  live_stream:
+    push_url: push.*****.vip
+    pull_url: pull.*****.vip
+    push_auth_key: zJl4******
+    pull_auth_key: mDZs********
+    app_name: live
+    auth_expires: 604800
+  live_mic:
+    app_id: 7c61********
+    app_key: c461b*********
+  live_callback:
+    auth_key: avdsd*******
+
+# whiteboard
+room:
+  boards:
+    app_key: "*********"
+    app_secret: "*********"
+    create_url: https://logic-dev.netease.im/v2/api/room
+    delete_url: https://logic-dev.netease.im/v2/api/rooms/
+    #  one day: 86400  one hour=3600
+    channel_destroy_time: 86400
+
+http:
+  cors:
+    host: "*"
