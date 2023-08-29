@@ -6,6 +6,7 @@ import React, {
   useState,
 } from 'react';
 import { message } from 'antd';
+import { useThrottleFn } from 'ahooks';
 import { CustomMessageTypes } from '../../types';
 import useClassroomStore from '../../store';
 import { ClassContext } from '../../ClassContext';
@@ -19,13 +20,14 @@ import Camera from './Camera';
 import ScreenShare from './ScreenShare';
 import Board from './Board';
 import Doc from './Doc';
+import MultiMedia from './MultiMedia';
 import styles from './index.less';
 
 const RoomBottom: React.FC = () => {
   const livePusher = useMemo(() => {
     return livePush.getInstance('alivc')!;
   }, []);
-  const { services, auiMessage, exit } = useContext(ClassContext);
+  const { services, auiMessage, userInfo, exit } = useContext(ClassContext);
   const {
     setClassroomInfo,
     setPusherExecuting,
@@ -38,6 +40,71 @@ const RoomBottom: React.FC = () => {
   } = useClassroomStore.getState();
   const [micDisabled, setMicDisabled] = useState<boolean>(true);
   const [cameraDisabled, setCameraDisabled] = useState<boolean>(true);
+
+  // 获取推流信息相关参数，包含设备状态、推流轨道状态、推流地址等
+  const getMeetingInfoParams = useCallback(() => {
+    const { camera, microphone, classroomInfo } = useClassroomStore.getState();
+    const publishingStatus = livePusher.getPublishingStatus();
+    // alivc-push-sdk 返回的轨道推流变化包含 isAudioPublishing（麦克风）、isCameraPublishing （摄像头）
+    // isCustomPublishing（自定义流）、isScreenPublishing（屏幕流）
+    // 接口、消息的字段名有所不同，而且自定义流和屏幕流公用一个字段，都算做屏幕流轨道
+    return {
+      isAudioPublishing: publishingStatus.isAudioPublishing,
+      isVideoPublishing: publishingStatus.isCameraPublishing,
+      isScreenPublishing:
+        publishingStatus.isCustomPublishing ||
+        publishingStatus.isScreenPublishing,
+      cameraOpened: camera.enable,
+      micOpened: microphone.enable,
+      rtcPullUrl: classroomInfo.linkInfo?.rtcPullUrl,
+    };
+  }, []);
+
+  const updateMeetingInfo = useCallback(() => {
+    return services?.updateMeetingInfo([
+      {
+        ...userInfo!,
+        ...getMeetingInfoParams(),
+      },
+    ]);
+  }, [userInfo, livePusher]);
+
+  const { run: throttleMeetingInfo } = useThrottleFn(
+    () => {
+      const { pusher } = useClassroomStore.getState();
+      if (!pusher.pushing) {
+        return Promise.resolve();
+      }
+      return updateMeetingInfo();
+    },
+    {
+      wait: 500,
+      leading: false,
+    }
+  );
+
+  const handleDeviceAndTrackChanged = async (
+    type: number,
+    data: any,
+    ignorePushing = false
+  ) => {
+    const { joinedGroupId, pusher } = useClassroomStore.getState();
+    if (!joinedGroupId || (!pusher.pushing && !ignorePushing)) {
+      return;
+    }
+    // 通知其他用户状态改变
+    const options = {
+      // groupId: joinedGroupId,
+      type,
+      data,
+    };
+    try {
+      await auiMessage.sendMessageToGroup(options);
+      throttleMeetingInfo(); // 更新设备信息
+    } catch (error) {
+      //
+    }
+  };
 
   const initLivePusher = useCallback(async () => {
     // 先检查是否有麦克风、摄像头的权限
@@ -59,9 +126,16 @@ const RoomBottom: React.FC = () => {
       livePusher.startCustomStream(mediaStream);
     }
 
-    // livePusher.info.on('pushstatistics', (_stat: any) => {
-    //   console.log(_stat);
-    // });
+    // 推流 track 增删事件
+    livePusher.info.on('publishingtracksupdated', () => {
+      // 需要通知学生推流变化
+      const data = getMeetingInfoParams();
+      handleDeviceAndTrackChanged(
+        CustomMessageTypes.PublishInfoChanged,
+        data,
+        true
+      );
+    });
     // livePusher.error.on('system', (error: any) => {
     //   console.log(error);
     // });
@@ -97,22 +171,31 @@ const RoomBottom: React.FC = () => {
   }, []);
 
   const startClass = useCallback(
-    async (pushUrl: string, joinedGroupId: string, includeCamera: boolean) => {
+    async (joinedGroupId: string, includeCamera: boolean) => {
       logger.startClass();
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { linkInfo, shadowLinkInfo } = useClassroomStore.getState()
+        .classroomInfo as any;
       try {
         // 先推流
-        await livePusher.startPush(pushUrl);
+        await livePusher.startPush(
+          linkInfo.rtcPushUrl,
+          shadowLinkInfo.rtcPushUrl
+        );
         // 更新服务端
         const detail = await services?.startClass();
         // 推流成功后更新混流布局
         await livePusher.updateTrancodingConfig(includeCamera);
         // 通过消息通知学生
         const options = {
-          groupId: joinedGroupId,
+          // groupId: joinedGroupId,
           type: CustomMessageTypes.ClassStart,
           data: {},
         };
         await auiMessage.sendMessageToGroup(options);
+
+        // 更新 meetingInfo
+        await updateMeetingInfo();
 
         // 更新课堂信息等
         const { classroomInfo } = useClassroomStore.getState();
@@ -141,7 +224,7 @@ const RoomBottom: React.FC = () => {
     try {
       // 通过消息通知学生下课
       const options = {
-        groupId: joinedGroupId,
+        // groupId: joinedGroupId,
         type: CustomMessageTypes.ClassStop,
         data: {},
       };
@@ -170,28 +253,17 @@ const RoomBottom: React.FC = () => {
     }
   }, []);
 
-  const updateDeviceStatus = async (type: number, data: any) => {
-    const { joinedGroupId, pusher } = useClassroomStore.getState();
-    if (!pusher.pushing) {
-      return;
-    }
-    // 通知其他用户状态改变
-    const options = {
-      groupId: joinedGroupId,
-      type,
-      data,
-    };
-    try {
-      await auiMessage.sendMessageToGroup(options);
-    } catch (error) {
-      //
-    }
-  };
-
   useEffect(() => {
     const off = useClassroomStore.subscribe(async (state, prevState) => {
-      const { microphone, camera, pusher, classroomInfo, board, display } =
-        state;
+      const {
+        microphone,
+        camera,
+        pusher,
+        classroomInfo,
+        board,
+        display,
+        localMedia,
+      } = state;
       const {
         microphone: prevMicrophone,
         camera: prevCamera,
@@ -199,6 +271,7 @@ const RoomBottom: React.FC = () => {
         classroomInfo: prevClassroomInfo,
         board: prevBoard,
         display: prevDisplay,
+        localMedia: prevLocalMeida,
       } = prevState;
 
       // 通过 id 的变化来判断是否重置了，就不再执行了
@@ -222,7 +295,7 @@ const RoomBottom: React.FC = () => {
             setMicrophoneTrackId('mic');
             if (!microphone.fromInit && !prevMicrophone.enable) {
               message.success('静音已取消');
-              updateDeviceStatus(CustomMessageTypes.MicChanged, {
+              handleDeviceAndTrackChanged(CustomMessageTypes.MicChanged, {
                 micOpened: true,
               });
             }
@@ -237,7 +310,7 @@ const RoomBottom: React.FC = () => {
           setMicrophoneTrackId('');
           if (!microphone.fromInit) {
             message.success('静音已开启');
-            updateDeviceStatus(CustomMessageTypes.MicChanged, {
+            handleDeviceAndTrackChanged(CustomMessageTypes.MicChanged, {
               micOpened: false,
             });
           }
@@ -297,17 +370,19 @@ const RoomBottom: React.FC = () => {
       ) {
         const { classroomInfo, joinedGroupId } = useClassroomStore.getState();
         if (!classroomInfo || !joinedGroupId) {
+          // TODO: 上报异常日志
           return;
         }
 
         const pushUrl = classroomInfo.linkInfo?.rtcPushUrl;
         if (!pushUrl) {
+          // TODO: 上报异常日志
           return;
         }
         if (pusher.pushing) {
           stopClass(joinedGroupId);
         } else {
-          startClass(pushUrl, joinedGroupId, camera.enable);
+          startClass(joinedGroupId, camera.enable);
         }
       }
 
@@ -330,6 +405,15 @@ const RoomBottom: React.FC = () => {
       ) {
         livePusher.startCustomStream(board.mediaStream);
       }
+
+      if (localMedia.mediaStream !== prevLocalMeida.mediaStream) {
+        // 当有本地媒体文件的流时推这个
+        if (localMedia.mediaStream) {
+          livePusher.startCustomStream(localMedia.mediaStream);
+        } else if (board.mediaStream && !display.enable) {
+          livePusher.startCustomStream(board.mediaStream);
+        }
+      }
     });
 
     return () => {
@@ -347,6 +431,7 @@ const RoomBottom: React.FC = () => {
         <ScreenShare />
         <Board />
         <Doc />
+        <MultiMedia />
       </div>
       <div className={styles['right-part']}>
         <PushButton

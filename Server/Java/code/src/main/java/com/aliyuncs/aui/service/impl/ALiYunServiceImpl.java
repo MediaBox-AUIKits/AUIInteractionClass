@@ -12,7 +12,8 @@ import com.aliyuncs.aui.dto.enums.MediaStatus;
 import com.aliyuncs.aui.dto.req.ImTokenRequestDto;
 import com.aliyuncs.aui.dto.res.ImTokenResponseDto;
 import com.aliyuncs.aui.dto.res.RoomInfoDto;
-import com.aliyuncs.aui.service.VideoCloudService;
+import com.aliyuncs.aui.service.RongCloudServer;
+import com.aliyuncs.aui.service.ALiYunService;
 import com.aliyuncs.exceptions.ClientException;
 import com.aliyuncs.exceptions.ServerException;
 import com.aliyuncs.http.FormatType;
@@ -32,6 +33,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.Resource;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -44,7 +46,7 @@ import java.util.*;
  */
 @Service
 @Slf4j
-public class VideoCloudServiceImpl implements VideoCloudService {
+public class ALiYunServiceImpl implements ALiYunService {
 
     private static final String LIVE_DOMAIN = "live.aliyun.com";
 
@@ -77,6 +79,9 @@ public class VideoCloudServiceImpl implements VideoCloudService {
 
     private IAcsClient client;
 
+    @Resource
+    private RongCloudServer rongCloudServer;
+
     @PostConstruct
     public void init() {
 
@@ -99,8 +104,10 @@ public class VideoCloudServiceImpl implements VideoCloudService {
             GetMessageTokenResponse response = client.getAcsResponse(request);
             log.info("getImToken, response:{}, consume:{}", JSONObject.toJSONString(response), (System.currentTimeMillis() - start));
 
-            return ImTokenResponseDto.builder().accessToken(response.getResult().getAccessToken())
-                    .refreshToken(response.getResult().getRefreshToken()).build();
+            return ImTokenResponseDto.builder()
+                    .aLiYunAccessToken(response.getResult().getAccessToken())
+                    .aLiYunRefreshToken(response.getResult().getRefreshToken())
+                    .build();
         } catch (ServerException e) {
             log.error("getImToken ServerException. ErrCode:{}, ErrMsg:{}, RequestId:{}", e.getErrCode(), e.getErrMsg(), e.getRequestId());
         } catch (ClientException e) {
@@ -113,16 +120,16 @@ public class VideoCloudServiceImpl implements VideoCloudService {
 
     @Override
     public String createMessageGroup(String teacherId) {
-
         long start = System.currentTimeMillis();
         CreateMessageGroupRequest request = new CreateMessageGroupRequest();
         request.setAppId(imAppId);
         request.setCreatorId(teacherId);
-        log.info("createMessageGroup, request:{}", JSONObject.toJSONString(request));
-
+        log.info("aLiYun, request:{}", JSONObject.toJSONString(request));
         try {
             CreateMessageGroupResponse createMessageGroupResponse = client.getAcsResponse(request);
-            log.info("createMessageGroup, response:{}, consume:{}", JSONObject.toJSONString(createMessageGroupResponse), (System.currentTimeMillis() - start));
+            log.info("aLiYun, response:{}, consume:{}", JSONObject.toJSONString(createMessageGroupResponse), (System.currentTimeMillis() - start));
+            log.info("aLiYunMessageGroup  success");
+
             return createMessageGroupResponse.getResult().getGroupId();
         } catch (ServerException e) {
             log.error("createMessageGroup ServerException. ErrCode:{}, ErrMsg:{}, RequestId:{}", e.getErrCode(), e.getErrMsg(), e.getRequestId());
@@ -150,7 +157,7 @@ public class VideoCloudServiceImpl implements VideoCloudService {
     }
 
     @Override
-    public PullLiveInfo getPullLiveInfo(String streamName) {
+    public PullLiveInfo getPullLiveInfo(String streamName, String screenStreamName) {
 
         return getPullLiveInfo(liveStreamAppName, streamName);
     }
@@ -168,9 +175,12 @@ public class VideoCloudServiceImpl implements VideoCloudService {
         String rtcPullUrl = String.format("artc://%s/play/%s?sdkAppId=%s&userId=%s&timestamp=%d&token=%s",
                 LIVE_DOMAIN, channelId, liveMicAppId, userId, timestamp, token);
 
+        // camera 流
         String streamName = String.format("%s_%s_%s_camera", liveMicAppId, channelId, teacherId);
+        // shareScreen 流
+        String screenStreamName = String.format("%s_%s_%s_shareScreen", liveMicAppId, channelId, teacherId);
 
-        PullLiveInfo rtcLinkCDNUrl = getPullLiveInfo("live", streamName);
+        PullLiveInfo rtcLinkCDNUrl = getPullLiveInfo("live", streamName, screenStreamName);
 
         LinkInfo linkInfo = LinkInfo.builder().rtcPushUrl(rtcPushUrl).rtcPullUrl(rtcPullUrl).cdnPullInfo(rtcLinkCDNUrl).build();
 
@@ -221,11 +231,10 @@ public class VideoCloudServiceImpl implements VideoCloudService {
                 playInfos.add(playInfoTmp);
             }
             log.info("getPlayInfo, mediaId:{}, response:{}, consume:{}", mediaId, JSONObject.toJSONString(acsResponse), (System.currentTimeMillis() - start));
-            RoomInfoDto.VodInfo vodInfo = RoomInfoDto.VodInfo.builder()
+            return RoomInfoDto.VodInfo.builder()
                     .playInfos(playInfos)
                     .status(MediaStatus.VodStatusOK.getVal())
                     .build();
-            return vodInfo;
         } catch (ServerException e) {
             log.error("getPlayInfo ServerException. ErrCode:{}, ErrMsg:{}, RequestId:{}", e.getErrCode(), e.getErrMsg(), e.getRequestId());
         } catch (ClientException e) {
@@ -313,7 +322,7 @@ public class VideoCloudServiceImpl implements VideoCloudService {
         return true;
     }
 
-    private PullLiveInfo getPullLiveInfo(String appName, String streamName) {
+    private PullLiveInfo getPullLiveInfo(String appName, String streamName, String screenStreamName) {
 
         String streamUrl = String.format("%s/%s/%s", liveStreamPullUrl, appName, streamName);
         String streamUrlOfOriaac = String.format("%s/%s/%s_oriaac", liveStreamPullUrl, appName, streamName);
@@ -321,9 +330,20 @@ public class VideoCloudServiceImpl implements VideoCloudService {
         String pullAuthKey = getAAuth(streamName, liveStreamPullAuthKey);
         String pullAuthKeyOfOriaac = getAAuth(String.format("%s_oriaac", streamName), liveStreamPullAuthKey);
         String pullAuthKeyWithFlv = getAAuth(String.format("%s%s", streamName, ".flv"), liveStreamPullAuthKey);
-        String pullAuthKeyWithFlvOfOriaac = getAAuth(String.format("%s%s_oriaac", streamName, ".flv"), liveStreamPullAuthKey);
+        String pullAuthKeyWithFlvOfOriaac = getAAuth(String.format("%s_oriaac%s", streamName, ".flv"), liveStreamPullAuthKey);
         String pullAuthKeyWithM3u8 = getAAuth(String.format("%s%s", streamName, ".m3u8"), liveStreamPullAuthKey);
-        String pullAuthKeyWithM3u8OfOriaac = getAAuth(String.format("%s%s_oriaac", streamName, ".m3u8"), liveStreamPullAuthKey);
+        String pullAuthKeyWithM3u8OfOriaac = getAAuth(String.format("%s_oriaac%s", streamName, ".m3u8"), liveStreamPullAuthKey);
+
+        String screenStreamUrl = String.format("%s/%s/%s", liveStreamPullUrl, appName, screenStreamName);
+        String screenStreamUrlOfOriaac = String.format("%s/%s/%s_oriaac", liveStreamPullUrl, appName, screenStreamName);
+
+        String pullScreenAuthKey = getAAuth(screenStreamName, liveStreamPullAuthKey);
+        String pullScreenAuthKeyOfOriaac = getAAuth(String.format("%s_oriaac", screenStreamName), liveStreamPullAuthKey);
+        String pullScreenAuthKeyWithFlv = getAAuth(String.format("%s%s", screenStreamName, ".flv"), liveStreamPullAuthKey);
+        String pullScreenAuthKeyWithFlvOfOriaac = getAAuth(String.format("%s_oriaac%s", screenStreamName, ".flv"), liveStreamPullAuthKey);
+        String pullScreenAuthKeyWithM3u8 = getAAuth(String.format("%s%s", screenStreamName, ".m3u8"), liveStreamPullAuthKey);
+        String pullScreenAuthKeyWithM3u8OfOriaac = getAAuth(String.format("%s_oriaac%s", screenStreamName, ".m3u8"), liveStreamPullAuthKey);
+
 
         PullLiveInfo pullLiveInfo = PullLiveInfo.builder()
                 .rtmpUrl(String.format("%s://%s?auth_key=%s", "rtmp", streamUrl, pullAuthKey))
@@ -334,11 +354,21 @@ public class VideoCloudServiceImpl implements VideoCloudService {
                 .flvOriaacUrl(String.format("https://%s.flv?auth_key=%s", streamUrlOfOriaac, pullAuthKeyWithFlvOfOriaac))
                 .hlsUrl(String.format("https://%s.m3u8?auth_key=%s", streamUrl, pullAuthKeyWithM3u8))
                 .hlsOriaacUrl(String.format("https://%s.m3u8?auth_key=%s", streamUrlOfOriaac, pullAuthKeyWithM3u8OfOriaac))
+
+                .rtmpScreenUrl(String.format("%s://%s?auth_key=%s", "rtmp", screenStreamUrl, pullScreenAuthKey))
+                .rtmpScreenOriaacUrl(String.format("%s://%s?auth_key=%s", "rtmp", screenStreamUrlOfOriaac, pullScreenAuthKeyOfOriaac))
+                .rtsScreenUrl(String.format("%s://%s?auth_key=%s", "artc", screenStreamUrl, pullScreenAuthKey))
+                .rtsScreenOriaacUrl(String.format("%s://%s?auth_key=%s", "artc", screenStreamUrlOfOriaac, pullScreenAuthKeyOfOriaac))
+                .flvScreenUrl(String.format("https://%s.flv?auth_key=%s", screenStreamUrl, pullScreenAuthKeyWithFlv))
+                .flvScreenOriaacUrl(String.format("https://%s.flv?auth_key=%s", screenStreamUrlOfOriaac, pullScreenAuthKeyWithFlvOfOriaac))
+                .hlsScreenUrl(String.format("https://%s.m3u8?auth_key=%s", screenStreamUrl, pullScreenAuthKeyWithM3u8))
+                .hlsScreenOriaacUrl(String.format("https://%s.m3u8?auth_key=%s", screenStreamUrlOfOriaac, pullScreenAuthKeyWithM3u8OfOriaac))
                 .build();
 
-        log.info("getPullLiveInfo. streamName:{}, pullLiveInfo:{}", streamName, JSONObject.toJSONString(pullLiveInfo));
+        log.info("getPullLiveInfo. streamName:{}, screenStreamName:{}, pullLiveInfo:{}", streamName, screenStreamName, JSONObject.toJSONString(pullLiveInfo));
         return pullLiveInfo;
     }
+
 
     public String getRtcAuth(String channelId, String userId, long timestamp) {
 
@@ -376,7 +406,6 @@ public class VideoCloudServiceImpl implements VideoCloudService {
 
     /**
      * 获取鉴权。文档见：https://help.aliyun.com/document_detail/199349.html
-     *
      */
     private String getAAuth(String streamName, String authKey) {
 

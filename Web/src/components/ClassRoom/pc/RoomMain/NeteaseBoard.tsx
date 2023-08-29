@@ -5,38 +5,30 @@ import React, {
   useEffect,
   useMemo,
   useRef,
-  useCallback,
-  useState,
   useContext,
   CSSProperties,
 } from 'react';
 import { message } from 'antd';
 import classNames from 'classnames';
-import ResizeObserver from 'resize-observer-polyfill';
 import useClassroomStore from '../../store';
 import { ClassContext } from '../../ClassContext';
 import whiteBoardFactory from '../../utils/whiteboard';
 import logger from '../../utils/Logger';
-import { StreamWidth, StreamHeight } from '../../constances';
-import SharingMask from './SharingMask';
+import { StreamWidth, NeteaseSDKVersion } from '../../constances';
 import styles from './styles.less';
-
-const WBRatio = StreamWidth / StreamHeight;
-const NeteaseSDKVersion = '3.9.7';
 
 interface IProps {
   wrapClassName?: string;
+  rendererStyle?: CSSProperties;
 }
 
 const NeteaseBoard: React.FC<IProps> = props => {
-  const { wrapClassName } = props;
+  const { wrapClassName, rendererStyle } = props;
   const { services } = useContext(ClassContext);
   const wbIns = useMemo(() => {
     return whiteBoardFactory.getInstance('netease');
   }, []);
   const wbDocsCache = useRef<any[]>([]);
-  const wrapEl = useRef<HTMLDivElement | null>(null);
-  const [wbStyle, setWbStyle] = useState<CSSProperties>();
   const { boards } = useClassroomStore(state => state.classroomInfo);
 
   const wbInfo = useMemo(() => {
@@ -46,21 +38,6 @@ const NeteaseBoard: React.FC<IProps> = props => {
       return null;
     }
   }, [boards]);
-
-  const updateWbStyle = useCallback((wrapWidth: number, wrapHeight: number) => {
-    const wrapRatio = wrapWidth / wrapHeight;
-    let width = wrapWidth;
-    let height = wrapHeight;
-    if (wrapRatio > WBRatio) {
-      width = Math.round(wrapHeight * WBRatio);
-    } else {
-      height = Math.round(wrapWidth / WBRatio);
-    }
-    setWbStyle({
-      width,
-      height,
-    });
-  }, []);
 
   const queryDoc = () => {
     if (!services) {
@@ -116,25 +93,6 @@ const NeteaseBoard: React.FC<IProps> = props => {
     }
     wbDocsCache.current = allDocs;
   };
-
-  const resizeObserver = useMemo(() => {
-    return new ResizeObserver(entries => {
-      for (let entry of entries) {
-        const cr = entry.contentRect;
-        updateWbStyle(cr.width, cr.height);
-      }
-    });
-  }, []);
-
-  useEffect(() => {
-    if (wrapEl.current) {
-      resizeObserver.observe(wrapEl.current);
-    }
-
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, []);
 
   const checkMediaStream = () => {
     const stream = wbIns?.getStream({
@@ -218,12 +176,9 @@ const NeteaseBoard: React.FC<IProps> = props => {
   return (
     <div
       className={classNames(wrapClassName, styles['netease-board'])}
-      ref={wrapEl}
       id="whiteboardWrap"
     >
-      <div id="whiteboard" style={wbStyle}></div>
-
-      <SharingMask />
+      <div id="whiteboard" style={rendererStyle}></div>
     </div>
   );
 };

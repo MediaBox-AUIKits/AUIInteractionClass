@@ -38,13 +38,21 @@ export const handleEnterClassroom = async (props: IHandleEnterClassroomProps) =>
     }
     // 目前未支持输入课堂名称，所以使用当前时间生成默认名称
     const now = new Date();
-    const title = `课堂${now.getDate()}${now.getHours()}${now.getMinutes()}${now.getSeconds()}`
+    const title = `课堂${now.getDate()}${now.getHours()}${now.getMinutes()}${now.getSeconds()}`;
+    const im_server: string[] = [];
+    if (CONFIG.imServer.aliyun.enable) {
+      im_server.push('aliyun');
+    }
+    if (CONFIG.imServer.rongCloud.enable && CONFIG.imServer.rongCloud.appKey) {
+      im_server.push('rongCloud');
+    }
     detail = await services.createRoom({
       teacher_id: userName,
       teacher_nick: userName,
       extends: "{}",
       mode: mode || ClassroomModeEnum.Open,
       title,
+      im_server,
     });
   }
 

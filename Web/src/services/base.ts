@@ -15,10 +15,17 @@ export enum ApiNames {
   get = 'get',
   start = 'start',
   stop = 'stop',
+  getMeetingInfo = 'getMeetingInfo',
+  updateMeetingInfo = 'updateMeetingInfo',
   wbAuth = 'getWhiteboardAuthInfo',
   queryDoc = 'queryDoc',
   deleteDocs = 'deleteDocs',
   addDocs = 'addDocs',
+  isMuteChatroom = 'isMuteChatroom',
+  muteChatroom = 'muteChatroom',
+  cancelMuteChatroom = 'cancelMuteChatroom',
+  muteUser = 'muteUser',
+  cancelMuteUser = 'cancelMuteUser',
 };
 
 export function getApiUrl(name: ApiNames) {

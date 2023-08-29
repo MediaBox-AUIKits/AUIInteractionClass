@@ -75,6 +75,10 @@ biz:
     access:
       key: "*********"
       secret: "*********"
+    # 融云相关配置   
+    live_rongcloud_im:
+    	app_key: "*********"
+    	app_secret: "*********"
   # IM服务的应用Id    
   live_im:
     app_id: TY3****

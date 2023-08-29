@@ -1028,6 +1028,14 @@ export interface IAppConfig {
      * 默认白板的显示名。设置显示名仅在当前客户端有效，不会影响其他客户端
      */
     defaultBoardName: string
+    /*
+     * 导入白板时，是否显示顶部进度条
+     */
+    showImportProgress: boolean
+    /**
+     * 页面切换到背景时，白板推流的刷新 interval。默认为 200(ms)
+     */
+    workerTimerInterval: number
 }
 
 export interface IBoardInfos {
@@ -1133,23 +1141,36 @@ export interface IShowToastOption {
     * *************课件上传转码Toast*********************
     * *************************************************
     * FILE_IS_EMPTY: 选择的文件为空
+    * 
     * FILE_SIZE_EXCEED_LIMIT: 文件大小超过限制
+    * 
     * FILE_ACCEPTED_TYPE_LIMIT: 文件类型不匹配
+    * 
     * FILE_UPLOAD_FAIL: 文件上传失败
+    * 
     * FILE_IS_UPLOADING: 文件正在上传中
+    * 
     * FILE_TRANSCODE_SUCCEED: 文件转码成功
+    * 
     * FILE_TRANSCODE_FAIL: 文件转码失败
     * 
     * *************************************************
     * *************多媒体文件上传Toast********************
     * *************************************************
     * VIDEO_UPLOAD_FAIL: 视频上传失败
+    * 
     * AUDIO_UPLOAD_FAIL: 音频上传失败
+    * 
     * VIDEO_TYPE_NOT_ALLOWED: 视频类型不允许
+    * 
     * AUDIO_TYPE_NOT_ALLOWED: 音频类型不允许
+    * 
     * PIC_UPLOAD_FAIL: 图片上传失败
+    * 
     * ONE_MEDIA_LIMIT: 同一页面只允许一个音视频资源
+    * 
     * PASTE_IMG_UPLOAD_ERROR: 黏贴图片上传失败
+    * 
     * PASTE_IMG_UPLOAD_WAIT: 黏贴图片上传等待中
     * 
     * 

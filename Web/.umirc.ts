@@ -22,6 +22,20 @@ export default defineConfig({
         projectName: '', // sls 的工程名称
         logstore: '', // sls 的 logstore
       },
+      // IM 服务配置
+      imServer: {
+        // 请先开通阿里云互动消息服务，https://help.aliyun.com/zh/live/user-guide/interactive-messaging-overview?spm=a2c4g.11186623.0.0
+        aliyun: {
+          enable: true, // 是否开启
+          primary: true, // 是否是首选
+        },
+        // 请先开通融云 IM 服务，https://www.rongcloud.cn/product/im?_sasdk=fMjQ4ODE3
+        rongCloud: {
+          enable: false,
+          primary: false,
+          appKey: '', // 融云 SDK 的 AppKey，从控制台上获取
+        }
+      },
     },
   },
   mfsu: true,

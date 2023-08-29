@@ -1,42 +1,94 @@
 import { v4 as uuidv4 } from 'uuid';
-import Interaction from "./Interaction";
-import { AUIMessageConfig, AUIMessageUserInfo, InteractionMessageTypes, AUIMessageEvents, IMessageOptions, IMuteGroupReqModel, IGetMuteInfoRspModel, IListMessageReqModel, IListMessageRspModel } from './types';
+import Interaction from './Interaction';
+import RongIM from './RongIM';
+import {
+  AUIMessageConfig,
+  AUIMessageUserInfo,
+  InteractionMessageTypes,
+  AUIMessageEvents,
+  IMessageOptions,
+  IMuteGroupReqModel,
+  IGetMuteInfoRspModel,
+  IListMessageReqModel,
+  IListMessageRspModel,
+} from './types';
 import EventBus from './utils/EventBus';
 
-enum ServiceTypes {
-  Interaction = 'interaction',
-  Rong = 'rong',
-}
-type ServiceType = `${ServiceTypes}`;
-
-interface ServiceProps {
-  type: ServiceType,
-  options?: any; // 预留字段
+interface IMServerProps {
+  aliyun?: {
+    enable: boolean; // 是否开启阿里云互动消息服务
+    primary?: boolean; // 是否是主消息服务
+  };
+  rongCloud?: {
+    enable: boolean; // 是否开启融云互动消息服务
+    appKey: string; // 融云的AppKey，用于初始化
+    primary?: boolean; // 是否是主消息服务
+  };
 }
 
 class AUIMessage extends EventBus {
   private interaction?: Interaction;
-  private instances: (Interaction)[];
+  private rongIM?: RongIM;
+  private primaryIns?: Interaction | RongIM;
+  private instances: (Interaction | RongIM)[];
   private config?: AUIMessageConfig;
-  private userInfo?: AUIMessageUserInfo
+  private userInfo?: AUIMessageUserInfo;
+  private sidSet = new Set<string>();
+  private groupMuted = false;
   public isLogin = false; // 是否已登录
 
-  constructor(serviceList: ServiceProps[]) {
+  constructor(serverProps: IMServerProps) {
     super();
-    const instances: (Interaction)[] = [];
-    serviceList.forEach((item) => {
-      if (item.type === ServiceTypes.Interaction) {
-        this.interaction = new Interaction();
-        this.interaction.addListener('event', this.handleInteractionMessage.bind(this));
-        instances.push(this.interaction);
+    const instances: (Interaction | RongIM)[] = [];
+    if (serverProps.aliyun && serverProps.aliyun.enable) {
+      this.interaction = new Interaction();
+      this.interaction.addListener(
+        'event',
+        this.handleInteractionMessage.bind(this)
+      );
+      instances.push(this.interaction);
+      if (serverProps.aliyun.primary) {
+        this.primaryIns = this.interaction;
       }
-    });
+    }
+    if (
+      serverProps.rongCloud &&
+      serverProps.rongCloud.enable &&
+      serverProps.rongCloud.appKey
+    ) {
+      // 初始化
+      this.rongIM = new RongIM(serverProps.rongCloud.appKey);
+      this.rongIM.addListener(
+        'event',
+        this.handleInteractionMessage.bind(this),
+      );
+      if (serverProps.rongCloud.primary) {
+        this.primaryIns = this.rongIM;
+        instances.unshift(this.rongIM);
+      } else {
+        instances.push(this.rongIM);
+      }
+    }
     this.instances = instances;
+    if (!this.primaryIns) {
+      this.primaryIns = this.interaction || this.rongIM;
+    }
+  }
+
+  get rongCloundIM() {
+    return this.rongIM;
   }
 
   private handleInteractionMessage(eventData: any) {
-    console.log('收到互动信息', eventData);
+    console.log('收到信息', eventData);
     const { type, data, messageId } = eventData || {};
+    const { sid } = data || {};
+    if (sid) {
+      if (this.sidSet.has(sid)) {
+        return;
+      }
+      this.sidSet.add(sid);
+    }
 
     switch (type) {
       case InteractionMessageTypes.PaaSUserJoin:
@@ -46,10 +98,24 @@ class AUIMessage extends EventBus {
         this.emit(AUIMessageEvents.onLeaveGroup, eventData);
         break;
       case InteractionMessageTypes.PaaSMuteGroup:
+        if (this.groupMuted) {
+          return;
+        }
+        this.groupMuted = true;
         this.emit(AUIMessageEvents.onMuteGroup, eventData);
         break;
       case InteractionMessageTypes.PaaSCancelMuteGroup:
+        if (!this.groupMuted) {
+          return;
+        }
+        this.groupMuted = false;
         this.emit(AUIMessageEvents.onUnmuteGroup, eventData);
+        break;
+      case InteractionMessageTypes.PaaSMuteUser:
+        this.emit(AUIMessageEvents.onMuteUser, eventData);
+        break;
+      case InteractionMessageTypes.PaaSCancelMuteUser:
+        this.emit(AUIMessageEvents.onUnmuteUser, eventData);
         break;
       default:
         this.emit(AUIMessageEvents.onMessageReceived, eventData);
@@ -59,100 +125,133 @@ class AUIMessage extends EventBus {
 
   setConfig(config: AUIMessageConfig) {
     this.config = config;
+    this.instances.forEach(ins => ins.setConfig(config));
   }
 
   login(userInfo: AUIMessageUserInfo) {
-    return new Promise((resolve, reject) => {
-      if (!this.config || !this.config.token) {
-        reject('please set config first');
-        return;
-      }
-      this.userInfo = userInfo;
-      const { token } = this.config;
-      if (this.interaction) {
-        this.interaction.engine.auth(token).then((res) => {
-          this.isLogin = true;
-          resolve(res);
-        }).catch((err) => {
-          reject(err);
+    if (!this.config) {
+      return Promise.reject({
+        code: -1,
+        message: 'please set config first',
+      });
+    }
+
+    return new Promise<void>((resolve, reject) => {
+      const list = this.instances.map(ins => ins.login(userInfo));
+      Promise.all(list)
+        .then(() => {
+          resolve();
         })
-      }
+        .catch(err => {
+          reject(err);
+        });
     });
   }
 
   logout() {
     return new Promise<void>((resolve, reject) => {
-      const list = this.instances.map((ins) => ins.engine.logout());
-      Promise.all(list).then(() => {
-        resolve();
-      }).catch((err) => {
-        reject(err);
-      });
+      const list = this.instances.map(ins => ins.logout());
+      Promise.all(list)
+        .then(() => {
+          resolve();
+        })
+        .catch(err => {
+          reject(err);
+        });
     });
   }
 
-  joinGroup(groupId: string) {
+  joinGroup(groupId?: string, rongId?: string) {
     return new Promise<void>((resolve, reject) => {
-      const list = this.instances.map((ins) => ins.engine.joinGroup({
-        groupId,
-        userNick: this.userInfo?.userNick,
-        userAvatar: this.userInfo?.userAvatar,
-        broadCastStatistics: true,
-        broadCastType: 2,
-      }));
-      Promise.any(list).then(() => {
-        resolve();
-      }).catch((err) => {
-        reject(err);
-      });
+      const list = [];
+      if (this.interaction && groupId) {
+        const p1 = this.interaction.joinGroup(groupId);
+        list.push(p1);
+      }
+      if (this.rongIM && rongId) {
+        const p2 = this.rongIM.joinGroup(rongId);
+        list.push(p2);
+      }
+      Promise.all(list)
+        .then(() => {
+          resolve();
+        })
+        .catch(err => {
+          reject(err);
+        });
     });
   }
 
-  leaveGroup(groupId: string) {
+  leaveGroup() {
     return new Promise<void>((resolve, reject) => {
-      const list = this.instances.map((ins) => ins.engine.leaveGroup({ groupId }));
-      Promise.all(list).then(() => {
-        resolve();
-      }).catch((err) => {
-        reject(err);
-      });
+      const list = this.instances.map(ins => ins.leaveGroup());
+      Promise.all(list)
+        .then(() => {
+          resolve();
+        })
+        .catch(err => {
+          reject(err);
+        });
     });
   }
 
-  muteGroup(options: IMuteGroupReqModel) {
+  muteGroup() {
     return new Promise<void>((resolve, reject) => {
-      const list = this.instances.map((ins) => ins.muteGroup(options));
-      Promise.any(list).then(() => {
-        resolve();
-      }).catch((err) => {
-        reject(err);
-      });
+      const list = this.instances.map(ins => ins.muteGroup());
+      Promise.any(list)
+        .then(() => {
+          resolve();
+        })
+        .catch(err => {
+          reject(err);
+        });
     });
   }
 
-  cancelMuteGroup(options: IMuteGroupReqModel) {
+  cancelMuteGroup() {
     return new Promise<void>((resolve, reject) => {
-      const list = this.instances.map((ins) => ins.cancelMuteGroup(options));
-      Promise.any(list).then(() => {
-        resolve();
-      }).catch((err) => {
-        reject(err);
-      });
+      const list = this.instances.map(ins => ins.cancelMuteGroup());
+      Promise.any(list)
+        .then(() => {
+          resolve();
+        })
+        .catch(err => {
+          reject(err);
+        });
     });
   }
 
-  getMuteInfo(groupId: string): Promise<IGetMuteInfoRspModel> {
-    return new Promise<IGetMuteInfoRspModel>((resolve, reject) => {
-      const list = this.instances.map((ins) => ins.getMuteInfo({
-        groupId,
-        userId: this.userInfo?.userId || '',
-      }));
-      Promise.any(list).then((res) => {
-        resolve(res);
-      }).catch((err) => {
-        reject(err);
-      });
+  muteUser(userId: string) {
+    return new Promise<void>((resolve, reject) => {
+      const list = this.instances.map(ins => ins.muteUser(userId));
+      Promise.any(list)
+        .then(() => {
+          resolve();
+        })
+        .catch(err => {
+          reject(err);
+        });
     });
+  }
+
+  cancelMuteUser(userId: string) {
+    return new Promise<void>((resolve, reject) => {
+      const list = this.instances.map(ins => ins.cancelMuteUser(userId));
+      Promise.any(list)
+        .then(() => {
+          resolve();
+        })
+        .catch(err => {
+          reject(err);
+        });
+    });
+  }
+
+  queryMuteGroup(): Promise<any> {
+    if (!this.primaryIns) {
+      throw new Error('primary im server is empty');
+    }
+    return this.primaryIns.queryMuteGroup();
   }
 
   sendMessageToGroup(options: IMessageOptions) {
@@ -162,25 +261,22 @@ class AUIMessage extends EventBus {
         ...(options.data || {}),
         sid,
       };
-      const list = this.instances.map((ins) => ins.sendMessageToGroup(options));
-      Promise.any(list).then(() => {
-        // 有一个发送成功都算成功
-        resolve();
-      }).catch((err) => {
-        reject(err);
-      });
+      const list = this.instances.map(ins => ins.sendMessageToGroup(options));
+      Promise.any(list)
+        .then(() => {
+          resolve();
+        })
+        .catch(err => {
+          reject(err);
+        });
     });
   }
 
-  listMessage(options: IListMessageReqModel) {
-    return new Promise<IListMessageRspModel>((resolve, reject) => {
-      const list = this.instances.map((ins) => ins.listMessage(options));
-      Promise.any(list).then((res) => {
-        resolve(res);
-      }).catch((err) => {
-        reject(err);
-      });
-    });
+  listMessage(type: number) {
+    if (!this.primaryIns) {
+      throw new Error('primary im server is empty');
+    }
+    return this.primaryIns.listMessage(type);
   }
 }
 

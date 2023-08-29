@@ -57,14 +57,21 @@ public class RoomInfoDto {
      */
     private Long status;
     /**
-     * 直播模式 0-普通直播, 1-连麦直播，2-PK直播
+     * 直播模式 0-公开课 1-大班 2-小班
      */
     private Long mode;
+
     /**
-     * 群组Id
+     * 融云id
      */
-    @JsonProperty("chat_id")
-    private String chatId;
+    @JsonProperty("rong_cloud_id")
+    private String rongCloudId;
+
+    /**
+     * 阿里云id
+     */
+    @JsonProperty("aliyun_id")
+    private String aliyunId;
 
     /**
      * 直播公告
@@ -120,6 +127,10 @@ public class RoomInfoDto {
 
     @JsonProperty("link_info")
     private LinkInfo linkInfo;
+
+    @JsonProperty("shadow_link_info")
+    private LinkInfo linkShadowInfo;
+
     @JsonProperty("metrics")
     private Metrics metrics;
 

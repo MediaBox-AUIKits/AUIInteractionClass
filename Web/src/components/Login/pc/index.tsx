@@ -18,6 +18,10 @@ const ModeOptions = [
     value: ClassroomModeEnum.Open,
     label: '公开课',
   },
+  {
+    value: ClassroomModeEnum.Big,
+    label: '大班课',
+  },
 ];
 
 const PCLogin = (props: LoginProps) => {

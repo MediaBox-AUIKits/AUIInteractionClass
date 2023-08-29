@@ -25,8 +25,8 @@ public class DocServiceImpl extends ServiceImpl<CoursewareInfoDao, DocEntity>  i
     @Override
     public DocResponse addDoc(DocAddRequest docCreateRequest) {
 
-        QueryWrapper <DocEntity> QR = new QueryWrapper();
-        DocEntity doc = getOne(QR.eq("class_id", docCreateRequest.getClassId()).eq("doc_id", docCreateRequest.getDocId()).last("limit 1"));;
+        QueryWrapper <DocEntity> QR = new QueryWrapper<>();
+        DocEntity doc = getOne(QR.eq("class_id", docCreateRequest.getClassId()).eq("doc_id", docCreateRequest.getDocId()).last("limit 1"));
         if (doc != null) {
             return null;
         }
@@ -81,13 +81,12 @@ public class DocServiceImpl extends ServiceImpl<CoursewareInfoDao, DocEntity>  i
 
         List<DocsInfo> docsInfoList = new ArrayList<>();
         for (DocsInfo docsInfo: docsAddRequest.getDocInfo()) {
-
-            QueryWrapper <DocEntity> QR = new QueryWrapper();
-            DocEntity docs = getOne(QR.eq("class_id", docsAddRequest.getClassId()).eq("doc_id", docsInfo.getDocId()).last("limit 1"));
-
-            if (docs != null) {
+            QueryWrapper<DocEntity> QR = new QueryWrapper<>();
+            DocEntity doc = getOne(QR.eq("class_id", docsAddRequest.getClassId()).eq("doc_id", docsInfo.getDocId()).last("limit 1"));
+            if (doc != null) {
                 continue;
             }
+
             DocEntity entity = DocEntity.builder()
                     .classId(docsAddRequest.getClassId())
                     .docId(docsInfo.getDocId())
@@ -132,7 +131,7 @@ public class DocServiceImpl extends ServiceImpl<CoursewareInfoDao, DocEntity>  i
     public String setServerType(long type) {
         switch ((int) type) {
             case 0:
-                return "网易";
+                return "阿里云";
             case 1:
                 return "融云";
         }

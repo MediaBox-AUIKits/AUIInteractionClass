@@ -57,3 +57,31 @@ export function convertToCamel(data: any): any {
   }
   return newObj;
 }
+
+/**
+ * 驼峰转下划线
+ * @param {*} data
+ * @return {*}
+ */
+export function convertToUnderline(data: any): any {
+  if (typeof data !== 'object' || !data) return data
+
+  if (Array.isArray(data)) {
+    return data.map(item => convertToUnderline(item));
+  }
+
+  let newObj: BasicMap<any> = {};
+  for (const key in data) {
+    if (Object.prototype.hasOwnProperty.call(data, key)) {
+      let newKey = key.replace(/[A-Z]/g, (match) => {
+        return '_' + match.toLowerCase();
+      });
+      // 如果首字母是大写，执行replace时会多一个_，这里需要去掉
+      if (newKey[0] === '_') {
+        newKey = newKey.slice(1);
+      }
+      newObj[newKey] = convertToUnderline(data[key]);
+    }
+  }
+  return newObj;
+}

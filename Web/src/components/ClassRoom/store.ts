@@ -11,6 +11,9 @@ import {
   StreamSize,
   IDisplayState,
   IBoard,
+  ILocalMedia,
+  ILocalMediaSource,
+  ISpectatorInfo,
 } from './types';
 
 const DEFAULT_SIZE = { width: 1280, height: 720 };
@@ -20,7 +23,8 @@ export const defaultClassroomInfo: IClassroomInfo = {
   boards: '{}',
   teacherId: '',
   teacherNick: '',
-  chatId: '',
+  aliyunId: '',
+  rongCloudId: '',
   createdAt: '',
   extends: '',
   mode: ClassroomModeEnum.Open,
@@ -38,6 +42,24 @@ export const defaultClassroomInfo: IClassroomInfo = {
       rtmpUrl: '',
       hlsUrl: '',
       rtsUrl: '',
+      flvScreenUrl: '',
+      hlsScreenUrl: '',
+      rtmpScreenUrl: '',
+      rtsScreenUrl: '',
+    },
+  },
+  shadowLinkInfo: {
+    rtcPullUrl: '',
+    rtcPushUrl: '',
+    cdnPullInfo: {
+      flvUrl: '',
+      rtmpUrl: '',
+      hlsUrl: '',
+      rtsUrl: '',
+      flvScreenUrl: '',
+      hlsScreenUrl: '',
+      rtmpScreenUrl: '',
+      rtsScreenUrl: '',
     },
   },
 };
@@ -56,14 +78,20 @@ export const defaultClassroomState: IClassroomState = {
   pusher: { pushing: false, executing: false, interrupted: false },
   // 白板
   board: {},
+  localMedia: {
+    sources: [],
+  },
+  // 连麦用户列表
+  connectedSpectators: [],
 };
 
 const useClassroomStore = create(
-  subscribeWithSelector<IClassroomState & ClassroomActions>((set) => ({
+  subscribeWithSelector<IClassroomState & ClassroomActions>(set => ({
     ...defaultClassroomState,
-    reset: () => set(() => ({
-      ...defaultClassroomState,
-    })),
+    reset: () =>
+      set(() => ({
+        ...defaultClassroomState,
+      })),
 
     setClassroomInfo: (info: IClassroomInfo) =>
       set(
@@ -110,45 +138,45 @@ const useClassroomStore = create(
     // pusher
     setMicrophoneEnable: (enable: boolean, fromInit = false) =>
       set(
-        produce<IClassroomState>((state) => {
+        produce<IClassroomState>(state => {
           state.microphone.enable = enable;
           state.microphone.fromInit = fromInit;
         })
       ),
     setMicrophoneDeviceCount: (count: number) =>
       set(
-        produce<IClassroomState>((state) => {
+        produce<IClassroomState>(state => {
           state.microphone.deviceCount = count;
         })
       ),
     setMicrophoneDevice: (deviceId: string) =>
       set(
-        produce<IClassroomState>((state) => {
+        produce<IClassroomState>(state => {
           state.microphone.deviceId = deviceId;
         })
       ),
     setMicrophoneTrackId: (trackId: string) =>
       set(
-        produce<IClassroomState>((state) => {
+        produce<IClassroomState>(state => {
           state.microphone.trackId = trackId;
         })
       ),
     setCameraEnable: (enable: boolean, fromInit = false) =>
       set(
-        produce<IClassroomState>((state) => {
+        produce<IClassroomState>(state => {
           state.camera.enable = enable;
           state.camera.fromInit = fromInit;
         })
       ),
     setCameraDeviceCount: (count: number) =>
       set(
-        produce<IClassroomState>((state) => {
+        produce<IClassroomState>(state => {
           state.camera.deviceCount = count;
         })
       ),
     setCameraDevice: (deviceId: string) =>
       set(
-        produce<IClassroomState>((state) => {
+        produce<IClassroomState>(state => {
           if (state.camera.deviceId !== deviceId) {
             state.camera.size = DEFAULT_SIZE;
             state.camera.deviceId = deviceId;
@@ -157,71 +185,93 @@ const useClassroomStore = create(
       ),
     setCameraTrackId: (trackId: string) =>
       set(
-        produce<IClassroomState>((state) => {
+        produce<IClassroomState>(state => {
           state.camera.trackId = trackId;
         })
       ),
     setDisplayEnable: (enable: boolean) =>
       set(
-        produce<IClassroomState>((state) => {
+        produce<IClassroomState>(state => {
           state.display.enable = enable;
         })
       ),
     setDisplayDevice: (deviceId: string) =>
       set(
-        produce<IClassroomState>((state) => {
+        produce<IClassroomState>(state => {
           state.display.deviceId = deviceId;
         })
       ),
     setDisplayState: (displayState: IDisplayState) =>
       set(
-        produce<IClassroomState>((state) => {
+        produce<IClassroomState>(state => {
           const newData = {
             ...state.display,
             ...displayState,
-          }
+          };
           state.display = newData;
         })
       ),
-    setDisplayTrackId: (
-      trackId: string,
-      size?: StreamSize
-    ) =>
+    setDisplayTrackId: (trackId: string, size?: StreamSize) =>
       set(
-        produce<IClassroomState>((state) => {
+        produce<IClassroomState>(state => {
           state.display.trackId = trackId;
           state.display.size = size || DEFAULT_SIZE;
         })
       ),
     setPushing: (pushing: boolean, interrupted = false) =>
       set(
-        produce<IClassroomState>((state) => {
+        produce<IClassroomState>(state => {
           state.pusher.pushing = pushing;
           state.pusher.interrupted = interrupted;
         })
       ),
     setPusherInterrupted: (interrupted = false) =>
       set(
-        produce<IClassroomState>((state) => {
+        produce<IClassroomState>(state => {
           state.pusher.interrupted = interrupted;
         })
       ),
     setPusherExecuting: (bool: boolean) =>
       set(
-        produce<IClassroomState>((state) => {
+        produce<IClassroomState>(state => {
           state.pusher.executing = bool;
         })
       ),
     setPusherTime: (time: Date) =>
       set(
-        produce<IClassroomState>((state) => {
+        produce<IClassroomState>(state => {
           state.pusher.startTime = time;
         })
       ),
     setBoard: (info: IBoard) =>
       set(
-        produce<IClassroomState>((state) => {
+        produce<IClassroomState>(state => {
           state.board = info;
+        })
+      ),
+    setLocalMeida: (info: ILocalMedia) =>
+      set(
+        produce<IClassroomState>(state => {
+          state.localMedia = info;
+        })
+      ),
+    setLocalMeidaStream: (stream?: MediaStream) =>
+      set(
+        produce<IClassroomState>(state => {
+          state.localMedia.mediaStream = stream;
+        })
+      ),
+    setLocalMeidaSources: (sources: ILocalMediaSource[]) =>
+      set(
+        produce<IClassroomState>(state => {
+          state.localMedia.sources = sources;
+        })
+      ),
+    // 连麦用户，包含老师、学生
+    setConnectedSpectators: (arr: ISpectatorInfo[]) =>
+      set(
+        produce<IClassroomState>((state) => {
+          state.connectedSpectators = arr;
         })
       ),
   }))

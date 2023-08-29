@@ -4,13 +4,22 @@ import styles from './index.less';
 
 export interface IEmptyBlock {
   text?: string;
-  className: string;
+  center?: boolean;
+  className?: string;
 }
 
 const EmptyBlock: React.FC<IEmptyBlock> = props => {
-  const { text, className } = props;
+  const { text, center, className } = props;
   return (
-    <div className={classNames(styles['empty-block'], className)}>
+    <div
+      className={classNames(
+        styles['empty-block'],
+        {
+          [styles.center]: center,
+        },
+        className
+      )}
+    >
       {text || '暂无内容'}
     </div>
   );

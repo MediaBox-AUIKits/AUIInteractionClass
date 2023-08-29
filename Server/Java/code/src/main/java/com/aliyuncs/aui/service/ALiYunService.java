@@ -10,7 +10,7 @@ import com.aliyuncs.aui.dto.res.RoomInfoDto;
 /**
  * 视频云服务
  */
-public interface VideoCloudService {
+public interface ALiYunService {
 
     /**
     * 获取Im的Token。见文档：https://help.aliyun.com/document_detail/465127.html
@@ -32,7 +32,7 @@ public interface VideoCloudService {
     /**
      * 获取拉流地址。见文档：https://help.aliyun.com/document_detail/199339.html
      */
-    PullLiveInfo getPullLiveInfo(String streamName);
+    PullLiveInfo getPullLiveInfo(String streamName, String screenStreamName);
 
 
     /**

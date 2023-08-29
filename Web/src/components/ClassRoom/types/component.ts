@@ -1,16 +1,16 @@
-import { UserRoleEnum, IClassroomInfo } from './classroom';
-
-export interface IUserInfo {
-  userId: string;
-  userName: string;
-  userAvatar?: string;
-}
+import { UserRoleEnum, IClassroomInfo, IUserInfo, ISpectatorInfo } from './classroom';
 
 export interface IClassroomServices {
   fetchClassroomInfo: () => Promise<IClassroomInfo>;
-  fetchIMToken: () => Promise<string>;
+  fetchIMToken: (imServer: string[]) => Promise<{
+    aliyunAccessToken?: string;
+    rongCloudToken?: string;
+    rongCloudAppKey?: string;
+  }>;
   startClass: () => Promise<IClassroomInfo>;
   stopClass: () => Promise<void>;
+  updateMeetingInfo: (list: ISpectatorInfo[]) => Promise<any>;
+  getMeetingInfo: () => Promise<ISpectatorInfo[]>;
   getWhiteboardAuthInfo: () => Promise<{
     nonce: string,
     checksum: string,
@@ -23,6 +23,11 @@ export interface IClassroomServices {
     data: string;
   }[]) => Promise<any>;
   deleteDocs: (docIds: string) => Promise<any>;
+  isMuteChatroom: (chatroomId: string, serverType: string) => Promise<{ result: boolean }>;
+  muteChatroom: (chatroomId: string, serverType: string) => Promise<{ result: boolean }>;
+  cancelMuteChatroom: (chatroomId: string, serverType: string) => Promise<{ result: boolean }>;
+  muteUser: (chatroomId: string, userId: string, minute: number, serverType: string) => Promise<{ result: boolean }>
+  cancelMuteUser: (chatroomId: string, userId: string, serverType: string) => Promise<{ result: boolean }>;
 }
 
 export interface IClassRoomProps {

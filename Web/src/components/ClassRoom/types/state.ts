@@ -1,4 +1,4 @@
-import { IClassroomInfo } from './classroom';
+import { IClassroomInfo, ISpectatorInfo } from './classroom';
 
 interface MicrophoneState {
   enable: boolean;
@@ -41,6 +41,7 @@ export interface IDisplayState {
 export interface CommentMessage {
   messageId?: string;
   nickName?: string;
+  userId: string;
   content: string;
   isSelf?: boolean; // 是否是自己发的
   isTeacher?: boolean; // 是否是老师发的
@@ -49,6 +50,16 @@ export interface CommentMessage {
 export interface IBoard {
   server?: string; // 白板服务提供商
   mediaStream?: MediaStream; // 白板画面流
+}
+
+export interface ILocalMediaSource {
+  source: string;
+  name: string;
+}
+
+export interface ILocalMedia {
+  sources: ILocalMediaSource[];
+  mediaStream?: MediaStream; // 本地媒体文件的媒体流
 }
 
 export interface IClassroomState {
@@ -67,6 +78,10 @@ export interface IClassroomState {
   display: IDisplayState;
   pusher: Pusher;
   board: IBoard;
+  localMedia: ILocalMedia;
+
+  // 连麦相关
+  connectedSpectators: ISpectatorInfo[]; // 连麦观众数组
 }
 
 export interface ClassroomActions {
@@ -99,4 +114,9 @@ export interface ClassroomActions {
   setPusherTime: (time: Date) => void;
 
   setBoard: (info: IBoard) => void;
+  setLocalMeida: (info: ILocalMedia) => void;
+  setLocalMeidaStream: (stream?: MediaStream) => void;
+  setLocalMeidaSources: (sources: ILocalMediaSource[]) => void;
+
+  setConnectedSpectators: (arr: ISpectatorInfo[]) => void;
 }

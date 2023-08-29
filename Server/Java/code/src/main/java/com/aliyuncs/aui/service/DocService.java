@@ -1,7 +1,5 @@
 package com.aliyuncs.aui.service;
 
-
-import com.alibaba.fastjson.JSONObject;
 import com.aliyuncs.aui.dto.req.*;
 import com.aliyuncs.aui.dto.res.DocResponse;
 import com.aliyuncs.aui.dto.res.DocsAddResponse;

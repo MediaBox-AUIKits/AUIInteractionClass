@@ -1,10 +1,10 @@
-import React, { useMemo, useEffect, useCallback } from 'react';
-import { message } from 'antd';
+import React, { useMemo, useEffect, useCallback, useState } from 'react';
+import { message, Popover } from 'antd';
 import classNames from 'classnames';
 import useClassroomStore from '../../store';
 import livePush from '../../utils/LivePush';
 import logger from '../../utils/Logger';
-import { ScreenShareSvg } from '../../components/icons';
+import { ScreenShareSvg, ScreenShareDisableSvg } from '../../components/icons';
 import styles from './index.less';
 
 const ScreenShare: React.FC = () => {
@@ -13,6 +13,10 @@ const ScreenShare: React.FC = () => {
   }, []);
   const { setDisplayEnable } = useClassroomStore.getState();
   const { enable } = useClassroomStore(state => state.display);
+  const localPreviewing = useClassroomStore(
+    state => state.localMedia.sources.length !== 0
+  );
+  const [tipOpen, setTipOpen] = useState(false);
 
   useEffect(() => {
     const handler = () => {
@@ -29,6 +33,9 @@ const ScreenShare: React.FC = () => {
   }, [livePusher, setDisplayEnable]);
 
   const toggleScreenShare = useCallback(() => {
+    if (localPreviewing) {
+      return;
+    }
     if (enable) {
       logger.stopScreen();
       livePusher
@@ -58,22 +65,31 @@ const ScreenShare: React.FC = () => {
           console.log('屏幕分享失败', err);
         });
     }
-  }, [livePusher, enable]);
+  }, [livePusher, enable, localPreviewing]);
 
   return (
-    <div className={styles['button-wrapper']}>
-      <div
-        className={classNames(styles.button, {
-          [styles.active]: enable,
-        })}
-        onClick={toggleScreenShare}
-      >
-        <ScreenShareSvg />
-        <div className={styles['button-text']}>
-          {enable ? '结束共享' : '共享屏幕'}
+    <Popover
+      content="关闭音视频画面后可恢复使用"
+      open={tipOpen}
+      onOpenChange={bool => {
+        setTipOpen(localPreviewing ? bool : false);
+      }}
+    >
+      <div className={styles['button-wrapper']}>
+        <div
+          className={classNames(styles.button, {
+            [styles.active]: enable,
+            [styles.disabled]: localPreviewing,
+          })}
+          onClick={toggleScreenShare}
+        >
+          {localPreviewing ? <ScreenShareDisableSvg /> : <ScreenShareSvg />}
+          <div className={styles['button-text']}>
+            {enable ? '结束共享' : '共享屏幕'}
+          </div>
         </div>
       </div>
-    </div>
+    </Popover>
   );
 };
 

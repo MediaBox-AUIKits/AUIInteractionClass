@@ -1,8 +1,8 @@
 // 配置参考：https://help.aliyun.com/document_detail/125572.htm
 export interface PlayerParams {
   // AliPlayer参数
-  rtsFallbackSource?: string;
   id?: string;
+  rtsFallbackSource?: string;
   source?: string;
   playauth?: string;
   width?: string;
@@ -45,6 +45,8 @@ export interface PlayerParams {
   liveRetry?: number;
   keyShortCuts?: boolean;
   keyFastForwardStep?: number;
+  components?: Array<any>;
+  onRtsFallback?: () => void;
 }
 
 interface progressMarker {

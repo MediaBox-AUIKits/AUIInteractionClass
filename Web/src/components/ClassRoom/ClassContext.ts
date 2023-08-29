@@ -10,8 +10,6 @@ type ClassContextType = {
 };
 
 export const ClassContext = React.createContext<ClassContextType>({
-  auiMessage: new AUIMessage([{
-    type: 'interaction'
-  }]),
+  auiMessage: new AUIMessage(CONFIG.imServer),
   exit: () => { },
 });

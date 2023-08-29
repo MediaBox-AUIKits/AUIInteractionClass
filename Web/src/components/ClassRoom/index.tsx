@@ -41,71 +41,82 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
     setGroupMuted,
     setSelfMuted,
     setCommentInput,
+    setConnectedSpectators,
   } = useClassroomStore.getState();
   const { auiMessage } = useContext(ClassContext);
   const [initing, setIniting] = useState(false);
 
-  const initMessageList = useCallback(
-    (groupId: string) => {
-      auiMessage
-        .listMessage({
-          groupId,
-          type: CustomMessageTypes.Comment,
-          sortType: 0,
-          pageNum: 1,
-          pageSize: 20,
-        })
-        .then(res => {
-          let list: any[] = [];
-          if (res.messageList) {
-            list = res.messageList.map(item => {
-              const { messageId, senderId, userInfo: senderInfo } = item;
-              const nickName = senderInfo?.userNick || senderId;
-              let data: any = {};
-              try {
-                data = JSON.parse(item.data || '{}');
-              } catch (error) {
-                console.log(error);
-              }
-              const { classroomInfo } = useClassroomStore.getState();
-              return {
-                content: data.content || '',
-                nickName,
-                messageId,
-                isSelf: senderId === userInfo.userId,
-                isTeacher: senderId === classroomInfo.teacherId,
-              };
-            });
-          }
-          list = list.reverse();
-          commentListCache.current = list;
-          setMessageList(list);
-        })
-        .catch(err => {
-          console.log('获取失败', err);
-          logger.initMessageListError(err);
-        });
-    },
-    [userInfo]
-  );
+  const initMessageList = useCallback(() => {
+    auiMessage
+      .listMessage(CustomMessageTypes.Comment)
+      .then((res: any) => {
+        let list: any[] = [];
+        if (res.messageList) {
+          list = res.messageList.map((item: any) => {
+            const { messageId, senderId, userInfo: senderInfo } = item;
+            const nickName = senderInfo?.userNick || senderId;
+            let data: any = {};
+            try {
+              data = JSON.parse(item.data || '{}');
+            } catch (error) {
+              console.log(error);
+            }
+            const { classroomInfo } = useClassroomStore.getState();
+            return {
+              content: data.content || '',
+              nickName,
+              messageId,
+              userId: senderId,
+              isSelf: senderId === userInfo.userId,
+              isTeacher: senderId === classroomInfo.teacherId,
+            };
+          });
+        }
+        list = list.reverse();
+        commentListCache.current = list;
+        setMessageList(list);
+      })
+      .catch((err: any) => {
+        console.log('获取失败', err);
+        logger.initMessageListError(err);
+      });
+  }, [userInfo]);
 
-  const initAUIMessage = async (groupId: string) => {
-    const token = await services.fetchIMToken();
-    auiMessage.setConfig({ token });
+  const initAUIMessage = async (aliyunGroupId?: string, rongIMId?: string) => {
+    if (!aliyunGroupId && !rongIMId) {
+      throw { code: -1, message: 'IM group id is empty' };
+    }
+    const imServer: string[] = [];
+    if (aliyunGroupId) {
+      imServer.push('aliyun');
+    }
+    if (rongIMId) {
+      imServer.push('rongCloud');
+    }
+    const { aliyunAccessToken, rongCloudToken } = await services.fetchIMToken(
+      imServer
+    );
+    auiMessage.setConfig({ aliyunAccessToken, rongCloudToken });
     await auiMessage.login({
       userId: userInfo.userId,
       userNick: userInfo.userName,
       userAvatar: userInfo.userAvatar || '',
     });
-    await auiMessage.joinGroup(groupId);
-    setJoinedGroupId(groupId);
+    await auiMessage.joinGroup(aliyunGroupId, rongIMId);
+    setJoinedGroupId((aliyunGroupId || rongIMId) as string);
 
-    auiMessage.getMuteInfo(groupId).then(res => {
-      setGroupMuted(res.groupMuted);
-      setSelfMuted(res.selfMuted);
-    });
+    // 若是有融云，则需要设置 http 接口服务
+    auiMessage.rongCloundIM?.setServices(services);
 
-    initMessageList(groupId);
+    auiMessage
+      .queryMuteGroup()
+      .then(res => {
+        setGroupMuted(res.groupMuted);
+        // setSelfMuted(res.selfMuted);
+      })
+      .catch(() => {});
+
+    initMessageList();
   };
 
   const initClassroom = useCallback(() => {
@@ -114,7 +125,17 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
       .fetchClassroomInfo()
       .then(res => {
         setClassroomInfo(res);
-        return initAUIMessage(res.chatId);
+
+        // 获取当前连麦、推流用户信息
+        services
+          .getMeetingInfo()
+          .then(list => {
+            setConnectedSpectators(list);
+          })
+          .catch(() => {});
+
+        // 初始化 IM 消息服务
+        return initAUIMessage(res.aliyunId || res.chatId, res.rongCloudId);
       })
       .catch(err => {
         // 初始化失败
@@ -180,6 +201,30 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
     setClassroomInfo(info);
   }, []);
 
+  const saveMeetingInfo = useCallback(
+    (userId: string, userName: string, data: any) => {
+      const { connectedSpectators, setConnectedSpectators } =
+        useClassroomStore.getState();
+      const list = connectedSpectators.slice();
+      const index = list.findIndex(item => item.userId === userId);
+      if (index !== -1) {
+        const newItem = {
+          ...list[index],
+          ...data,
+        };
+        list.splice(index, 1, newItem);
+      } else {
+        list.push({
+          userId,
+          userName,
+          ...data,
+        });
+      }
+      setConnectedSpectators(list);
+    },
+    []
+  );
+
   const handleReceivedMessage = useCallback(
     (eventData: any) => {
       const {
@@ -200,6 +245,7 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
               content: data.content,
               nickName,
               messageId,
+              userId: senderId,
               isSelf: senderId === userInfo.userId,
               isTeacher: senderId === classroomInfo.teacherId,
             });
@@ -220,6 +266,16 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
             senderId !== userInfo.userId
           ) {
             showInfoMessage(data.micOpened ? '老师已取消静音' : '老师已静音');
+          }
+          break;
+        case CustomMessageTypes.PublishInfoChanged:
+          console.log('PublishInfoChanged ->', data);
+          if (
+            senderId === classroomInfo.teacherId &&
+            senderId !== userInfo.userId
+          ) {
+            // 更新老师的推流信息，后续做连麦时需要调整
+            saveMeetingInfo(senderId, nickName, data);
           }
           break;
         default:
@@ -255,23 +311,30 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
     logger.setReport(report); // 更新日志上报的函数
   }, [report]);
 
+  const leaveGroup = useCallback(() => {
+    const { joinedGroupId, reset } = useClassroomStore.getState();
+    auiMessage.removeAllEvent();
+    if (joinedGroupId) {
+      auiMessage.leaveGroup().finally(() => {
+        auiMessage.logout();
+      });
+    } else {
+      auiMessage.logout();
+    }
+
+    reset();
+  }, []);
+
   useEffect(() => {
     logger.enter(); // 上报进入课堂记录
     listenEvents();
     initClassroom();
 
-    return () => {
-      const { joinedGroupId, reset } = useClassroomStore.getState();
-      auiMessage.removeAllEvent();
-      if (joinedGroupId) {
-        auiMessage.leaveGroup(joinedGroupId).finally(() => {
-          auiMessage.logout();
-        });
-      } else {
-        auiMessage.logout();
-      }
+    window.addEventListener('beforeunload', leaveGroup);
 
-      reset();
+    return () => {
+      window.removeEventListener('beforeunload', leaveGroup);
+      leaveGroup();
     };
   }, []);
 

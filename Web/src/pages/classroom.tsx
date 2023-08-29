@@ -2,7 +2,7 @@ import { useSearchParams, useNavigate } from 'umi';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { message } from 'antd';
 import { Toast } from 'antd-mobile';
-import { UserRoleEnum } from '@/types';
+import { UserRoleEnum, ISpectatorInfo } from '@/types';
 import services from '@/services';
 import ClassRoom from '@/components/ClassRoom';
 import { UA } from '@/utils/common';
@@ -82,9 +82,14 @@ const ClassRoomPage = () => {
     return detail;
   }, [classId, userInfo]);
 
-  const fetchIMToken = async () => {
-    const res: any = await services.getToken();
-    return res.access_token || res.accessToken;
+  const fetchIMToken = async (imServer: string[]) => {
+    const res: any = await services.getToken(imServer);
+    return {
+      aliyunAccessToken:
+        res.aliyun_access_token || res.aliyunAccessToken || res.access_token,
+      rongCloudToken: res.rongCloudToken || res.rong_cloud_token,
+      rongCloudAppKey: CONFIG.imServer.rongCloud.appKey,
+    };
   };
 
   const getWhiteboardAuthInfo = useCallback(() => {
@@ -128,6 +133,17 @@ const ClassRoomPage = () => {
     return services.stopClass(classId);
   }, [classId]);
 
+  const updateMeetingInfo = useCallback(
+    (list: ISpectatorInfo[]) => {
+      return services.updateMeetingInfo(classId, list);
+    },
+    [classId]
+  );
+
+  const getMeetingInfo = useCallback(() => {
+    return services.getMeetingInfo(classId);
+  }, [classId]);
+
   if (!classId) {
     return;
   }
@@ -146,6 +162,13 @@ const ClassRoomPage = () => {
         deleteDocs,
         startClass,
         stopClass,
+        getMeetingInfo,
+        updateMeetingInfo,
+        isMuteChatroom: services.isMuteChatroom.bind(services),
+        muteChatroom: services.muteChatroom.bind(services),
+        cancelMuteChatroom: services.cancelMuteChatroom.bind(services),
+        muteUser: services.muteUser.bind(services),
+        cancelMuteUser: services.cancelMuteUser.bind(services),
       }}
       onExit={onExit}
       report={reportLog}

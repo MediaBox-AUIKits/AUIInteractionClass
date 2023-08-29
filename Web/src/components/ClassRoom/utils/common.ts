@@ -53,7 +53,7 @@ export const getTimeFormat = (current: Date, start: Date) => {
 /**
  * 简单实现格式化日期，若需要使用更复杂的功能，建议使用如 momentjs 等库
  * @param {Date} date
- * @return {string} 
+ * @return {string}
  */
 export function formatDate(date: Date): string {
   if (!(date instanceof Date && !isNaN(date as any))) {
@@ -61,10 +61,12 @@ export function formatDate(date: Date): string {
   }
 
   const padZore = (str: string | number) => {
-    return (`0${str}`).slice(-2);
-  }
+    return `0${str}`.slice(-2);
+  };
 
-  return `${date.getFullYear()}-${padZore(date.getMonth() + 1)}-${padZore(date.getDate())} ${padZore(date.getHours())}:${padZore(date.getMinutes())}`;
+  return `${date.getFullYear()}-${padZore(date.getMonth() + 1)}-${padZore(
+    date.getDate()
+  )} ${padZore(date.getHours())}:${padZore(date.getMinutes())}`;
 }
 
 /**
@@ -88,20 +90,21 @@ export function scrollToBottom(dom: HTMLElement) {
 export function supportSafeArea(side: 'top' | 'bottom'): boolean {
   const div = document.createElement('div');
   const id = 'check-safe-area-block';
-  const styles = [
-    'position: fixed',
-    'z-index: -1',
-  ];
+  const styles = ['position: fixed', 'z-index: -1'];
   if (side === 'top') {
-    styles.push(...[
-      'height: constant(safe-area-inset-top)',
-      'height: env(safe-area-inset-top)',
-    ]);
+    styles.push(
+      ...[
+        'height: constant(safe-area-inset-top)',
+        'height: env(safe-area-inset-top)',
+      ]
+    );
   } else {
-    styles.push(...[
-      'height: constant(safe-area-inset-bottom)',
-      'height: env(safe-area-inset-bottom)',
-    ]);
+    styles.push(
+      ...[
+        'height: constant(safe-area-inset-bottom)',
+        'height: env(safe-area-inset-bottom)',
+      ]
+    );
   }
   div.style.cssText = styles.join(';');
   div.id = id;
@@ -113,7 +116,7 @@ export function supportSafeArea(side: 'top' | 'bottom'): boolean {
     areaDiv.parentNode?.removeChild(areaDiv);
   }
   return bool;
-};
+}
 
 /**
  * 异步加载远程js
@@ -154,7 +157,9 @@ export function loadJS(url: string) {
  * @param deviceList
  * @returns
  */
-export const uniqueDevice = (deviceList: MediaDeviceInfo[]): MediaDeviceInfo[] => {
+export const uniqueDevice = (
+  deviceList: MediaDeviceInfo[]
+): MediaDeviceInfo[] => {
   const tmpGroupIdMap: {
     [key: string]: number;
   } = {};
@@ -183,8 +188,21 @@ export const uniqueDevice = (deviceList: MediaDeviceInfo[]): MediaDeviceInfo[] =
  * 判断是否是合法的 Date
  *
  * @param {*} d
- * @return {boolean} 
+ * @return {boolean}
  */
 export function isValidDate(d: any): boolean {
   return !isNaN(d) && d instanceof Date;
+}
+
+/**
+ * 检测 WebRTC 各项功能支持情况
+ */
+export function checkSystemRequirements(): Promise<{
+  support: boolean;
+  isBrowserSupported?: boolean;
+  isH264DecodeSupported?: boolean;
+  isH264EncodeSupported?: boolean;
+  isWebRTCSupported?: boolean;
+}> {
+  return window.AlivcLivePush.AlivcLivePusher.checkSystemRequirements();
 }

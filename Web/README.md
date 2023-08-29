@@ -33,6 +33,24 @@ reporter: {
 ```
 项目中默认已支持部分关键行为的上报，如需要修改，请至 src -> utils -> Reporter.ts 、src -> Components -> ClassRoom -> utils -> Logger.ts 等文件中修改。
 
+#### 配置 IM 服务
+项目在 CONFIG.imServer 中配置需要使用的 IM 服务，默认使用 [阿里云互动消息服务](https://help.aliyun.com/zh/live/user-guide/interactive-messaging-overview)，若您需要使用 [融云IM服务](https://www.rongcloud.cn/product/im)，请先开通其服务，配置相关参数
+```typescript
+imServer: {
+  // 请先开通阿里云互动消息服务，https://help.aliyun.com/zh/live/user-guide/interactive-messaging-overview?spm=a2c4g.11186623.0.0
+  aliyun: {
+    enable: true, // 是否开启
+    primary: true, // 是否是首选
+  },
+  // 请先开通融云 IM 服务，https://www.rongcloud.cn/product/im?_sasdk=fMjQ4ODE3
+  rongCloud: {
+    enable: false,
+    primary: false,
+    appKey: '', // 融云 SDK 的 AppKey，从控制台上获取
+  }
+},
+```
+
 ### 白板
 目前项目集成了 [网易云信互动白板](https://yunxin.163.com/whiteboard) 服务，您需要开通其服务，且实现 AppServer 中白板相关的接口才能跑通整个流程，相关的 API 文档可以查看其官方文档以及 typings -> netease 文件夹下的定义文件。
 

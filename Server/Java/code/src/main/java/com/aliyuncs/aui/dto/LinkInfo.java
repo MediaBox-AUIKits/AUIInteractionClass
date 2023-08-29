@@ -28,4 +28,9 @@ public class LinkInfo {
     // 普通观众CDN拉流地址
     @JsonProperty("cdn_pull_info")
     private PullLiveInfo cdnPullInfo;
+
+    // shadow 流的拉流地址
+    @JsonProperty("link_info_shadow")
+    private PullLiveInfo cdnPullShadowInfo;
+
 }

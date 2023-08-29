@@ -1,4 +1,5 @@
 import React, {
+  ReactNode,
   useEffect,
   useState,
   useContext,
@@ -12,17 +13,25 @@ import { CustomMessageTypes } from '../types';
 import { AUIMessageEvents } from '@/BaseKits/AUIMessage';
 import styles from './index.less';
 
+export const CameraTabKey = 'camera';
+export const MaterialTabKey = 'material';
 export const IntroTabKey = 'intro';
 export const ChatTabKey = 'chat';
 const TabTextMap: any = {
+  [CameraTabKey]: '摄像头',
+  [MaterialTabKey]: '白板/课件',
   [IntroTabKey]: '简介',
   [ChatTabKey]: '聊天',
 };
 const MaxCount = 99;
 
+interface TabOptions {
+  key: string;
+  before?: ReactNode;
+}
 interface IH5Tabs {
   value: string;
-  tabs: string[];
+  tabs: TabOptions[];
   onChange: (tab: string) => void;
 }
 
@@ -65,7 +74,7 @@ const H5Tabs: React.FC<IH5Tabs> = (props: IH5Tabs) => {
       }
     };
 
-    if (tabs.includes(ChatTabKey) && value !== ChatTabKey) {
+    if (tabs.find(({ key }) => key === ChatTabKey) && value !== ChatTabKey) {
       auiMessage.addListener(AUIMessageEvents.onMessageReceived, handler);
     } else {
       auiMessage.removeListener(AUIMessageEvents.onMessageReceived, handler);
@@ -80,20 +89,32 @@ const H5Tabs: React.FC<IH5Tabs> = (props: IH5Tabs) => {
 
   return (
     <div className={styles.h5tabs}>
-      {tabs.map((key: string) => (
+      {tabs.map(({ key, before }) => (
         <span
           key={key}
           className={classNames(styles['h5tabs-item'], {
-            active: value === key && tabs.length > 1,
+            [styles['h5tabs-item-active']]: value === key && tabs.length > 1,
           })}
+          style={
+            before
+              ? {
+                  flexBasis: '40%',
+                }
+              : undefined
+          }
           onClick={() => onChange(key)}
         >
-          <span>{TabTextMap[key]}</span>
-          {key === ChatTabKey && newMsgCount ? (
-            <span className={styles['h5tabs-item__badge']}>
-              {newMsgCountText}
-            </span>
-          ) : null}
+          {before}
+          <div className={styles['h5tabs-item-text-wrapper']}>
+            <div className={styles['h5tabs-item-text']}>
+              {TabTextMap[key]}
+              {key === ChatTabKey && newMsgCount ? (
+                <span className={styles['h5tabs-item__badge']}>
+                  {newMsgCountText}
+                </span>
+              ) : null}
+            </div>
+          </div>
         </span>
       ))}
     </div>

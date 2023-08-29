@@ -6,6 +6,7 @@ import React, {
   KeyboardEvent,
 } from 'react';
 import classNames from 'classnames';
+import { Toast } from 'antd-mobile';
 import useClassroomStore from '../../store';
 import { ClassContext } from '../../ClassContext';
 import { CustomMessageTypes } from '../../types';
@@ -52,7 +53,6 @@ const ChatControls: React.FC<IChatControlsProps> = props => {
     setSending(true);
     auiMessage
       .sendMessageToGroup({
-        groupId: joinedGroupId,
         type: CustomMessageTypes.Comment,
         skipAudit: true,
         data: { content: text },
@@ -62,7 +62,10 @@ const ChatControls: React.FC<IChatControlsProps> = props => {
         updateCommentInput('');
       })
       .catch((err: any) => {
-        console.log('发送失败', err);
+        Toast.show({
+          content: '消息发送失败',
+          icon: 'fail',
+        });
         logger.sendMessageError(err);
       })
       .finally(() => {

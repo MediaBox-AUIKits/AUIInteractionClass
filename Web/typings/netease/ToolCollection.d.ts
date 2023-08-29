@@ -666,6 +666,11 @@ export interface ToolCollectionInstance {
     }) => void): void
 
     /**
+     * 监听工具栏部分组件的打开状态变化
+     */
+    on(event: 'compVisibilityUpdate', callback: (componentName: 'previewSlider' | 'uploadCenter', open: boolean) => void): void
+
+    /**
      * 注销工具栏回调函数
      * 
      * @example
@@ -686,7 +691,24 @@ export interface ToolCollectionInstance {
      * toolCollection.off('iconClick', editableClickFn)
      * ```
      */
-    off(event: 'docAdd' | 'docDelete' | 'iconClick', callback: (...args: any[]) => void): void
+    off(event: 'docAdd' | 'docDelete' | 'iconClick' | 'compVisibilityUpdate', callback: (...args: any[]) => void): void
+    /**
+     * 通过接口打开工具栏中的组件。
+     * 
+     * 目前支持通过接口打开的组件包括：预览滑窗，资源库组件。
+     * 
+     * 该接口常见使用场景为需要自定义UI按钮，控制内置工具栏中部分弹窗的显示和隐藏。
+     * 
+     * 另外注意，可以通过监听 `compVisibilityUpdate` 事件，判断组件的状态。
+     * 
+     * @example
+     * ```js
+     * toolCollection.setCompVisibility('previewSlider', true)
+     * 
+     * toolCollection.on('compVisibilityUpdate', function(componentName, open) {console.log(componentName, open)})
+     * ```
+     */
+    setCompVisibility(componentName: 'previewSlider' | 'uploadCenter', open: boolean): void
 }
 
 

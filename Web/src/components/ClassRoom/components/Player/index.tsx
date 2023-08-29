@@ -1,62 +1,68 @@
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import Icon from '@ant-design/icons';
 import {
   LiveService,
   EnterpriseSkinLayoutLive,
   EnterpriseSkinLayoutPlayback,
 } from './live';
+import { PlayerParams } from './player';
 import { ResetSvg } from '../icons';
-import useClassroomStore from '../../store';
-import { ClassroomStatusEnum } from '../../types';
+import { IVODInfo, ILinkUrlInfo, SourceType } from '../../types';
 import { replaceHttps, UA } from '../../utils/common';
+
 import './index.less';
 
 interface PlayerProps {
+  id: string;
   device: 'mobile' | 'pc';
+  sourceType?: SourceType;
+  rtsFirst?: boolean;
+  liveInfo?: ILinkUrlInfo;
+  allowPlayback?: boolean;
+  vodInfo?: IVODInfo;
+  mute?: boolean;
   wrapClassName: string;
+  controlBarVisibility?: string;
   onReady?: () => void;
   onBarVisibleChange?: (bool: boolean) => void;
   onError?: () => void;
+  onRtsFallback?: () => void;
 }
 
 export default function Player(props: PlayerProps) {
-  const { wrapClassName, onReady, onBarVisibleChange, onError } = props;
-  const { status, vodInfo, linkInfo } = useClassroomStore(
-    state => state.classroomInfo
-  );
-  const { cdnPullInfo } = linkInfo || {};
+  const {
+    id = 'default',
+    sourceType = SourceType.Camera,
+    rtsFirst = true,
+    liveInfo,
+    allowPlayback = false,
+    vodInfo,
+    mute = false,
+    wrapClassName,
+    controlBarVisibility,
+    onReady,
+    onBarVisibleChange,
+    onError,
+    onRtsFallback,
+  } = props;
+  const playerContainerId = useMemo(() => `player_${id}`, [id]);
   const [errorDisplayVisible, setErrorDisplayVisible] = useState(true);
-  const isLiving = status === ClassroomStatusEnum.started;
 
-  const callbacksRef = useRef({ onReady, onBarVisibleChange, onError }); // 解决闭包问题
+  const callbacksRef = useRef({
+    onReady,
+    onBarVisibleChange,
+    onError,
+    onRtsFallback,
+  }); // 解决闭包问题
 
   useEffect(() => {
-    callbacksRef.current = { onReady, onBarVisibleChange, onError };
-  }, [onReady, onBarVisibleChange]);
-
-  const statusText = useMemo(() => {
-    const TextMap: any = {
-      [ClassroomStatusEnum.no_data]: '课程初始化中...',
-      [ClassroomStatusEnum.not_start]: '课程尚未开始，请耐心等候',
-      [ClassroomStatusEnum.ended]: '课程已结束',
+    callbacksRef.current = {
+      onReady,
+      onBarVisibleChange,
+      onError,
+      onRtsFallback,
     };
-
-    return TextMap[status];
-  }, [status]);
-
-  const allowPlayback = useMemo(() => {
-    // TODO: 当前版本未支持回看
-    // if (
-    //   status === ClassroomStatusEnum.ended
-    //   && vodInfo
-    //   && vodInfo.status === VODStatusEnum.success
-    //   && vodInfo.playlist[0]
-    //   && vodInfo.playlist[0].playUrl
-    // ) {
-    //   return true;
-    // }
-    return false;
-  }, [status, vodInfo]);
+  }, [onReady, onBarVisibleChange, onError, onRtsFallback]);
 
   const liveService = useMemo(() => new LiveService(), []);
 
@@ -68,7 +74,7 @@ export default function Player(props: PlayerProps) {
     return arr.join(' ');
   }, [errorDisplayVisible]);
 
-  const listenPlayerEvents = () => {
+  const listenPlayerEvents = useCallback(() => {
     liveService.on('ready', () => {
       callbacksRef.current.onReady && callbacksRef.current.onReady();
     });
@@ -91,25 +97,42 @@ export default function Player(props: PlayerProps) {
       callbacksRef.current.onBarVisibleChange &&
         callbacksRef.current.onBarVisibleChange(true);
     });
-  };
+
+    if (rtsFirst) {
+      liveService.on('rtsFallback', () => {
+        callbacksRef.current.onRtsFallback &&
+          callbacksRef.current.onRtsFallback();
+      });
+    }
+  }, [rtsFirst]);
 
   useEffect(() => {
+    const instanceId = +new Date();
     const dispose = () => {
       // 销毁实例
-      liveService.destroy();
+      liveService.destroy(instanceId);
     };
 
-    if (isLiving && cdnPullInfo) {
-      // PC 环境优先用 flv，因为延时比 hls 小
+    const { cdnPullInfo } = liveInfo ?? {};
+    if (cdnPullInfo) {
       let arr: string[] = [];
+      const flvKey =
+        sourceType === SourceType.Material ? 'flvScreenUrl' : 'flvUrl';
+      const hlsKey =
+        sourceType === SourceType.Material ? 'hlsScreenUrl' : 'hlsUrl';
+      const rtsKey =
+        sourceType === SourceType.Material ? 'rtsScreenUrl' : 'rtsUrl';
+      // PC 环境优先用 flv，因为延时比 hls 小
       if (UA.isPC) {
-        arr = [cdnPullInfo.flvUrl, cdnPullInfo.hlsUrl];
+        arr = [cdnPullInfo[flvKey], cdnPullInfo[hlsKey]];
       } else {
-        arr = [cdnPullInfo.hlsUrl, cdnPullInfo.flvUrl];
+        arr = [cdnPullInfo[hlsKey], cdnPullInfo[flvKey]];
       }
 
       let rtsFallbackSource = arr[0] || arr[1];
-      let source = cdnPullInfo.rtsUrl || rtsFallbackSource;
+      let source = rtsFirst
+        ? cdnPullInfo[rtsKey] || rtsFallbackSource
+        : rtsFallbackSource;
 
       // 因为 夸克、UC 有点问题，无法正常播放 rts，所以降级
       if (UA.isQuark || UA.isUC) {
@@ -123,12 +146,22 @@ export default function Player(props: PlayerProps) {
         source = replaceHttps(source) || '';
       }
 
-      liveService.play({
+      const playConfig: Partial<PlayerParams> = {
         source,
         rtsFallbackSource,
         skinLayout: EnterpriseSkinLayoutLive,
-        controlBarVisibility: 'click',
-      });
+        controlBarVisibility: controlBarVisibility ?? 'click',
+        onRtsFallback,
+      };
+
+      liveService.play(
+        {
+          id: playerContainerId,
+          ...playConfig,
+        },
+        instanceId
+      );
+      if (mute) liveService.mute();
 
       listenPlayerEvents();
 
@@ -143,9 +176,17 @@ export default function Player(props: PlayerProps) {
     }
 
     return dispose;
-  }, [isLiving]);
+  }, [
+    mute,
+    rtsFirst,
+    playerContainerId,
+    controlBarVisibility,
+    liveInfo,
+    sourceType,
+    listenPlayerEvents,
+  ]);
 
-  const playbackHandler = () => {
+  const playbackHandler = useCallback(() => {
     if (!vodInfo) {
       return;
     }
@@ -160,29 +201,26 @@ export default function Player(props: PlayerProps) {
     }
 
     liveService.playback({
+      id: playerContainerId,
       source,
       format: vodInfo.playlist[0].format,
       skinLayout: EnterpriseSkinLayoutPlayback,
       controlBarVisibility: 'click',
     });
+    if (mute) liveService.mute();
 
     listenPlayerEvents();
-  };
+  }, [mute, vodInfo, playerContainerId]);
 
   return (
     <div className={containerClassNames}>
-      <div id="player"></div>
-      {!isLiving && (
-        <div className="player-nolive">
-          <div>{statusText}</div>
-          {allowPlayback ? (
-            <div className="player-playback" onClick={playbackHandler}>
-              <Icon component={ResetSvg} />
-              回看
-            </div>
-          ) : null}
+      <div id={playerContainerId}></div>
+      {allowPlayback ? (
+        <div className="player-playback" onClick={playbackHandler}>
+          <Icon component={ResetSvg} />
+          回看
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

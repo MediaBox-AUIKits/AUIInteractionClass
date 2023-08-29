@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "zhushijiong",
   "scripts": {
     "dev": "umi dev",
@@ -12,6 +12,8 @@
   "dependencies": {
     "@aliyun-sls/web-track-browser": "^0.2.8",
     "@ant-design/icons": "^4.7.0",
+    "@rongcloud/engine": "^5.7.9",
+    "@rongcloud/imlib-next": "^5.7.9",
     "ahooks": "^3.7.8",
     "antd": "^4.24.0",
     "antd-mobile": "^5.31.1",

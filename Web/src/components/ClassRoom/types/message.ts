@@ -15,6 +15,7 @@ export enum CustomMessageTypes {
   CameraChanged = 20008, // 摄像头状态变化
   ToggleSpectatorMic = 20009, // 打开/关闭学生麦克风（仅老师）
   ToggleSpectatorCamera = 20010, // 打开/关闭学生摄像头（仅老师）
+  PublishInfoChanged = 21000, // 推流变化
 }
 
 // 扩散类型

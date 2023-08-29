@@ -1,7 +1,5 @@
 package com.aliyuncs.aui.controller;
 
-
-import com.alibaba.fastjson.JSONObject;
 import com.aliyuncs.aui.common.utils.Result;
 import com.aliyuncs.aui.common.utils.ValidatorUtils;
 import com.aliyuncs.aui.dto.req.*;
@@ -16,9 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/class")
@@ -64,12 +60,12 @@ public class DocController {
             return Result.error();
         }
 
-        List<DocResponse> jsonObjectList =  docService.queryDoc(docQueryRequest);
-        if (jsonObjectList == null) {
+        List<DocResponse> docResponseList =  docService.queryDoc(docQueryRequest);
+        if (docResponseList == null) {
             return Result.invalidParam();
         }
 
-        return Result.ok(jsonObjectList);
+        return Result.ok(docResponseList);
     }
 
 

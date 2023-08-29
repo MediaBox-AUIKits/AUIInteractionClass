@@ -21,7 +21,8 @@ public interface ClassInfoService extends IService<ClassInfoEntity> {
     /**
      * 创建房间
      */
-    RoomInfoDto createRoomInfo(RoomCreateRequestDto roomCreateRequestDto, BoardCreateResponse createResponse);
+    RoomInfoDto createRoomInfo(RoomCreateRequestDto roomCreateRequestDto, BoardCreateResponse createResponse,
+                               String aLiYunId, String rongCloudId);
 
     /**
      * 获取房间详情
@@ -85,8 +86,14 @@ public interface ClassInfoService extends IService<ClassInfoEntity> {
 
     RtcAuthTokenResponse getRtcAuthToken(RtcAuthTokenRequestDto rtcAuthTokenRequestDto);
 
+    boolean sendLikeMessage(LikeMessageSendRequestDto likeMessageSendRequestDto);
+
+    RoomInfoDto.Metrics getStatistics(StatisticsGetRequestDto statisticsGetRequestDto);
+
     BoardAuthResponse getWhiteboardAuthInfo();
 
     Result returnResult(Object object);
+
+    boolean isExistById(String id);
 }
 

@@ -9,6 +9,7 @@ import java.util.List;
  * 连麦成员信息
  *
  */
+@Data
 public class MeetingMemberInfo {
 
     /**
@@ -47,6 +48,23 @@ public class MeetingMemberInfo {
     @JsonProperty("rtc_pull_url")
     private String rtcPullUrl;
 
+    /**
+     * 是否推音频轨
+     */
+    @JsonProperty("is_audio_publishing")
+    private Boolean audioPublishing;
+
+    /**
+     * 是否推视频轨
+     */
+    @JsonProperty("is_video_publishing")
+    private Boolean videoPublishing;
+
+    /**
+     * 是否推屏幕轨
+     */
+    @JsonProperty("is_screen_publishing")
+    private Boolean screenPublishing;
 
     @Data
     public static class Members {

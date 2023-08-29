@@ -4,28 +4,46 @@ import {
   SubStreamHeight,
   SubStreamWidth,
 } from '../../constances';
+import { checkSystemRequirements } from '../common';
 
 class AlivcPusher extends window.AlivcLivePush.AlivcLivePusher {
+  shadowInstance?: any; // 用于大班课混流
+
   init() {
     return super.init({
       resolution: window.AlivcLivePush.AlivcResolutionEnum.RESOLUTION_540P,
       fps: window.AlivcLivePush.AlivcFpsEnum.FPS_30,
       // 摄像头关闭时所推的静态帧
-      cameraCloseImagePath: 'https://img.alicdn.com/imgextra/i1/O1CN01tyOtvh1s7oMRG716S_!!6000000005720-0-tps-960-540.jpg',
+      cameraCloseImagePath:
+        'https://img.alicdn.com/imgextra/i1/O1CN01tyOtvh1s7oMRG716S_!!6000000005720-0-tps-960-540.jpg',
       connectRetryCount: 12, // 网络异常重试次数
       logLevel: 1,
+      instanceId: 'reality', // 主实例
     });
   }
 
-  checkSystemRequirements(): Promise<{
-    support: boolean;
-    isBrowserSupported?: boolean;
-    isH264DecodeSupported?: boolean;
-    isH264EncodeSupported?: boolean;
-    isWebRTCSupported?: boolean;
-  }> {
-    return window.AlivcLivePush.AlivcLivePusher.checkSystemRequirements();
+  initShadow() {
+    if (this.shadowInstance) {
+      return;
+    }
+    console.log('-----initShadow-----');
+    this.shadowInstance = new window.AlivcLivePush.AlivcLivePusher();
+    this.shadowInstance.init({
+      resolution: window.AlivcLivePush.AlivcResolutionEnum.RESOLUTION_180P,
+      fps: window.AlivcLivePush.AlivcFpsEnum.FPS_10,
+      // 摄像头关闭时所推的静态帧
+      cameraCloseImagePath:
+        'https://img.alicdn.com/imgextra/i1/O1CN01tyOtvh1s7oMRG716S_!!6000000005720-0-tps-960-540.jpg',
+      connectRetryCount: 12, // 网络异常重试次数
+      logLevel: 1,
+      instanceId: 'shadow', // 影子实例
+      audio: false,
+      video: false,
+      screen: false,
+    });
   }
+
+  checkSystemRequirements = checkSystemRequirements;
 
   checkScreenShareSupported() {
     return window.AlivcLivePush.AlivcLivePusher.checkScreenShareSupported();
@@ -114,11 +132,38 @@ class AlivcPusher extends window.AlivcLivePush.AlivcLivePusher {
     config.cropMode = 2;
     config.mixStreams = mixStreams;
 
+    if (this.shadowInstance) {
+      return this.shadowInstance.setLiveMixTranscodingConfig(config);
+    }
     return super.setLiveMixTranscodingConfig(config);
   }
 
   resetTrancodingConfig() {
+    if (this.shadowInstance) {
+      return this.shadowInstance.setLiveMixTranscodingConfig();
+    }
     return super.setLiveMixTranscodingConfig();
+  }
+
+  async startPush(url: string, shadowUrl?: string) {
+    if (shadowUrl && this.shadowInstance) {
+      await this.shadowInstance.startPush(shadowUrl);
+    }
+    await super.startPush(url);
+  }
+
+  async stopPush() {
+    if (this.shadowInstance) {
+      await this.shadowInstance.stopPush();
+    }
+    await super.stopPush();
+  }
+
+  destroy() {
+    if (this.shadowInstance) {
+      this.shadowInstance.destroy();
+    }
+    super.destroy();
   }
 }
 

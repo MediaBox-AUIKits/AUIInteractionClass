@@ -1,72 +1,45 @@
-import React, { useState, useMemo, Fragment } from 'react';
-import classNames from 'classnames';
-import H5Player from './H5Player';
-import H5Tabs, { ChatTabKey, IntroTabKey } from './H5Tabs';
-import IntroPanel from './IntroPanel';
-import ChatPanel from './ChatPanel';
-import ChatControls from './ChatControls';
-import { ClassroomStatusEnum } from '../types';
+import React, { useContext, useState, useEffect, useMemo } from 'react';
 import useClassroomStore from '../store';
-import { supportSafeArea } from '../utils/common';
+import { ClassContext } from '../ClassContext';
+import { ClassroomModeEnum } from '../types/classroom';
+import { ClassroomStatusEnum } from '../types';
+import PublicClass from './publicClass';
+import BigClass from './bigClass';
+import { LeftOutlineSvg } from '../components/icons';
+import Icon from '@ant-design/icons';
 import styles from './index.less';
 
 const MobileClassRoom: React.FC = () => {
-  const { status } = useClassroomStore(state => state.classroomInfo);
-  const [tabs, setTabs] = useState<string[]>([ChatTabKey, IntroTabKey]);
-  const [tabKey, setTabKey] = useState<string>(ChatTabKey);
+  const { mode, status } = useClassroomStore(state => state.classroomInfo);
+  const { exit } = useContext(ClassContext);
+  const [exitIconVisible, setExitIconVisible] = useState<boolean>(true);
 
-  const hasSafeAreaBottom = useMemo(() => {
-    return supportSafeArea('bottom');
-  }, []);
-
-  const isInited = useMemo(() => {
-    return status !== ClassroomStatusEnum.no_data;
+  useEffect(() => {
+    if (status === ClassroomStatusEnum.ended) {
+      setExitIconVisible(true);
+    }
   }, [status]);
+
+  const onBarVisibleChange = (bool: boolean) => {
+    setExitIconVisible(bool);
+  };
 
   return (
     <div className={styles.h5wrap}>
-      <H5Player />
-
-      <div
-        className={classNames(styles.h5main, {
-          [styles['not-safe-area']]: !hasSafeAreaBottom,
-        })}
-      >
-        {isInited ? (
-          <Fragment>
-            <H5Tabs
-              value={tabKey}
-              tabs={tabs}
-              onChange={tab => setTabKey(tab)}
-            />
-
-            <IntroPanel
-              className={styles.h5content}
-              hidden={tabKey !== IntroTabKey}
-            />
-
-            {tabs.includes(ChatTabKey) ? (
-              <ChatPanel
-                className={styles.h5content}
-                hidden={tabKey !== ChatTabKey}
-              />
-            ) : null}
-
-            <ChatControls
-              className={styles.h5controls}
-              theme="light"
-              heartIconActive
-              allowChat={
-                tabKey === ChatTabKey &&
-                [
-                  ClassroomStatusEnum.not_start,
-                  ClassroomStatusEnum.started,
-                ].includes(status)
-              }
-            />
-          </Fragment>
-        ) : null}
+      <div style={{ display: exitIconVisible ? 'block' : 'none' }}>
+        <span className={styles['h5player__exit']} onClick={exit}>
+          <Icon component={LeftOutlineSvg} />
+        </span>
       </div>
+
+      <PublicClass
+        active={mode === ClassroomModeEnum.Open}
+        onBarVisibleChange={onBarVisibleChange}
+      />
+      <BigClass
+        active={mode === ClassroomModeEnum.Big}
+        onBarVisibleChange={onBarVisibleChange}
+      />
     </div>
   );
 };

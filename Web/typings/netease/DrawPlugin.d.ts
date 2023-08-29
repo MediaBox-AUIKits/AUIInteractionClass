@@ -1279,6 +1279,10 @@ export interface DrawPlugin {
     } | null
 
     /**
+     * 导入白板时的事件
+     */
+    on(eventName: 'event:importBoard', callback: (action: 'start' | 'finish') => void): void
+    /**
      * 资源加载成功，或者多次重试后依旧加载失败时，会触发此回调
      * 
      * @example
@@ -1526,4 +1530,91 @@ export interface DrawPlugin {
      * 白板本身设置了mutationObserver处理容器变化。但是有时候该事件可能会失效。这时候，开发者可以主动更新容器的属性。
      */
     updateContainerAfterResize(): void
+
+    /**
+     * 将白板内容导出文件。导出后的文件，可以调用 {@link DrawPlugin.importBoards} 导入。
+     * 
+     * 这个函数的常用场景为，将当前课堂的白板内容保存，然后在下次课堂开始时，导入白板内容。
+     * 
+     * <h4> 注意事项 </h4>
+     * 为了避免导入时默认白板名称冲突，默认白板导出时，名称被改为 whiteboard_${时间戳}。
+     * 
+     * <h4>关联函数</h4>
+     * <ul>
+     * <li>{@link DrawPlugin.importBoards}</li>
+     * </ul>
+     * 
+     * @returns 
+     * - summary: 导出 board 的概括。每个 board 的概括包含 board 的名称，显示名称，以及页面数； 
+     * - content: 导出的内容。importBoards 的 url 对应的文件内容应该和 content 保持一致。
+     */
+    exportBoards(opt: {
+        /**
+         * 选择导出的 board。boardNames 可以使用 drawPlugin.getBoardInfos().boardNames 获取
+         */
+        boardNames: Array<string>, 
+        /**
+         * 导出时的文件名。如果不设置，则默认为 whiteboard.yxwb
+         */
+        fileName?: string
+        /**
+         * 是否下载文件。如果为true，则会触发浏览器的下载事件。默认为 false
+         */
+        download?: boolean
+    }): {
+        /**
+         * 导出 board 的概括。每个 board 的概括包含 board 的名称，显示名称，以及页面数
+         * 
+         * 为了避免导入时默认白板名称冲突，默认白板导出时，名称被改为 whiteboard_${时间戳}。
+         */
+        summary: Array<{
+            name: string,
+            displayName: string
+            pageCount: number
+        }>,
+        /**
+         * 导出的内容。importBoards 的 url 对应的文件内容应该和 content 保持一致。
+         */
+        content: string
+     } | null
+
+    /**
+     * 导入白板。
+     * 
+     * - 导入成功前，白板内不允许操作，收到其它端的数据后，也不会立即刷新白板内容。
+     * - 导入过程中，默认在白板容器上方会显示进度提示。如果需要关闭提示，或者自定义提示UI，请设置:
+     * 
+     * ```js
+     * drawPlugin.setAppConfig({
+     *   showImportProgress: false
+     * })
+     * 
+     * drawPlugin.on('event:importBoard', (state) => {
+     *   if (state === 'start') {
+     *      //自定义提示UI
+     *   } else if (state === 'finish') {
+     *      //自定义提示UI
+     *   }
+     * })
+     * ```
+     * 
+     * <h4>关联函数</h4>
+     * <ul>
+     * <li>{@link DrawPlugin.exportBoards}</li>
+     * </ul>
+     */
+    importBoards(opt: {
+        /**
+         * 导入的文件地址。该地址内容为 exportBoards 导出的文件
+         */
+        url: string, 
+        /**
+         * 可选参数。如果不填，默认导入 exportBoards 文件的所有内容。如果填写，则只导入指定的 board
+         */
+        boardNames?: Array<string>,
+        /**
+         * 可选参数。默认值为 false。如果为 true，则当前白板所有的内容都会被清空，并被导入的内容替换。如果为 false，则只添加新的 board，不会影响当前 board 内容
+         */
+        overwrite?: boolean
+    }): void
 }

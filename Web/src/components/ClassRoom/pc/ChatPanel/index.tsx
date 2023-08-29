@@ -10,11 +10,7 @@ import classNames from 'classnames';
 import { useThrottleFn } from 'ahooks';
 import { Checkbox, message } from 'antd';
 import { ClassContext } from '../../ClassContext';
-import {
-  ClassroomStatusEnum,
-  CustomMessageTypes,
-  BroadcastTypeEnum,
-} from '../../types';
+import { ClassroomStatusEnum, CustomMessageTypes } from '../../types';
 import useClassroomStore from '../../store';
 import { ChevronsDownSvg } from '../../components/icons';
 import { scrollToBottom } from '../../utils/common';
@@ -106,7 +102,7 @@ const ChatPanel: React.FC<IChatPanelProps> = props => {
         updateCommentInput('');
       })
       .catch((err: any) => {
-        console.log('发送失败', err);
+        message.error('消息发送失败');
         logger.sendMessageError(err);
       })
       .finally(() => {
@@ -152,33 +148,41 @@ const ChatPanel: React.FC<IChatPanelProps> = props => {
       if (!e.target.checked) {
         // 取消禁言
         auiMessage
-          .cancelMuteGroup({
-            groupId: joinedGroupId,
-            broadCastType: BroadcastTypeEnum.all,
-          })
+          .cancelMuteGroup()
           .then(() => {
             // 在整个入口文件中监听 取消全员禁言 事件
           })
           .catch((err: any) => {
+            if (err instanceof AggregateError) {
+              const msg = err.errors
+                .map((error: any) => error.message || error)
+                .join(';');
+              logger.cancelMuteGroupError(msg);
+            } else {
+              logger.cancelMuteGroupError(err);
+            }
             console.log('cancelMuteAll 失败', err);
             message.error('全员禁言关闭失败');
-            logger.cancelMuteGroupError(err);
           });
         return;
       }
       // 全员禁言
       auiMessage
-        .muteGroup({
-          groupId: joinedGroupId,
-          broadCastType: BroadcastTypeEnum.all,
-        })
+        .muteGroup()
         .then(() => {
           // 在整个入口文件中监听 全员禁言 事件
         })
         .catch((err: any) => {
+          if (err instanceof AggregateError) {
+            const msg = err.errors
+              .map((error: any) => error.message || error)
+              .join(';');
+            logger.muteGroupError(msg);
+          } else {
+            logger.muteGroupError(err);
+          }
           console.log('muteAll 失败', err);
           message.error('全员禁言开启失败');
-          logger.muteGroupError(err);
         });
     },
     [joinedGroupId]

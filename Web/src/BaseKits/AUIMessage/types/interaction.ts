@@ -17,15 +17,23 @@ interface BasicMap<U> {
 }
 
 export interface IMessageOptions {
-  groupId: string;
+  groupId?: string;
   type: number;
   skipAudit?: boolean;
   skipMuteCheck?: boolean;
   data?: BasicMap<any>;
+  receiverId?: string;
 }
 
 export interface IMuteGroupReqModel {
   groupId?: string; //
+  broadCastType?: number; // 系统消息扩散类型，0： 不扩散；1：扩散到指定人; 2:扩散到群组
+}
+
+export interface IMMuteUserReqModel {
+  groupId?: string; // 话题id, 聊天插件实例id
+  muteUserList?: Array<string>; // 需要禁言的用户列表，最大200个
+  muteTime?: number; // 禁言的时间，单位为s，如果不传或者传0则采用默认禁言时间
   broadCastType?: number; // 系统消息扩散类型，0： 不扩散；1：扩散到指定人; 2:扩散到群组
 }
 

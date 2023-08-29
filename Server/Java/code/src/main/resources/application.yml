@@ -28,6 +28,9 @@ biz:
     access:
       key: "*********"
       secret: "*********"
+  live_rongcloud_im:
+    app_key: "*********"
+    app_secret: "*********"
   live_im:
     app_id: TY3****
   live_stream:

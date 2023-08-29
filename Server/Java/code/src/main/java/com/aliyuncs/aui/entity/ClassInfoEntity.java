@@ -61,7 +61,7 @@ public class ClassInfoEntity implements Serializable {
 	 * aliyun
 	 */
 	@TableField("a_li_yun_id")
-	private String chatId;
+	private String aliyunId;
 
 	/**
 	 * 融云

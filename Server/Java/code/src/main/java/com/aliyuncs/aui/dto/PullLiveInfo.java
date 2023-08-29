@@ -32,4 +32,21 @@ public class PullLiveInfo {
     @JsonProperty("hls_oriaac_url")
     private String hlsOriaacUrl;
 
+    @JsonProperty("rtmp_screen_url")
+    private String rtmpScreenUrl;
+    @JsonProperty("rts_screen_url")
+    private String rtsScreenUrl;
+    @JsonProperty("flv_screen_url")
+    private String flvScreenUrl;
+    @JsonProperty("hls_screen_url")
+    private String hlsScreenUrl;
+    @JsonProperty("rtmp_screen_oriaac_url")
+    private String rtmpScreenOriaacUrl;
+    @JsonProperty("rts_screen_oriaac_url")
+    private String rtsScreenOriaacUrl;
+    @JsonProperty("flv_screen_oriaac_url")
+    private String flvScreenOriaacUrl;
+    @JsonProperty("hls_screen_oriaac_url")
+    private String hlsScreenOriaacUrl;
+
 }

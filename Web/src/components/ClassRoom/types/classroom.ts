@@ -10,6 +10,11 @@ export enum ClassroomModeEnum {
   Small = 2, // 小班课
 }
 
+export enum SourceType {
+  Camera = 'camera',
+  Material = 'material',
+}
+
 export enum ClassroomStatusEnum {
   no_data = -1, // 非服务端状态，意思为还未取到数据
   not_start = 0, // 未上课
@@ -22,6 +27,10 @@ export interface IPullUrlInfo {
   hlsUrl: string;
   rtmpUrl: string;
   rtsUrl: string;
+  flvScreenUrl: string;
+  hlsScreenUrl: string;
+  rtmpScreenUrl: string;
+  rtsScreenUrl: string;
   [x: string]: string;
 }
 
@@ -52,13 +61,15 @@ export interface IPlaylistItem {
 }
 
 export interface IVODInfo {
-  status: VODStatusEnum,
-  playlist: IPlaylistItem[],
+  status: VODStatusEnum;
+  playlist: IPlaylistItem[];
 }
 
 export interface IClassroomInfo {
   id: string; // 教室 id
-  chatId: string; // im 聊天组 id
+  chatId?: string; // 上一版的群组ID字段名
+  aliyunId?: string; // 阿里云互动消息组id
+  rongCloudId?: string; // 融云IM消息组id
   teacherId: string; // 教师id
   teacherNick: string; // 教师昵称
   boards: string; // JSONString 白板相关数据
@@ -73,6 +84,22 @@ export interface IClassroomInfo {
   startedAt?: string; // 开始上课时间
   // 连麦有的字段
   linkInfo?: ILinkUrlInfo;
+  shadowLinkInfo?: ILinkUrlInfo;
   // vod 回看数据
   vodInfo?: IVODInfo;
+}
+
+export interface IUserInfo {
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+}
+
+export interface ISpectatorInfo extends IUserInfo {
+  rtcPullUrl?: string;
+  cameraOpened?: boolean; // 是否开启摄像头
+  micOpened?: boolean; // 是否开启麦克风
+  isAudioPublishing?: boolean; // 是否有 audio track
+  isVideoPublishing?: boolean; // 是否有 video track
+  isScreenPublishing?: boolean; // 是否有 screen track
 }

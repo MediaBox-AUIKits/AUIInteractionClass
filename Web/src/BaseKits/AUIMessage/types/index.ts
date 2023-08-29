@@ -5,6 +5,8 @@ export enum AUIMessageEvents {
   onLeaveGroup = 'onLeaveGroup',
   onMuteGroup = 'onMuteGroup',
   onUnmuteGroup = 'onUnmuteGroup',
+  onMuteUser = 'onMuteUser',
+  onUnmuteUser = 'onUnmuteUser',
   onMessageReceived = 'onMessageReceived',
 }
 
@@ -15,5 +17,6 @@ export interface AUIMessageUserInfo {
 }
 
 export interface AUIMessageConfig {
-  token: string;
+  aliyunAccessToken?: string;
+  rongCloudToken?: string;
 }

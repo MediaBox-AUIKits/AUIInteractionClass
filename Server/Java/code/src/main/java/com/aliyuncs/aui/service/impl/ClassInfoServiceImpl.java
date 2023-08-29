@@ -15,7 +15,7 @@ import com.aliyuncs.aui.dto.res.*;
 import com.aliyuncs.aui.entity.ClassInfoEntity;
 import com.aliyuncs.aui.service.BoardRoomService;
 import com.aliyuncs.aui.service.ClassInfoService;
-import com.aliyuncs.aui.service.VideoCloudService;
+import com.aliyuncs.aui.service.ALiYunService;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
@@ -72,7 +72,7 @@ public class ClassInfoServiceImpl extends ServiceImpl<RoomInfoDao, ClassInfoEnti
             new SynchronousQueue<>());
 
     @Resource
-    private VideoCloudService videoCloudService;
+    private ALiYunService videoCloudService;
 
     @Resource
     private BoardRoomService boardRoomService;
@@ -85,25 +85,21 @@ public class ClassInfoServiceImpl extends ServiceImpl<RoomInfoDao, ClassInfoEnti
 
     @SneakyThrows
     @Override
-    public RoomInfoDto createRoomInfo(RoomCreateRequestDto roomCreateRequestDto, BoardCreateResponse createResponses) {
+    public RoomInfoDto createRoomInfo(RoomCreateRequestDto roomCreateRequestDto, BoardCreateResponse createResponses, String aLiYunId, String rongCloudId) {
         RoomInfoDto roomInfoDto = new RoomInfoDto();
         long start = System.currentTimeMillis();
-        String groupId = createResponses.getBoardId();
-        if (StringUtils.isEmpty(groupId)) {
-            log.error("createMessageGroup error. author:{}", roomCreateRequestDto.getTeacherId());
-            return null;
-        }
-
         Date now = new Date();
+        String id = aLiYunId == null ? rongCloudId: aLiYunId;
         ClassInfoEntity roomInfoEntity = ClassInfoEntity.builder()
-                .id(groupId)
+                .id(id)
                 .createdAt(now)
                 .updatedAt(now)
                 .title(roomCreateRequestDto.getTitle())
                 .teacherNick(roomCreateRequestDto.getTeacherNick())
                 .teacherId(roomCreateRequestDto.getTeacherId())
                 .extendsInfo(roomCreateRequestDto.getExtendsInfo())
-                .chatId(groupId)
+                .aliyunId(aLiYunId)
+                .rongCloudId(rongCloudId)
                 .mode(roomCreateRequestDto.getMode())
                 .status((long) ClassRoomStatus.ClassRoomStatusPrepare.getVal())
                 .boardsInfo(JSON.toJSONString(createResponses))
@@ -142,6 +138,10 @@ public class ClassInfoServiceImpl extends ServiceImpl<RoomInfoDao, ClassInfoEnti
 
         LinkInfo rtcInfo = videoCloudService.getRtcInfo(roomInfoEntity.getMeetingId(), roomGetRequestDto.getUserId(), roomInfoEntity.getTeacherId());
         roomInfoDto.setLinkInfo(rtcInfo);
+
+        LinkInfo rtcShadowInfo = videoCloudService.getRtcInfo(roomInfoEntity.getMeetingId(), String.format("%s_%s", roomGetRequestDto.getUserId(), "shadow"),
+                String.format("%s_%s", roomInfoEntity.getTeacherId(), "shadow"));
+        roomInfoDto.setLinkShadowInfo(rtcShadowInfo);
 
         String mediaId = videoCloudService.searchMediaByTitle(getTitle(roomInfoEntity));
         if (StringUtils.isNotEmpty(mediaId)) {
@@ -479,6 +479,22 @@ public class ClassInfoServiceImpl extends ServiceImpl<RoomInfoDao, ClassInfoEnti
     }
 
     @Override
+    public boolean sendLikeMessage(LikeMessageSendRequestDto likeMessageSendRequestDto) {
+
+        // 调用融云接口发送消息
+
+        // 统计
+
+        return true;
+    }
+
+    @Override
+    public RoomInfoDto.Metrics getStatistics(StatisticsGetRequestDto statisticsGetRequestDto) {
+
+        return videoCloudService.getGroupDetails(statisticsGetRequestDto.getChatroomId());
+    }
+
+    @Override
     public BoardAuthResponse getWhiteboardAuthInfo() {
         String Nonce = UUID.randomUUID().toString().replaceAll("-", "");
         int CurTime = Math.round((float) System.currentTimeMillis() / 1000);
@@ -573,8 +589,15 @@ public class ClassInfoServiceImpl extends ServiceImpl<RoomInfoDao, ClassInfoEnti
         return StringUtils.isNotEmpty(anchor) && anchor.equals(userId);
     }
 
+    @Override
     public Result returnResult(Object object) {
+        String jsonStr = JSONObject.toJSONString(object);
+        Map<String, Object> map = JSON.parseObject(jsonStr, Map.class);
+        return Result.ok(map);
+    }
 
-        return Result.ok(object);
+    public boolean isExistById(String id) {
+        ClassInfoEntity roomInfoEntity = this.getById(id);
+        return roomInfoEntity != null;
     }
 }

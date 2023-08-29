@@ -6,7 +6,7 @@ import com.aliyuncs.aui.dto.res.BoardCreateResponse;
 
 public interface BoardRoomService {
 
-    BoardCreateResponse createBoardRoom(RoomCreateRequestDto roomCreateRequestDto, BoardAuthResponse boardAuthResponse);
+    BoardCreateResponse createBoardRoom(RoomCreateRequestDto roomCreateRequestDto, BoardAuthResponse boardAuthResponse, String boardId);
 
     BoardCreateResponse deleteBoardRoom(String cid);
 

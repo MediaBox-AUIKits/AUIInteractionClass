@@ -1,9 +1,10 @@
 // 网易云信白板
 import { loadJS } from '../common';
+import { NeteaseSDKVersion } from '../../constances';
 const jsUrls = [
-  `${PUBLIC_PATH}script/WhiteBoardSDK_v3.9.7.js`,
-  `${PUBLIC_PATH}script/ToolCollection_v3.9.7.js`,
-  `${PUBLIC_PATH}script/pptRenderer_v3.9.7.js`,
+  `${PUBLIC_PATH}script/WhiteBoardSDK_v${NeteaseSDKVersion}.js`,
+  `${PUBLIC_PATH}script/ToolCollection_v${NeteaseSDKVersion}.js`,
+  `${PUBLIC_PATH}script/pptRenderer_v${NeteaseSDKVersion}.js`,
 ];
 
 interface InitOptions {
