@@ -1,39 +1,30 @@
 import { useSearchParams, useNavigate } from 'umi';
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { message } from 'antd';
-import { Toast } from 'antd-mobile';
-import { UserRoleEnum, ISpectatorInfo } from '@/types';
+import { UserRoleEnum, MeetingInfo } from '@/types';
 import services from '@/services';
 import ClassRoom from '@/components/ClassRoom';
 import { UA } from '@/utils/common';
 import reporter from '@/utils/Reporter';
+import toast from '@/utils/toast';
 
 const ClassRoomPage = () => {
   const navigate = useNavigate();
   const [classId, setClassId] = useState<string>('');
   const [role, setRole] = useState<number>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const userInfo = useMemo(() => services.getUserInfo(), []);
-
-  const showMessage = (text: string) => {
-    if (UA.isPC) {
-      message.error(text);
-    } else {
-      Toast.show({
-        icon: 'fail',
-        content: text,
-      });
-    }
-  };
+  const userInfo = useMemo(() => {
+    return {
+      ...services.getUserInfo(),
+      role,
+    };
+  }, [role]);
 
   useEffect(() => {
-    console.log();
     const idParam = searchParams.get('id');
     const roleParam = Number(searchParams.get('role')) || UserRoleEnum.Student;
     console.log(idParam, roleParam);
     if (!idParam) {
-      // TODO: 报错
-      showMessage('参数异常，请检查！');
+      toast.error('参数异常，请检查！', 3, 3000);
       reporter.classroomParamsIllegal({
         id: idParam,
         role: roleParam,
@@ -61,22 +52,20 @@ const ClassRoomPage = () => {
     const detail = await services.getRoomDetail(classId);
     const isTeacher = detail.teacherId === userInfo.userId;
     if (isTeacher) {
-      setRole(UserRoleEnum.Teacther);
+      setRole(UserRoleEnum.Teacher);
     }
     reporter.updateCommonParams({
-      biz: isTeacher ? UserRoleEnum.Teacther : UserRoleEnum.Student,
+      biz: isTeacher ? UserRoleEnum.Teacher : UserRoleEnum.Student,
       classname: detail.title,
     });
     // 当前PC端仅支持老师、移动端仅支持学生，需要校验
     let msg = '';
-    if (UA.isPC && !isTeacher) {
-      msg = '当前PC端仅支持老师角色，学生请使用移动端';
-    } else if (!UA.isPC && isTeacher) {
+    if (!UA.isPC && isTeacher) {
       msg = '当前移动端仅支持学生，老师请使用PC端';
     }
     if (msg) {
       // TOOD: 考虑身份异常跳回登录页
-      showMessage(msg);
+      showMessage(msg, 0);
       throw new Error(msg);
     }
     return detail;
@@ -134,8 +123,8 @@ const ClassRoomPage = () => {
   }, [classId]);
 
   const updateMeetingInfo = useCallback(
-    (list: ISpectatorInfo[]) => {
-      return services.updateMeetingInfo(classId, list);
+    (payload: Partial<MeetingInfo>) => {
+      return services.updateMeetingInfo(classId, payload);
     },
     [classId]
   );
@@ -143,6 +132,21 @@ const ClassRoomPage = () => {
   const getMeetingInfo = useCallback(() => {
     return services.getMeetingInfo(classId);
   }, [classId]);
+
+  const joinClass = useCallback(() => {
+    return services.joinClass(classId);
+  }, [classId]);
+
+  const leaveClass = useCallback(() => {
+    return services.leaveClass(classId);
+  }, [classId]);
+
+  const kickClass = useCallback(
+    (userId: string) => {
+      return services.kickClass(classId, userId);
+    },
+    [classId]
+  );
 
   if (!classId) {
     return;
@@ -169,6 +173,10 @@ const ClassRoomPage = () => {
         cancelMuteChatroom: services.cancelMuteChatroom.bind(services),
         muteUser: services.muteUser.bind(services),
         cancelMuteUser: services.cancelMuteUser.bind(services),
+        joinClass,
+        leaveClass,
+        kickClass,
+        listMembers: services.listMembers.bind(services),
       }}
       onExit={onExit}
       report={reportLog}

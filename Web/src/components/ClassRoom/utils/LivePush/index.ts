@@ -1,5 +1,7 @@
 import AlivcPusher from './AlivcPusher';
+import AlivcPlayer from './AlivcPlayer';
 type SDKType = 'alivc';
+type PlayerID = 'reality' | 'shadow';
 
 class LivePushFactory {
   livePusher?: AlivcPusher;
@@ -17,13 +19,17 @@ class LivePushFactory {
     return null;
   }
 
-  destroyInstance(type: SDKType = 'alivc') {
+  async destroyInstance(type: SDKType = 'alivc') {
     if (type === 'alivc') {
       if (this.livePusher) {
-        this.livePusher.destroy();
+        await this.livePusher.destroy();
         this.livePusher = undefined;
       }
     }
+  }
+
+  createPlayerInstance(instanceId: PlayerID = 'reality') {
+    return new AlivcPlayer({ instanceId });
   }
 }
 

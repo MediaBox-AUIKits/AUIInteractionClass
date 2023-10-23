@@ -85,8 +85,8 @@ const MAX_RETRY_COUNT = 5;
 const RETRY_INTERVAL = 2000;
 
 export class LiveService {
-  private playerMap: Map<number, any> = new Map();
-  private currentInstanceId?: number;
+  private playerMap: Map<number | string, any> = new Map();
+  private currentInstanceId?: number | string;
   private source?: string;
   private retryCount = 0;
 
@@ -99,7 +99,10 @@ export class LiveService {
     return this.player?.getComponent(name);
   }
 
-  public play(config: Partial<PlayerParams>, playerInstanceId = +new Date()) {
+  public play(
+    config: Partial<PlayerParams>,
+    playerInstanceId: string | number = +new Date()
+  ) {
     const options: PlayerParams = {
       id: 'player',
       isLive: true,
@@ -111,6 +114,8 @@ export class LiveService {
       preload: true,
       controlBarVisibility: 'never',
       useH5Prism: true,
+      rtsSdkUrl:
+        'https://g.alicdn.com/apsara-media-box/imp-web-rts-sdk/2.5.1/aliyun-rts-sdk.js',
       ...config,
     };
 
@@ -120,21 +125,13 @@ export class LiveService {
     this.source = options.source;
 
     this.currentInstanceId = playerInstanceId;
-    const player = new window.Aliplayer(options, (e: any) => {
-      // TODO: DEL
-      console.log(
-        '【PLAYER】===== live created: ',
-        config.id,
-        this.currentInstanceId
-      );
-    });
+    const player = new window.Aliplayer(options);
 
     if (!this.playerMap.get(playerInstanceId)) {
       this.playerMap.set(playerInstanceId, player);
     }
 
     player.on('error', (e: any) => {
-      console.log('play error', e);
       // 处理 4004 逻辑（一般是因为 HLS 有延时，推流已经开始但播流还拉不到），自动重试
       if (
         e.paramData.error_code === 4004 &&
@@ -170,18 +167,15 @@ export class LiveService {
       options.skinLayout = EnterpriseSkinLayoutPlayback;
     }
 
-    const player = new window.Aliplayer(options, () => {
-      // TODO: DEL
-      console.log('playback created');
-      this.currentInstanceId = playerInstanceId;
+    this.currentInstanceId = playerInstanceId;
+    const player = new window.Aliplayer(options);
+    if (!this.playerMap.get(playerInstanceId)) {
       this.playerMap.set(playerInstanceId, player);
-    });
+    }
   }
 
   public mute() {
-    if (this.player) {
-      this.player.mute();
-    }
+    this.player?.mute();
   }
 
   public pause() {
@@ -202,14 +196,12 @@ export class LiveService {
     }
   }
 
-  public destroy(playerInstanceId?: number) {
+  public destroy(playerInstanceId?: number | string) {
     if (playerInstanceId !== undefined) {
       const player = this.playerMap.get(playerInstanceId);
       if (player) {
         player.dispose();
         this.playerMap.delete(playerInstanceId);
-        // TODO: DEL
-        console.log('【PLAYER】===== disposed: ', playerInstanceId);
       }
     }
   }

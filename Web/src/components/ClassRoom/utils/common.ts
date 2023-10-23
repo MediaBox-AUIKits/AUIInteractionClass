@@ -69,6 +69,22 @@ export function formatDate(date: Date): string {
   )} ${padZore(date.getHours())}:${padZore(date.getMinutes())}`;
 }
 
+export function formatTime(date: Date): string {
+  if (!(date instanceof Date && !isNaN(date as any))) {
+    return '';
+  }
+
+  const padZore = (str: string | number) => {
+    return `0${str}`.slice(-2);
+  };
+
+  return `${date.getFullYear()}-${padZore(date.getMonth() + 1)}-${padZore(
+    date.getDate()
+  )} ${padZore(date.getHours())}:${padZore(date.getMinutes())}:${padZore(
+    date.getSeconds()
+  )}.${date.getMilliseconds()}`;
+}
+
 /**
  * 简单滚动到底部的实现
  * @param {HTMLDivElement} dom
@@ -205,4 +221,46 @@ export function checkSystemRequirements(): Promise<{
   isWebRTCSupported?: boolean;
 }> {
   return window.AlivcLivePush.AlivcLivePusher.checkSystemRequirements();
+}
+
+/**
+ * 根据容器的宽高和元素的宽高比，计算数组的布局
+ */
+export function getLayoutArray(
+  arr: Array<{ userId: string }>,
+  containerWidth: number,
+  containerHeight: number,
+  itemRatio: number
+) {
+  const len = arr.length;
+  const cols = Math.ceil(Math.sqrt(len));
+  const rows = Math.ceil(len / cols);
+
+  // 先决定是左右贴边还是上下贴边，平均每列宽度/平均每列高度是否大于 itemRatio，如果是，说明左右两边有空隙，否则是上下两边有空隙
+  const hasRedundantWidth =
+    containerWidth / cols / (containerHeight / rows) > itemRatio;
+
+  let horizontalMargin = 0;
+  let verticalMargin = 0;
+  if (hasRedundantWidth) {
+    horizontalMargin =
+      (containerWidth - (containerHeight / rows) * itemRatio * cols) / 2;
+  } else {
+    verticalMargin =
+      (containerHeight - (containerWidth / cols / itemRatio) * rows) / 2;
+  }
+
+  const itemWidth = (containerWidth - horizontalMargin * 2) / cols;
+  const itemHeight = itemWidth / itemRatio;
+
+  return arr.map((item, index) => ({
+    userId: item.userId,
+    x:
+      len === 3 && index === 2
+        ? (containerWidth - itemWidth) / 2 // len 为 3 时最后一个元素的 x 会比较特殊
+        : (index % cols) * itemWidth + horizontalMargin,
+    y: Math.floor(index / cols) * itemHeight + verticalMargin,
+    width: itemWidth,
+    height: itemHeight,
+  }));
 }

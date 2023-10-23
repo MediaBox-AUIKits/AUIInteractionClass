@@ -1,10 +1,12 @@
-import React, { useMemo, useContext, useEffect } from 'react';
+import React, { useMemo, useContext, useEffect, Fragment } from 'react';
 import { Spin } from 'antd';
 import RoomMain from './RoomMain';
 import RoomHeader from './Header';
-import RoomAside from './Aside';
+import RoomInteractionList from './InteractionList';
+import RoomAside, { AsidePlayerTypes } from './Aside';
 import RoomBottom from './Bottom';
-import { ClassroomModeEnum } from '../types';
+import StudentPage from './StudentPage';
+import { ClassroomModeEnum, UserRoleEnum } from '../types';
 import useClassroomStore from '../store';
 import livePush from '../utils/LivePush';
 import { ClassContext } from '../ClassContext';
@@ -29,14 +31,40 @@ const PCClassRoom: React.FC<IProps> = props => {
     }
   }, [livePusher, mode, teacherId, userInfo]);
 
+  const renderMainAndBottom = () => {
+    // 老师身份返回这部分
+    if (userInfo?.role === UserRoleEnum.Teacher) {
+      return (
+        <Fragment>
+          <div className="amaui-classroom__body">
+            <div className="amaui-classroom__main">
+              <RoomInteractionList
+                isTeacher
+                wrapClassName="amaui-classroom__main__speaker"
+              />
+              <RoomMain wrapClassName="amaui-classroom__main__content" />
+            </div>
+
+            <RoomAside
+              className="amaui-classroom__aside"
+              playerType={AsidePlayerTypes.self}
+            />
+          </div>
+          <RoomBottom />
+        </Fragment>
+      );
+    }
+    // 学生身份
+    if (userInfo?.role === UserRoleEnum.Student) {
+      return <StudentPage />;
+    }
+    // TODO: 助教
+  };
+
   return (
     <Spin spinning={initing} wrapperClassName="amaui-classroom">
       <RoomHeader />
-      <div className="amaui-classroom__body">
-        <RoomMain wrapClassName="amaui-classroom__main" />
-        <RoomAside className="amaui-classroom__aside" />
-      </div>
-      <RoomBottom />
+      {renderMainAndBottom()}
     </Spin>
   );
 };

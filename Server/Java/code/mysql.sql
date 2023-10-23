@@ -22,7 +22,7 @@ CREATE TABLE `class_infos` (
   `rong_cloud_id` varchar(256) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_create_at` (`created_at`)
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3
 
 
 CREATE TABLE `doc_infos` (
@@ -35,3 +35,26 @@ CREATE TABLE `doc_infos` (
   PRIMARY KEY (doc_id, class_id)
 ) ENGINE=InnoDB;
 
+CREATE TABLE `class_member` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT COMMENT 'id',
+  `class_id` varchar(256) NOT NULL COMMENT '课堂id',
+  `user_id` varchar(256) NOT NULL COMMENT '用户Id',
+  `user_name` varchar(256) NOT NULL COMMENT '用户名',
+  `user_avatar` varchar(256) COMMENT '头像',
+  `identity` tinyint NOT NULL COMMENT '身份。1-学生，2-老师',
+  `status` tinyint NOT NULL COMMENT '状态。1-正常，2-退出， 3-踢出',
+  `created_at` datetime DEFAULT NULL COMMENT '创建时间',
+  `updated_at` datetime DEFAULT NULL COMMENT '更新时间',
+   UNIQUE KEY udx_class_user_id(`class_id`, `user_id`),
+   KEY idx_class_created_at(`class_id`, `created_at`)
+) ENGINE=InnoDB;
+
+CREATE TABLE `class_kick_member` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT COMMENT 'id',
+  `class_id` varchar(256) NOT NULL COMMENT '课堂id',
+  `user_id` varchar(256) NOT NULL COMMENT '用户Id',
+  `expired_at` datetime NOT NULL COMMENT '过期时间',
+  `created_at` datetime NOT NULL COMMENT '创建时间',
+  `updated_at` datetime NOT NULL COMMENT '更新时间',
+   KEY idx_class_user_id(`class_id`, `user_id`)
+) ENGINE=InnoDB;

@@ -32,12 +32,26 @@
     display: flex;
     align-items: center;
   }
+
+  .pc-bottom__button-divider {
+    margin: auto 30px;
+    width: 1px;
+    height: 35px;
+    background-color: #e6e7ec;
+  }
 }
 
 .button-wrapper {
   position: relative;
   width: 78px;
   height: 100%;
+  .buttonContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    height: 100%;
+  }
   .button {
     height: 100%;
     display: flex;
@@ -210,4 +224,44 @@
 
 .microphone-dropdown {
   left: 10px !important;
+}
+
+.setting-panel {
+  width: 180px;
+  margin: -12px -16px;
+
+  .setting-panel__group {
+    margin: 0 12px;
+    padding: 8px 0;
+
+    &:not(:last-child) {
+      border-bottom: 1px solid #e6e7ec;
+    }
+
+    .setting-panel__group__title {
+      margin-bottom: 4px;
+      color: #747a8c;
+    }
+
+    .setting-panel__group__content {
+      .setting-panel__group__content_item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 32px;
+        margin: 0 -12px;
+        &:hover {
+          background-color: #f4f4f6;
+        }
+
+        .setting-panel__group__content_item_label {
+          margin-left: 12px;
+        }
+
+        .setting-panel__group__content_item_checkbox {
+          margin-right: 12px;
+        }
+      }
+    }
+  }
 }

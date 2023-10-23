@@ -5,6 +5,7 @@ import com.aliyuncs.CommonRequest;
 import com.aliyuncs.CommonResponse;
 import com.aliyuncs.DefaultAcsClient;
 import com.aliyuncs.IAcsClient;
+import com.aliyuncs.aui.dto.ClassMemberDto;
 import com.aliyuncs.aui.dto.LinkInfo;
 import com.aliyuncs.aui.dto.PullLiveInfo;
 import com.aliyuncs.aui.dto.PushLiveInfo;
@@ -12,8 +13,8 @@ import com.aliyuncs.aui.dto.enums.MediaStatus;
 import com.aliyuncs.aui.dto.req.ImTokenRequestDto;
 import com.aliyuncs.aui.dto.res.ImTokenResponseDto;
 import com.aliyuncs.aui.dto.res.RoomInfoDto;
-import com.aliyuncs.aui.service.RongCloudServer;
 import com.aliyuncs.aui.service.ALiYunService;
+import com.aliyuncs.aui.service.RongCloudServer;
 import com.aliyuncs.exceptions.ClientException;
 import com.aliyuncs.exceptions.ServerException;
 import com.aliyuncs.http.FormatType;
@@ -37,7 +38,10 @@ import javax.annotation.Resource;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
 
 /**
  * 视频云服务实现类
@@ -139,6 +143,29 @@ public class ALiYunServiceImpl implements ALiYunService {
             log.error("createMessageGroup Exception. error:{}", e.getMessage());
         }
         return null;
+    }
+
+    public boolean sendMessageToGroup(String groupId, Integer type, ClassMemberDto classMemberDto) {
+
+        SendMessageToGroupRequest request = new SendMessageToGroupRequest();
+        request.setAppId(imAppId);
+        request.setGroupId(groupId);
+        request.setType(type);
+        request.setData(JSONObject.toJSONString(classMemberDto));
+        request.setOperatorUserId("System");
+        request.setSkipAudit(true);
+        try {
+            SendMessageToGroupResponse response = client.getAcsResponse(request);
+            log.info("data:{}, SendMessageToGroupResponse:{}", JSONObject.toJSONString(classMemberDto), JSONObject.toJSONString(response));
+            return true;
+        } catch (ServerException e) {
+            log.error("sendMessageToGroup ServerException. ErrCode:{}, ErrMsg:{}, RequestId:{}", e.getErrCode(), e.getErrMsg(), e.getRequestId());
+        } catch (ClientException e) {
+            log.error("sendMessageToGroup ClientException. ErrCode:{}, ErrMsg:{}, RequestId:{}", e.getErrCode(), e.getErrMsg(), e.getRequestId());
+        } catch (Exception e) {
+            log.error("sendMessageToGroup Exception. error:{}", e.getMessage());
+        }
+        return false;
     }
 
     @Override

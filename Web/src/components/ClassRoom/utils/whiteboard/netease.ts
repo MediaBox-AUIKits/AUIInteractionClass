@@ -206,6 +206,7 @@ class NetEase {
             },
           });
           toolCollection.removeTool({ name: 'image' });
+          toolCollection.removeTool({ name: 'uploadLog' });
           // 显示工具栏
           toolCollection.show();
           this.toolCollection = toolCollection;
@@ -264,6 +265,10 @@ class NetEase {
   // 从其他文档切回白板
   switchToBoard() {
     this.drawPlugin?.gotoBoard('whiteboard');
+  }
+
+  updateContainerAfterResize() {
+    this.drawPlugin?.updateContainerAfterResize();
   }
 }
 

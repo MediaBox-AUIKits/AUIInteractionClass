@@ -1,6 +1,6 @@
 export enum UserRoleEnum {
   Student = 0,
-  Teacther = 1,
+  Teacher = 1,
   Assistant = 2, // 助教，预留字段
 }
 
@@ -38,6 +38,11 @@ export interface ILinkUrlInfo {
   rtcPullUrl: string;
   rtcPushUrl: string;
   cdnPullInfo: IPullUrlInfo;
+}
+
+export interface ICdnUrlMap {
+  [SourceType.Material]?: Record<string, string>;
+  [SourceType.Camera]?: Record<string, string>;
 }
 
 export enum VODStatusEnum {
@@ -93,13 +98,30 @@ export interface IUserInfo {
   userId: string;
   userName: string;
   userAvatar?: string;
+  role?: UserRoleEnum; // 用户角色
 }
 
-export interface ISpectatorInfo extends IUserInfo {
+export interface ISpectatorInfo {
+  userId: string;
+  userNick: string;
+  userAvatar?: string;
   rtcPullUrl?: string;
   cameraOpened?: boolean; // 是否开启摄像头
   micOpened?: boolean; // 是否开启麦克风
   isAudioPublishing?: boolean; // 是否有 audio track
   isVideoPublishing?: boolean; // 是否有 video track
   isScreenPublishing?: boolean; // 是否有 screen track
+  controlledCameraOpened?: boolean; // 摄像头受控状态
+  controlledMicOpened?: boolean; // 麦克风受控状态
+}
+
+export interface MeetingInfo {
+  members: ISpectatorInfo[];
+  allMute?: boolean;
+  interactionAllowed?: boolean;
+}
+
+export enum InteractionInvitationUpdateType {
+  Add,
+  Remove,
 }

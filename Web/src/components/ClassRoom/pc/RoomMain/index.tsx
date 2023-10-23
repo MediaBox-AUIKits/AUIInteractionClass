@@ -6,11 +6,13 @@ import React, {
   useState,
   CSSProperties,
 } from 'react';
+import classNames from 'classnames';
 import ResizeObserver from 'resize-observer-polyfill';
 import NeteaseBoard from './NeteaseBoard';
 import SharingMask from './SharingMask';
 import LocalPlayer from './LocalPlayer';
 import { StreamWidth, StreamHeight } from '../../constances';
+import styles from './styles.less';
 
 const RenderRatio = StreamWidth / StreamHeight;
 
@@ -61,7 +63,10 @@ const RoomMain: React.FC<IProps> = props => {
   }, []);
 
   return (
-    <div ref={wrapEl} className={wrapClassName}>
+    <div
+      ref={wrapEl}
+      className={classNames(wrapClassName, styles['room-main'])}
+    >
       <NeteaseBoard rendererStyle={rendererStyle} />
 
       <LocalPlayer rendererStyle={rendererStyle} />

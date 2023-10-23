@@ -1,10 +1,11 @@
 import React, { useMemo, useEffect, useCallback, useState } from 'react';
-import { message, Popover } from 'antd';
+import { Popover } from 'antd';
 import classNames from 'classnames';
 import useClassroomStore from '../../store';
 import livePush from '../../utils/LivePush';
 import logger from '../../utils/Logger';
 import { ScreenShareSvg, ScreenShareDisableSvg } from '../../components/icons';
+import toast from '@/utils/toast';
 import styles from './index.less';
 
 const ScreenShare: React.FC = () => {
@@ -51,7 +52,7 @@ const ScreenShare: React.FC = () => {
       const bool = livePusher.checkScreenShareSupported();
       logger.screenShareSupported(bool);
       if (!bool) {
-        message.error('无屏幕分享的权限！');
+        toast.error('无屏幕分享的权限！');
         return;
       }
       logger.startScreen();

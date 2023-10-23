@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Dropdown, message } from 'antd';
+import { Dropdown, Tooltip } from 'antd';
 import classNames from 'classnames';
 import livePush from '../../utils/LivePush';
 import useClassroomStore from '../../store';
@@ -10,13 +10,15 @@ import {
   CameraLoadingSvg,
   CameraNormalSvg,
 } from '../../components/icons';
+import toast from '@/utils/toast';
 import styles from './index.less';
 
 interface IProps {
   disabled: boolean;
+  disabledTooltip?: string;
 }
 
-export default function Camera({ disabled }: IProps) {
+export default function Camera({ disabled, disabledTooltip }: IProps) {
   const livePusher = useMemo(() => {
     return livePush.getInstance('alivc')!;
   }, []);
@@ -40,7 +42,7 @@ export default function Camera({ disabled }: IProps) {
         .then((cameraList: any[]) => {
           setCameraDeviceCount(cameraList.length);
           if (cameraList.length === 0) {
-            message.error('未发现摄像头，请检查设备状况');
+            toast.error('未发现摄像头，请检查设备状况');
             return;
           }
           setDeviceList(cameraList);
@@ -95,10 +97,12 @@ export default function Camera({ disabled }: IProps) {
   const renderIcon = () => {
     if (switching || disabled || deviceList.length === 0) {
       return (
-        <div className={classNames(styles.button, styles.disabled)}>
-          {switching ? <CameraLoadingSvg /> : <CameraDisableSvg />}
-          <div className={styles['button-text']}>摄像头</div>
-        </div>
+        <Tooltip title={disabledTooltip} placement="top" trigger="hover">
+          <div className={classNames(styles.button, styles.disabled)}>
+            {switching ? <CameraLoadingSvg /> : <CameraDisableSvg />}
+            <div className={styles['button-text']}>摄像头</div>
+          </div>
+        </Tooltip>
       );
     }
     return (

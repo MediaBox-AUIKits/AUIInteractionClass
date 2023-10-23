@@ -4,10 +4,9 @@ import React, {
   useContext,
   useRef,
   useState,
+  useMemo,
 } from 'react';
-import { message } from 'antd';
-import { Toast } from 'antd-mobile';
-import { useThrottleFn } from 'ahooks';
+import { useThrottleFn, useMemoizedFn } from 'ahooks';
 import {
   IClassRoomProps,
   CustomMessageTypes,
@@ -22,6 +21,11 @@ import logger from './utils/Logger';
 import PCClassRoom from './pc';
 import MobileClassRoom from './mobile';
 import { AUIMessageEvents } from '@/BaseKits/AUIMessage';
+import {
+  TeacherInteractionManager,
+  StudentInteractionManager,
+} from './utils/InteractionManager';
+import toast from '@/utils/toast';
 
 const MaxMessageCount = 100;
 
@@ -33,17 +37,42 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
     onExit,
     report,
   } = props;
+
   const commentListCache = useRef<CommentMessage[]>([]); // 解决消息列表闭包问题
   const {
+    joinedGroupId,
     setClassroomInfo,
+    increaseMemberListFlag,
     setJoinedGroupId,
     setMessageList,
     setGroupMuted,
-    setSelfMuted,
     setCommentInput,
     setConnectedSpectators,
+    setInteractionAllowed,
+    setControlledCameraOpened,
+    setControlledMicOpened,
+    setAllMicMuted,
+    updateConnectedSpectator,
+    updateApplyingList,
   } = useClassroomStore.getState();
   const { auiMessage } = useContext(ClassContext);
+  const isStudent = useMemo(
+    () => userInfo.role === UserRoleEnum.Student,
+    [userInfo]
+  );
+  const interactionManager = useMemo(() => {
+    if (auiMessage && userInfo) {
+      return isStudent
+        ? new StudentInteractionManager({
+            message: auiMessage,
+            groupId: joinedGroupId,
+          })
+        : new TeacherInteractionManager({
+            message: auiMessage,
+            groupId: joinedGroupId,
+          });
+    }
+  }, [role, userInfo, auiMessage]);
   const [initing, setIniting] = useState(false);
 
   const initMessageList = useCallback(() => {
@@ -82,57 +111,90 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
       });
   }, [userInfo]);
 
-  const initAUIMessage = async (aliyunGroupId?: string, rongIMId?: string) => {
-    if (!aliyunGroupId && !rongIMId) {
-      throw { code: -1, message: 'IM group id is empty' };
+  const initAUIMessage = useMemoizedFn(
+    async (aliyunGroupId?: string, rongIMId?: string) => {
+      if (!aliyunGroupId && !rongIMId) {
+        throw { code: -1, message: 'IM group id is empty' };
+      }
+      const imServer: string[] = [];
+      if (aliyunGroupId) {
+        imServer.push('aliyun');
+      }
+      if (rongIMId) {
+        imServer.push('rongCloud');
+      }
+      const { aliyunAccessToken, rongCloudToken } = await services.fetchIMToken(
+        imServer
+      );
+      auiMessage.setConfig({ aliyunAccessToken, rongCloudToken });
+      await auiMessage.login({
+        userId: userInfo.userId,
+        userNick: userInfo.userName,
+        userAvatar: userInfo.userAvatar || '',
+      });
+      await auiMessage.joinGroup(aliyunGroupId, rongIMId);
+      setJoinedGroupId((aliyunGroupId || rongIMId) as string);
+
+      // 若是有融云，则需要设置 http 接口服务
+      auiMessage.rongCloundIM?.setServices(services);
+
+      auiMessage
+        .queryMuteGroup()
+        .then(res => {
+          setGroupMuted(res.groupMuted);
+          // 老师初始化后广播重置状态
+          if (role === UserRoleEnum.Teacher) {
+            auiMessage.sendMessageToGroup({
+              type: CustomMessageTypes.ClassReset,
+              skipAudit: true,
+              skipMuteCheck: true,
+            });
+          }
+        })
+        .catch(() => {});
+
+      initMessageList();
     }
-    const imServer: string[] = [];
-    if (aliyunGroupId) {
-      imServer.push('aliyun');
-    }
-    if (rongIMId) {
-      imServer.push('rongCloud');
-    }
-    const { aliyunAccessToken, rongCloudToken } = await services.fetchIMToken(
-      imServer
+  );
+
+  // 获取当前连麦、推流用户信息
+  const getInteractionInfo = useCallback(async () => {
+    const data = await services.getMeetingInfo();
+    const { members = [], allMute = false, interactionAllowed = true } = data;
+
+    setConnectedSpectators(members);
+    setAllMicMuted(allMute);
+    setInteractionAllowed(interactionAllowed);
+
+    const interactionInfo = members.find(
+      ({ userId }) => userInfo?.userId === userId
     );
-    auiMessage.setConfig({ aliyunAccessToken, rongCloudToken });
-    await auiMessage.login({
-      userId: userInfo.userId,
-      userNick: userInfo.userName,
-      userAvatar: userInfo.userAvatar || '',
+    setControlledCameraOpened(interactionInfo?.controlledCameraOpened ?? true);
+    setControlledMicOpened(
+      !allMute && (interactionInfo?.controlledMicOpened ?? true)
+    );
+  }, [userInfo, services]);
+
+  // 进入课堂，重置连麦状态
+  const resetInteractionInfo = useCallback(async () => {
+    await services.updateMeetingInfo({
+      members: [],
+      allMute: false,
+      interactionAllowed: true,
     });
-    await auiMessage.joinGroup(aliyunGroupId, rongIMId);
-    setJoinedGroupId((aliyunGroupId || rongIMId) as string);
-
-    // 若是有融云，则需要设置 http 接口服务
-    auiMessage.rongCloundIM?.setServices(services);
-
-    auiMessage
-      .queryMuteGroup()
-      .then(res => {
-        setGroupMuted(res.groupMuted);
-        // setSelfMuted(res.selfMuted);
-      })
-      .catch(() => {});
-
-    initMessageList();
-  };
+  }, [services]);
 
   const initClassroom = useCallback(() => {
-    setIniting(true);
     services
       .fetchClassroomInfo()
-      .then(res => {
+      .then(async res => {
         setClassroomInfo(res);
 
-        // 获取当前连麦、推流用户信息
-        services
-          .getMeetingInfo()
-          .then(list => {
-            setConnectedSpectators(list);
-          })
-          .catch(() => {});
+        if (isStudent) {
+          await getInteractionInfo();
+        } else {
+          await resetInteractionInfo();
+        }
 
         // 初始化 IM 消息服务
         return initAUIMessage(res.aliyunId || res.chatId, res.rongCloudId);
@@ -149,21 +211,27 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
           logger.initError(err);
           console.log('初始化失败-》', err);
         }
-        const content = '初始化课堂失败，请检查后重新进入！';
-        UA.isPC
-          ? message.error({
-              content,
-              duration: 0,
-            })
-          : Toast.show({
-              content,
-              icon: 'fail',
-            });
+        toast.error('初始化课堂失败，请检查后重新进入！', 0);
       })
       .finally(() => {
         setIniting(false);
       });
-  }, [services, setClassroomInfo]);
+  }, [isStudent, services, setClassroomInfo, getInteractionInfo]);
+
+  const joinClass = useCallback(async () => {
+    setIniting(true);
+    try {
+      await services.joinClass();
+      initClassroom();
+    } catch (error: any) {
+      let msg = '加入课堂失败，退出课堂页';
+      if (error && error.message === 'InBlackList') {
+        msg = '您被移除教室，无法加入';
+      }
+      toast.error(msg);
+      onExit();
+    }
+  }, [services, onExit]);
 
   const { run: throttleUpdateMessageList } = useThrottleFn(
     (list: CommentMessage[]) => {
@@ -173,14 +241,6 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
       wait: 500,
     }
   );
-
-  const showInfoMessage = (text: string) => {
-    if (UA.isPC) {
-      message.info(text);
-    } else {
-      Toast.show(text);
-    }
-  };
 
   const addMessageItem = (messageItem: CommentMessage) => {
     const list: CommentMessage[] = [...commentListCache.current, messageItem];
@@ -201,29 +261,25 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
     setClassroomInfo(info);
   }, []);
 
-  const saveMeetingInfo = useCallback(
-    (userId: string, userName: string, data: any) => {
-      const { connectedSpectators, setConnectedSpectators } =
-        useClassroomStore.getState();
-      const list = connectedSpectators.slice();
-      const index = list.findIndex(item => item.userId === userId);
-      if (index !== -1) {
-        const newItem = {
-          ...list[index],
-          ...data,
-        };
-        list.splice(index, 1, newItem);
-      } else {
-        list.push({
-          userId,
-          userName,
-          ...data,
-        });
-      }
-      setConnectedSpectators(list);
-    },
-    []
-  );
+  const handleKicked = (kickedUserId: string) => {
+    if (userInfo.userId !== kickedUserId) {
+      return;
+    }
+    toast.warning('您已被移除教室，3 秒后自动退出');
+    setTimeout(() => {
+      onExit();
+    }, 3000);
+  };
+
+  const handleClassReset = useCallback(async () => {
+    const data = await services?.getMeetingInfo();
+    if (data) {
+      const { members = [], allMute = false, interactionAllowed = true } = data;
+      setConnectedSpectators(members);
+      setAllMicMuted(allMute);
+      setInteractionAllowed(interactionAllowed);
+    }
+  }, [services]);
 
   const handleReceivedMessage = useCallback(
     (eventData: any) => {
@@ -251,6 +307,20 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
             });
           }
           break;
+        case CustomMessageTypes.MemberJoined:
+          // 进入课堂
+          increaseMemberListFlag();
+          break;
+        case CustomMessageTypes.MemberLeft:
+          // 离开课堂
+          increaseMemberListFlag();
+          break;
+        case CustomMessageTypes.MemberKicked:
+          // 被移除课堂
+          if (data) {
+            handleKicked(data.user_id || data.userId);
+          }
+          break;
         case CustomMessageTypes.ClassStart:
           // 上课
           updateClassStatus(ClassroomStatusEnum.started);
@@ -265,7 +335,7 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
             senderId === classroomInfo.teacherId &&
             senderId !== userInfo.userId
           ) {
-            showInfoMessage(data.micOpened ? '老师已取消静音' : '老师已静音');
+            toast(data.micOpened ? '老师已取消静音' : '老师已静音');
           }
           break;
         case CustomMessageTypes.PublishInfoChanged:
@@ -274,23 +344,43 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
             senderId === classroomInfo.teacherId &&
             senderId !== userInfo.userId
           ) {
+            const { sid, ...publishInfo } = data;
             // 更新老师的推流信息，后续做连麦时需要调整
-            saveMeetingInfo(senderId, nickName, data);
+            updateConnectedSpectator(senderId, publishInfo);
+          }
+          break;
+        case CustomMessageTypes.InteractionMemberUpdated:
+          if (
+            senderId === classroomInfo.teacherId &&
+            senderId !== userInfo?.userId
+          ) {
+            setConnectedSpectators(data.data);
+          }
+          break;
+        case CustomMessageTypes.ClassReset:
+          if (
+            senderId === classroomInfo.teacherId &&
+            senderId !== userInfo?.userId
+          ) {
+            handleClassReset();
           }
           break;
         default:
           break;
       }
     },
-    [userInfo]
+    [userInfo, handleClassReset]
   );
 
   const listenEvents = () => {
     auiMessage.addListener(AUIMessageEvents.onJoinGroup, (data: any) => {
-      console.log('有人加入房间', data);
+      console.log('有人加入房间', data); // IM 消息组的加入
     });
     auiMessage.addListener(AUIMessageEvents.onLeaveGroup, (data: any) => {
-      console.log('有人离开房间', data);
+      console.log('有人离开房间', data); // IM 消息组的离开
+      const { senderId: userId } = data;
+      updateConnectedSpectator(userId);
+      updateApplyingList(userId);
     });
     auiMessage.addListener(
       AUIMessageEvents.onMessageReceived,
@@ -299,11 +389,11 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
     auiMessage.addListener(AUIMessageEvents.onMuteGroup, () => {
       setGroupMuted(true);
       setCommentInput('');
-      showInfoMessage('已开启全员禁言');
+      toast('已开启全员禁言');
     });
     auiMessage.addListener(AUIMessageEvents.onUnmuteGroup, () => {
       setGroupMuted(false);
-      showInfoMessage('已解除全员禁言');
+      toast('已解除全员禁言');
     });
   };
 
@@ -311,7 +401,7 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
     logger.setReport(report); // 更新日志上报的函数
   }, [report]);
 
-  const leaveGroup = useCallback(() => {
+  const leaveClass = useCallback(() => {
     const { joinedGroupId, reset } = useClassroomStore.getState();
     auiMessage.removeAllEvent();
     if (joinedGroupId) {
@@ -322,19 +412,21 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
       auiMessage.logout();
     }
 
+    services.leaveClass();
+
     reset();
-  }, []);
+  }, [services]);
 
   useEffect(() => {
     logger.enter(); // 上报进入课堂记录
     listenEvents();
-    initClassroom();
+    joinClass();
 
-    window.addEventListener('beforeunload', leaveGroup);
+    window.addEventListener('beforeunload', leaveClass);
 
     return () => {
-      window.removeEventListener('beforeunload', leaveGroup);
-      leaveGroup();
+      window.removeEventListener('beforeunload', leaveClass);
+      leaveClass();
     };
   }, []);
 
@@ -344,6 +436,7 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
         auiMessage,
         services,
         userInfo,
+        interactionManager,
         exit: onExit,
       }}
     >

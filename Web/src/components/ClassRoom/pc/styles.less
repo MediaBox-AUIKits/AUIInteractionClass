@@ -1,12 +1,5 @@
 @import '../styles/base.less';
 
-.grid-background(@size: 10px, @line-width: 1px, @line-color: rgba(64, 132, 246, 0.3), @bg-color: #f2f2f2) {
-  background-image: linear-gradient(@line-color @line-width, transparent 0),
-    linear-gradient(90deg, @line-color @line-width, transparent 0);
-  background-size: @size @size;
-  background-color: @bg-color;
-}
-
 .amaui-classroom {
   position: relative;
   width: 100%;
@@ -19,12 +12,15 @@
   line-height: 1.5;
 
   .ant-spin-container {
+    display: flex;
+    flex-direction: column;
     width: 100%;
     height: 100%;
   }
 }
 
 .amaui-classroom__header {
+  flex: none;
   width: 100%;
   height: @pc-header-height;
   box-shadow: inset 0 -1px 0 0 #e6e7ec;
@@ -32,12 +28,14 @@
 
 .amaui-classroom__body {
   display: flex;
+  flex: auto;
   width: 100%;
   height: calc(100% - @pc-header-height - @pc-footer-height);
 }
 
 .amaui-classroom__main {
   display: flex;
+  flex-direction: column;
   position: relative;
   width: calc(100% - @pc-aside-width);
   height: 100%;
@@ -45,16 +43,20 @@
   .grid-background(14px, 1px, rgba(21,151,255,0.3), #F4F4F6);
 
   background-position: center;
-
-  .u-mask {
-    z-index: 100;
-  }
 }
 
-// .amaui-classroom__wb {
-//   width: 1920px;
-//   height: 1080px;
-// }
+.amaui-classroom__main__speaker {
+  width: 100%;
+  height: @speaker-top-height;
+  flex: none;
+}
+
+.amaui-classroom__main__content {
+  position: relative;
+  width: 100%;
+  height: calc(100% - @speaker-top-height);
+  flex: auto;
+}
 
 .amaui-classroom__aside {
   flex-shrink: 0;
@@ -63,6 +65,7 @@
 }
 
 .amaui-classroom__footer {
+  flex: none;
   width: 100%;
   height: @pc-footer-height;
   box-shadow: inset 0 1px 0 0 #e6e7ec;

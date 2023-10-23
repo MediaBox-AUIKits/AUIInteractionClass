@@ -19,7 +19,7 @@ interface RcFile extends File {
 }
 
 const MultiMedia: React.FC = () => {
-  const { setLocalMeidaSources } = useClassroomStore.getState();
+  const { setLocalMediaSources } = useClassroomStore.getState();
   const { enable: displayEnable } = useClassroomStore(state => state.display);
   const [modalOpened, setModalOpened] = useState<boolean>(false);
   const [fileList, setFileList] = useState<RcFile[]>([]);
@@ -57,7 +57,7 @@ const MultiMedia: React.FC = () => {
   const playSingle = (file: RcFile) => {
     closeMediaModal();
     const source = URL.createObjectURL(file);
-    setLocalMeidaSources([{ source, name: file.name }]);
+    setLocalMediaSources([{ source, name: file.name }]);
   };
 
   const playAll = () => {
@@ -68,7 +68,7 @@ const MultiMedia: React.FC = () => {
         source: URL.createObjectURL(file),
       };
     });
-    setLocalMeidaSources(list);
+    setLocalMediaSources(list);
   };
 
   const uploaderProps = useMemo(

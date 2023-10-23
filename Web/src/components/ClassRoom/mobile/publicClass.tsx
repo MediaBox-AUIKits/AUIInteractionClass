@@ -5,7 +5,7 @@ import H5Tabs, { ChatTabKey, IntroTabKey } from './H5Tabs';
 import IntroPanel from './IntroPanel';
 import ChatPanel from './ChatPanel';
 import ChatControls from './ChatControls';
-import { ClassroomStatusEnum } from '../types';
+import { ClassroomStatusEnum, SourceType } from '../types';
 import useClassroomStore from '../store';
 import { supportSafeArea } from '../utils/common';
 import styles from './index.less';
@@ -19,7 +19,10 @@ const tabs = [ChatTabKey, IntroTabKey];
 
 function PublicClass(props: PublicClassProps) {
   const { active, onBarVisibleChange } = props;
-  const { status } = useClassroomStore(state => state.classroomInfo);
+  const {
+    classroomInfo: { status, linkInfo, teacherId },
+    connectedSpectators,
+  } = useClassroomStore(state => state);
   const [tabKey, setTabKey] = useState<string>(ChatTabKey);
 
   const hasSafeAreaBottom = useMemo(() => {
@@ -32,10 +35,36 @@ function PublicClass(props: PublicClassProps) {
 
   const tabList = useMemo(() => tabs.map(key => ({ key })), [tabs]);
 
+  const cdnUrlMap = useMemo(
+    () => ({
+      [SourceType.Camera]: linkInfo?.cdnPullInfo ?? {},
+    }),
+    [linkInfo]
+  );
+
+  const hasSource = useMemo(() => {
+    const teacherPubStatus = connectedSpectators.find(
+      item => item.userId === teacherId
+    ) ?? {
+      isAudioPublishing: false,
+      isScreenPublishing: false,
+      isVideoPublishing: false,
+    };
+    const { isAudioPublishing, isScreenPublishing, isVideoPublishing } =
+      teacherPubStatus;
+    return isAudioPublishing || isScreenPublishing || isVideoPublishing;
+  }, [connectedSpectators, teacherId]);
+
   if (!active) return;
   return (
     <>
-      <H5Player id="mixed" onBarVisibleChange={onBarVisibleChange} />
+      <H5Player
+        id="mixed"
+        sourceType={SourceType.Camera}
+        cdnUrlMap={cdnUrlMap}
+        noSource={!hasSource}
+        onBarVisibleChange={onBarVisibleChange}
+      />
       <div
         className={classNames(styles.h5main, {
           [styles['not-safe-area']]: !hasSafeAreaBottom,

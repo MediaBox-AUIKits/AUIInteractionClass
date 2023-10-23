@@ -1,5 +1,6 @@
 package com.aliyuncs.aui.service;
 
+import com.aliyuncs.aui.dto.ClassMemberDto;
 import com.aliyuncs.aui.dto.LinkInfo;
 import com.aliyuncs.aui.dto.PullLiveInfo;
 import com.aliyuncs.aui.dto.PushLiveInfo;
@@ -70,4 +71,10 @@ public interface ALiYunService {
      * 获取rtc token信息。见文档https://help.aliyun.com/document_detail/450516.htm、
      */
     String getRtcAuth(String channelId, String userId, long timestamp);
+
+    /**
+    *
+    * 调用SendMessageToGroup向消息组全员发送消息。见：https://help.aliyun.com/zh/live/developer-reference/api-send-a-message-to-all-members-of-the-message-group
+    */
+    boolean sendMessageToGroup(String groupId, Integer type, ClassMemberDto classMemberDto);
 }

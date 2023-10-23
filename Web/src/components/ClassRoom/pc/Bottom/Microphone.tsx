@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Dropdown, message } from 'antd';
+import { Dropdown, Tooltip } from 'antd';
 import classNames from 'classnames';
 import livePush from '../../utils/LivePush';
 import { uniqueDevice } from '../../utils/common';
@@ -11,13 +11,15 @@ import {
   MicLoadingSvg,
   MicNormalSvg,
 } from '../../components/icons';
+import toast from '@/utils/toast';
 import styles from './index.less';
 
 interface IProps {
   disabled: boolean;
+  disabledTooltip?: string;
 }
 
-export default function Mic({ disabled }: IProps) {
+export default function Mic({ disabled, disabledTooltip }: IProps) {
   const livePusher = useMemo(() => {
     return livePush.getInstance('alivc')!;
   }, []);
@@ -42,7 +44,7 @@ export default function Mic({ disabled }: IProps) {
           const filteredMicList = uniqueDevice(micList);
           setMicrophoneDeviceCount(filteredMicList.length);
           if (filteredMicList.length === 0) {
-            message.error('未发现麦克风，请检查设备状况');
+            toast.error('未发现麦克风，请检查设备状况');
             return;
           }
           setDeviceList(filteredMicList);
@@ -76,6 +78,13 @@ export default function Mic({ disabled }: IProps) {
     setSwitching(false);
   }, [microphoneState.trackId]);
 
+  // 如果麦克风被关闭，switching 状态也需要重置
+  useEffect(() => {
+    if (!microphoneState.enable) {
+      setSwitching(false);
+    }
+  }, [microphoneState.enable]);
+
   const toggleMic = () => {
     setSwitching(true);
     setMicrophoneEnable(!microphoneState.enable);
@@ -89,10 +98,12 @@ export default function Mic({ disabled }: IProps) {
   const renderIcon = () => {
     if (switching || disabled || deviceList.length === 0) {
       return (
-        <div className={classNames(styles.button, styles.disabled)}>
-          {switching ? <MicLoadingSvg /> : <MicDisableSvg />}
-          <div className={styles['button-text']}>麦克风</div>
-        </div>
+        <Tooltip title={disabledTooltip} placement="top" trigger="hover">
+          <div className={classNames(styles.button, styles.disabled)}>
+            {switching ? <MicLoadingSvg /> : <MicDisableSvg />}
+            <div className={styles['button-text']}>麦克风</div>
+          </div>
+        </Tooltip>
       );
     }
     return (

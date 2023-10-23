@@ -66,8 +66,32 @@ public class MeetingMemberInfo {
     @JsonProperty("is_screen_publishing")
     private Boolean screenPublishing;
 
+    /**
+     * 老师指定的学生摄像头状态 true or false
+     */
+    @JsonProperty("controlled_camera_opened")
+    private Boolean controlledCameraOpened;
+
+    /**
+     * 老师指定的学生麦克风状态 true or false
+     */
+    @JsonProperty("controlled_mic_opened")
+    private Boolean controlledMicOpened;
+
     @Data
     public static class Members {
         private List<MeetingMemberInfo> members;
+
+        /**
+        * 是否全员静音 true or false
+        */
+        @JsonProperty("all_mute")
+        private Boolean allMute;
+
+        /**
+         * 是否允许连麦 true or false
+         */
+        @JsonProperty("interaction_allowed")
+        private Boolean interactionAllowed;
     }
 }

@@ -64,3 +64,29 @@
   margin-right: 8px;
   color: @offline-color;
 }
+
+.pc-header-right {
+  float: right;
+  padding: 0 8px;
+  height: 100%;
+  .clearfix();
+}
+
+.pc-header-exit {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  padding: 0 8px;
+  height: 100%;
+  color: @primary-color;
+  cursor: pointer;
+
+  svg {
+    font-size: 18px;
+    margin-right: 8px;
+  }
+
+  &:hover {
+    color: @primary-color-hover;
+  }
+}

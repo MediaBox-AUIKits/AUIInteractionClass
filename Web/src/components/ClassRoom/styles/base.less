@@ -1,7 +1,7 @@
 @pc-header-height: 48px;
 @pc-footer-height: 67px;
 @pc-aside-width: 288px;
-@aside-tab-header-height: 37px;
+@aside-tab-nav-height: 37px;
 @chat-opetations-height: 102px;
 
 @aside-player-width: @pc-aside-width;
@@ -19,6 +19,9 @@
 
 @divider-color: #e6e7ec;
 
+// 演讲者视图顶部列表高度
+@speaker-top-height: 124px;
+
 .text-overflow() {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -34,5 +37,27 @@
   &::-webkit-scrollbar-thumb {
     background-color: lighten(#000, 60%);
     border-radius: @width / 2 + 1px;
+  }
+}
+
+.grid-background(@size: 10px, @line-width: 1px, @line-color: rgba(64, 132, 246, 0.3), @bg-color: #f2f2f2) {
+  background-image: linear-gradient(@line-color @line-width, transparent 0),
+    linear-gradient(90deg, @line-color @line-width, transparent 0);
+  background-size: @size @size;
+  background-color: @bg-color;
+}
+
+.clearfix() {
+  zoom: 1;
+  &:before,
+  &:after {
+    content: '';
+    display: table;
+  }
+  &:after {
+    clear: both;
+    visibility: hidden;
+    font-size: 0;
+    height: 0;
   }
 }

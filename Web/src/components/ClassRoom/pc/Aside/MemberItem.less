@@ -1,0 +1,57 @@
+@import '../../styles/base.less';
+
+.member-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 8px 0;
+
+  &:global(.inactive) {
+    filter: grayscale(0.8);
+  }
+}
+
+.member-item__avatar {
+  flex: none;
+  background-color: @primary-color;
+}
+
+.member-item__info {
+  flex: auto;
+  flex-grow: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 160px;
+  min-width: 102px;
+  padding: 0 10px 0 8px;
+  color: @text-color;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.member-item__info__main {
+  width: 100%;
+  .text-overflow();
+}
+
+.member-item__info__teacher {
+  padding: 0 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: @primary-color;
+  background-color: #eaf5ff;
+  border-radius: 2px;
+}
+
+.member-item__info__sub {
+  width: 100%;
+  color: @text-color-lighten;
+  font-size: 12px;
+  line-height: 1.5;
+  .text-overflow();
+}
+
+.member-item__info__actions {
+  flex: auto;
+}

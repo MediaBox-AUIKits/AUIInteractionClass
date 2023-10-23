@@ -7,7 +7,7 @@ import {
 } from './live';
 import { PlayerParams } from './player';
 import { ResetSvg } from '../icons';
-import { IVODInfo, ILinkUrlInfo, SourceType } from '../../types';
+import { IVODInfo, SourceType, ICdnUrlMap } from '../../types';
 import { replaceHttps, UA } from '../../utils/common';
 
 import './index.less';
@@ -17,7 +17,7 @@ interface PlayerProps {
   device: 'mobile' | 'pc';
   sourceType?: SourceType;
   rtsFirst?: boolean;
-  liveInfo?: ILinkUrlInfo;
+  cdnUrlMap?: ICdnUrlMap;
   allowPlayback?: boolean;
   vodInfo?: IVODInfo;
   mute?: boolean;
@@ -32,9 +32,10 @@ interface PlayerProps {
 export default function Player(props: PlayerProps) {
   const {
     id = 'default',
+    device,
     sourceType = SourceType.Camera,
     rtsFirst = true,
-    liveInfo,
+    cdnUrlMap,
     allowPlayback = false,
     vodInfo,
     mute = false,
@@ -45,7 +46,12 @@ export default function Player(props: PlayerProps) {
     onError,
     onRtsFallback,
   } = props;
-  const playerContainerId = useMemo(() => `player_${id}`, [id]);
+
+  const instanceId = useMemo(() => +new Date(), []);
+  const playerContainerId = useMemo(
+    () => `player_${id}_${instanceId}`,
+    [instanceId, id]
+  );
   const [errorDisplayVisible, setErrorDisplayVisible] = useState(true);
 
   const callbacksRef = useRef({
@@ -107,14 +113,12 @@ export default function Player(props: PlayerProps) {
   }, [rtsFirst]);
 
   useEffect(() => {
-    const instanceId = +new Date();
     const dispose = () => {
       // 销毁实例
       liveService.destroy(instanceId);
     };
 
-    const { cdnPullInfo } = liveInfo ?? {};
-    if (cdnPullInfo) {
+    if (cdnUrlMap) {
       let arr: string[] = [];
       const flvKey =
         sourceType === SourceType.Material ? 'flvScreenUrl' : 'flvUrl';
@@ -123,15 +127,16 @@ export default function Player(props: PlayerProps) {
       const rtsKey =
         sourceType === SourceType.Material ? 'rtsScreenUrl' : 'rtsUrl';
       // PC 环境优先用 flv，因为延时比 hls 小
+      const urlMap = cdnUrlMap[sourceType] ?? {};
       if (UA.isPC) {
-        arr = [cdnPullInfo[flvKey], cdnPullInfo[hlsKey]];
+        arr = [urlMap[flvKey], urlMap[hlsKey]];
       } else {
-        arr = [cdnPullInfo[hlsKey], cdnPullInfo[flvKey]];
+        arr = [urlMap[hlsKey], urlMap[flvKey]];
       }
 
       let rtsFallbackSource = arr[0] || arr[1];
       let source = rtsFirst
-        ? cdnPullInfo[rtsKey] || rtsFallbackSource
+        ? urlMap[rtsKey] || rtsFallbackSource
         : rtsFallbackSource;
 
       // 因为 夸克、UC 有点问题，无法正常播放 rts，所以降级
@@ -150,7 +155,8 @@ export default function Player(props: PlayerProps) {
         source,
         rtsFallbackSource,
         skinLayout: EnterpriseSkinLayoutLive,
-        controlBarVisibility: controlBarVisibility ?? 'click',
+        controlBarVisibility:
+          controlBarVisibility ?? (device === 'pc' ? 'hover' : 'click'),
         onRtsFallback,
       };
 
@@ -179,10 +185,11 @@ export default function Player(props: PlayerProps) {
   }, [
     mute,
     rtsFirst,
+    instanceId,
     playerContainerId,
     controlBarVisibility,
-    liveInfo,
     sourceType,
+    cdnUrlMap,
     listenPlayerEvents,
   ]);
 
@@ -205,12 +212,12 @@ export default function Player(props: PlayerProps) {
       source,
       format: vodInfo.playlist[0].format,
       skinLayout: EnterpriseSkinLayoutPlayback,
-      controlBarVisibility: 'click',
+      controlBarVisibility:
+        controlBarVisibility ?? (device === 'pc' ? 'hover' : 'click'),
     });
-    if (mute) liveService.mute();
 
     listenPlayerEvents();
-  }, [mute, vodInfo, playerContainerId]);
+  }, [vodInfo, playerContainerId]);
 
   return (
     <div className={containerClassNames}>

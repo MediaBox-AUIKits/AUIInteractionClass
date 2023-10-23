@@ -1,5 +1,6 @@
 import { useRef, useEffect, useMemo, Fragment } from 'react';
-import { Button, message, Modal, notification } from 'antd';
+import { Button, Modal, notification } from 'antd';
+import toast from '@/utils/toast';
 import useClassroomStore from '../../../store';
 import livePush from '../../../utils/LivePush';
 import logger from '../../../utils/Logger';
@@ -120,7 +121,7 @@ export default function PushButton({
       }
     }
     if (msg) {
-      message.warning(msg);
+      toast.warning(msg);
     }
   };
 

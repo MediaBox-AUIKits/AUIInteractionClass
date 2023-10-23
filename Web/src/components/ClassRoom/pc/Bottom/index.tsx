@@ -5,7 +5,6 @@ import React, {
   useContext,
   useState,
 } from 'react';
-import { message } from 'antd';
 import { useThrottleFn } from 'ahooks';
 import { CustomMessageTypes } from '../../types';
 import useClassroomStore from '../../store';
@@ -21,7 +20,9 @@ import ScreenShare from './ScreenShare';
 import Board from './Board';
 import Doc from './Doc';
 import MultiMedia from './MultiMedia';
+import Setting from './Setting';
 import styles from './index.less';
+import toast from '@/utils/toast';
 
 const RoomBottom: React.FC = () => {
   const livePusher = useMemo(() => {
@@ -37,6 +38,8 @@ const RoomBottom: React.FC = () => {
     setMicrophoneEnable,
     setCameraTrackId,
     setCameraEnable,
+    setConnectedSpectators,
+    updateConnectedSpectator,
   } = useClassroomStore.getState();
   const [micDisabled, setMicDisabled] = useState<boolean>(true);
   const [cameraDisabled, setCameraDisabled] = useState<boolean>(true);
@@ -60,14 +63,13 @@ const RoomBottom: React.FC = () => {
     };
   }, []);
 
-  const updateMeetingInfo = useCallback(() => {
-    return services?.updateMeetingInfo([
-      {
-        ...userInfo!,
-        ...getMeetingInfoParams(),
-      },
-    ]);
-  }, [userInfo, livePusher]);
+  const updateTeacherInteractionInfo = useCallback(() => {
+    const self = {
+      ...userInfo!,
+      ...getMeetingInfoParams(),
+    };
+    updateConnectedSpectator(self.userId, self);
+  }, [userInfo]);
 
   const { run: throttleMeetingInfo } = useThrottleFn(
     () => {
@@ -75,7 +77,7 @@ const RoomBottom: React.FC = () => {
       if (!pusher.pushing) {
         return Promise.resolve();
       }
-      return updateMeetingInfo();
+      return updateTeacherInteractionInfo();
     },
     {
       wait: 500,
@@ -97,6 +99,9 @@ const RoomBottom: React.FC = () => {
       // groupId: joinedGroupId,
       type,
       data,
+      // 需要跳过审核和禁言
+      skipMuteCheck: true,
+      skipAudit: true,
     };
     try {
       await auiMessage.sendMessageToGroup(options);
@@ -146,17 +151,14 @@ const RoomBottom: React.FC = () => {
       // 断网重连后，需要重新混流
       const { pusher, camera } = useClassroomStore.getState();
       if (pusher.pushing) {
-        livePusher.updateTrancodingConfig(camera.enable);
+        livePusher.updateTranscodingConfig(camera.enable);
       }
     };
 
     livePusher.checkSystemRequirements().then(res => {
       logger.systemRequirements(res);
       if (!res.support) {
-        message.error({
-          content: '系统未支持推流！',
-          duration: 0,
-        });
+        toast.error('系统未支持推流！', 0);
         return;
       }
       initLivePusher();
@@ -185,7 +187,7 @@ const RoomBottom: React.FC = () => {
         // 更新服务端
         const detail = await services?.startClass();
         // 推流成功后更新混流布局
-        await livePusher.updateTrancodingConfig(includeCamera);
+        await livePusher.updateTranscodingConfig(includeCamera);
         // 通过消息通知学生
         const options = {
           // groupId: joinedGroupId,
@@ -195,7 +197,7 @@ const RoomBottom: React.FC = () => {
         await auiMessage.sendMessageToGroup(options);
 
         // 更新 meetingInfo
-        await updateMeetingInfo();
+        await updateTeacherInteractionInfo();
 
         // 更新课堂信息等
         const { classroomInfo } = useClassroomStore.getState();
@@ -219,12 +221,11 @@ const RoomBottom: React.FC = () => {
     []
   );
 
-  const stopClass = useCallback(async (joinedGroupId: string) => {
+  const stopClass = useCallback(async () => {
     logger.stopClass();
     try {
       // 通过消息通知学生下课
       const options = {
-        // groupId: joinedGroupId,
         type: CustomMessageTypes.ClassStop,
         data: {},
       };
@@ -233,7 +234,7 @@ const RoomBottom: React.FC = () => {
         // 停止推流
         await livePusher.stopPush();
         // 还原布局
-        await livePusher.resetTrancodingConfig();
+        await livePusher.resetTranscodingConfig();
       } catch (error) {
         // 即便sdk停止推流也应该往下执行
       }
@@ -242,14 +243,16 @@ const RoomBottom: React.FC = () => {
       // 更新推送状态，时间
       setPushing(false);
       setPusherExecuting(false);
-      message.success('已下课，3秒后自动退出！');
+      setConnectedSpectators([]);
+
+      toast.success('已下课，3秒后自动退出！');
       setTimeout(() => {
         exit();
       }, 3000);
     } catch (error) {
       logger.stopClassError(error);
       setPusherExecuting(false);
-      message.error('下课失败，请检查网络');
+      toast.error('下课失败，请检查网络');
     }
   }, []);
 
@@ -294,7 +297,7 @@ const RoomBottom: React.FC = () => {
             await livePusher.startMicrophone(microphone.deviceId);
             setMicrophoneTrackId('mic');
             if (!microphone.fromInit && !prevMicrophone.enable) {
-              message.success('静音已取消');
+              toast.success('静音已取消');
               handleDeviceAndTrackChanged(CustomMessageTypes.MicChanged, {
                 micOpened: true,
               });
@@ -309,7 +312,7 @@ const RoomBottom: React.FC = () => {
           await livePusher.stopMicrophone();
           setMicrophoneTrackId('');
           if (!microphone.fromInit) {
-            message.success('静音已开启');
+            toast.success('静音已开启');
             handleDeviceAndTrackChanged(CustomMessageTypes.MicChanged, {
               micOpened: false,
             });
@@ -332,33 +335,33 @@ const RoomBottom: React.FC = () => {
             console.log('------Camera started-------');
             if (pusher.pushing) {
               // 更新布局
-              await livePusher.updateTrancodingConfig(true);
+              await livePusher.updateTranscodingConfig(true);
             }
             // 开启预览
             livePusher.startPreview(PreviewPlayerId); // 注意和 SelfPlayer 保持一致
             console.log('------startPreview-------');
             if (!camera.fromInit && !prevCamera.enable) {
-              message.success('摄像头已开启');
+              toast.success('摄像头已开启');
             }
           } catch (error: any) {
             logger.startCameraError(error);
             console.log('start camera error ->', error);
             if (error?.message) {
-              message.error(error?.message);
+              toast.warning(error?.message);
             }
             setCameraEnable(false, camera.fromInit);
             setCameraTrackId('');
           }
         } else if (prevCamera.enable) {
           if (!camera.fromInit) {
-            message.success('摄像头已关闭');
+            toast.success('摄像头已关闭');
           }
           logger.stopCamera();
           console.log('------stopCamera-------');
           livePusher.stopCamera();
           setCameraTrackId('');
           // 更新布局
-          await livePusher.updateTrancodingConfig(false);
+          await livePusher.updateTranscodingConfig(false);
         }
       }
 
@@ -380,7 +383,7 @@ const RoomBottom: React.FC = () => {
           return;
         }
         if (pusher.pushing) {
-          stopClass(joinedGroupId);
+          stopClass();
         } else {
           startClass(joinedGroupId, camera.enable);
         }
@@ -432,6 +435,7 @@ const RoomBottom: React.FC = () => {
         <Board />
         <Doc />
         <MultiMedia />
+        <Setting />
       </div>
       <div className={styles['right-part']}>
         <PushButton

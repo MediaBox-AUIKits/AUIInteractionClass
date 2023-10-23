@@ -5,24 +5,52 @@ import React, {
   Fragment,
   useContext,
 } from 'react';
-import { message } from 'antd';
+import toast from '@/utils/toast';
 import useClassroomStore from '../../store';
-import { ClassroomStatusEnum } from '../../types';
-import { getTimeFormat } from '../../utils/common';
+import { ClassroomStatusEnum, UserRoleEnum } from '../../types';
+import { getTimeFormat, isValidDate } from '../../utils/common';
 import copyText from '../../utils/copyText';
-import { CopySvg, NotificationFilledSvg } from '../../components/icons';
+import {
+  CopySvg,
+  NotificationFilledSvg,
+  ExitSvg,
+} from '../../components/icons';
 import { ClassContext } from '../../ClassContext';
 import styles from './index.less';
 
 const RoomStatus: React.FC = () => {
-  const { status } = useClassroomStore(state => state.classroomInfo);
-  const { pushing, startTime } = useClassroomStore(state => state.pusher);
+  const { status, startedAt } = useClassroomStore(state => state.classroomInfo);
+  const { pushing, startTime: pusherStartTime } = useClassroomStore(
+    state => state.pusher
+  );
+  const { userInfo } = useContext(ClassContext);
+  const [startTime, setStartTime] = useState<Date>();
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  const started = useMemo(
-    () => status === ClassroomStatusEnum.started && pushing,
-    [status, pushing]
-  );
+  const started = useMemo(() => {
+    if (status !== ClassroomStatusEnum.started) {
+      return false;
+    }
+    // 老师角色时还需要 pushing 也为 ture
+    if (userInfo?.role === UserRoleEnum.Teacher) {
+      return pushing;
+    }
+    return true;
+  }, [status, pushing, userInfo]);
+
+  useEffect(() => {
+    if (status === ClassroomStatusEnum.started) {
+      if (userInfo?.role === UserRoleEnum.Teacher) {
+        // 当时老师时直接使用 pusher.startTime
+        setStartTime(pusherStartTime);
+      } else {
+        // 其他情况，优先使用 classroomInfo.startedAt 更新推送状态，时间
+        let time = startedAt ? new Date(startedAt) : new Date();
+        time = isValidDate(time) ? time : new Date();
+        setStartTime(time);
+      }
+    }
+  }, [userInfo, startedAt, pusherStartTime, status]);
 
   useEffect(() => {
     let timer: NodeJS.Timer;
@@ -65,15 +93,29 @@ const RoomStatus: React.FC = () => {
 
 const RoomHeader: React.FC = () => {
   const { id } = useClassroomStore(state => state.classroomInfo);
-  const { exit } = useContext(ClassContext);
+  const { exit, userInfo } = useContext(ClassContext);
 
   const copy = () => {
     const bool = copyText(id);
     if (bool) {
-      message.success('教室号复制成功');
+      toast.success('教室号复制成功');
     } else {
-      message.error('教室号复制失败');
+      toast.error('教室号复制失败');
     }
+  };
+
+  const renderRight = () => {
+    if (userInfo?.role === UserRoleEnum.Teacher) {
+      return null;
+    }
+
+    return (
+      <div className={styles['pc-header-right']}>
+        <span className={styles['pc-header-exit']} onClick={exit}>
+          <ExitSvg /> 退出
+        </span>
+      </div>
+    );
   };
 
   return (
@@ -85,6 +127,8 @@ const RoomHeader: React.FC = () => {
             <CopySvg onClick={copy} />
           </div>
           <RoomStatus />
+
+          {renderRight()}
         </Fragment>
       ) : null}
     </div>

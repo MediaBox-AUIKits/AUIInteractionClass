@@ -1,4 +1,5 @@
 import { ReactComponent as Copy } from './copy.svg';
+import { ReactComponent as Exit } from './exit.svg';
 import { ReactComponent as NotificationFilled } from './notification_filled.svg';
 import { ReactComponent as ChevronsDown } from './chevrons_down.svg';
 import { ReactComponent as LeftOutline } from './left_outling.svg';
@@ -16,6 +17,9 @@ import { ReactComponent as CameraLoading } from './camera_loading.svg';
 import { ReactComponent as CameraNormal } from './camera_normal.svg';
 import { ReactComponent as CameraCloseSolid } from './camera_close_solid.svg';
 
+import { ReactComponent as Hand } from './hand.svg';
+import { ReactComponent as Setting } from './setting.svg';
+
 import { ReactComponent as Board } from './board.svg';
 import { ReactComponent as BoardDisable } from './board_disable.svg';
 import { ReactComponent as Folder } from './folder.svg';
@@ -27,8 +31,10 @@ import { ReactComponent as MediaDisable } from './media_disable.svg';
 import { ReactComponent as Play } from './play.svg';
 import { ReactComponent as Info } from './info.svg';
 import { ReactComponent as MediaFile } from './media_file.svg';
+import { ReactComponent as ViewSwitch } from './view_switch.svg';
 
 export const CopySvg = Copy;
+export const ExitSvg = Exit;
 export const NotificationFilledSvg = NotificationFilled;
 export const ChevronsDownSvg = ChevronsDown;
 export const LeftOutlineSvg = LeftOutline;
@@ -43,6 +49,8 @@ export const CameraDisableSvg = CameraDisable;
 export const CameraLoadingSvg = CameraLoading;
 export const CameraNormalSvg = CameraNormal;
 export const CameraCloseSolidSvg = CameraCloseSolid;
+export const HandSvg = Hand;
+export const SettingSvg = Setting;
 export const BoardSvg = Board;
 export const BoardDisableSvg = BoardDisable;
 export const FolderSvg = Folder;
@@ -54,3 +62,4 @@ export const MediaDisableSvg = MediaDisable;
 export const MediaFileSvg = MediaFile;
 export const PlaySvg = Play;
 export const InfoSvg = Info;
+export const ViewSwitchSvg = ViewSwitch;

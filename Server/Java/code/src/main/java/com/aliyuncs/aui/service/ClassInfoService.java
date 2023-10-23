@@ -95,5 +95,7 @@ public interface ClassInfoService extends IService<ClassInfoEntity> {
     Result returnResult(Object object);
 
     boolean isExistById(String id);
+
+    ClassInfoEntity getClassInfoEntity(String classId);
 }
 

@@ -1,14 +1,7 @@
-import React, {
-  useRef,
-  useState,
-  useMemo,
-  useEffect,
-  useCallback,
-  useContext,
-} from 'react';
+import React, { useRef, useState, useMemo, useEffect, useContext } from 'react';
 import classNames from 'classnames';
 import { useThrottleFn } from 'ahooks';
-import { Checkbox, message } from 'antd';
+import toast from '@/utils/toast';
 import { ClassContext } from '../../ClassContext';
 import { ClassroomStatusEnum, CustomMessageTypes } from '../../types';
 import useClassroomStore from '../../store';
@@ -102,7 +95,7 @@ const ChatPanel: React.FC<IChatPanelProps> = props => {
         updateCommentInput('');
       })
       .catch((err: any) => {
-        message.error('消息发送失败');
+        toast.error('消息发送失败');
         logger.sendMessageError(err);
       })
       .finally(() => {
@@ -142,51 +135,6 @@ const ChatPanel: React.FC<IChatPanelProps> = props => {
     scrollToBottom(listRef.current);
     autoScroll.current = true;
   };
-
-  const toggleMuteGroup = useCallback(
-    (e: any) => {
-      if (!e.target.checked) {
-        // 取消禁言
-        auiMessage
-          .cancelMuteGroup()
-          .then(() => {
-            // 在整个入口文件中监听 取消全员禁言 事件
-          })
-          .catch((err: any) => {
-            if (err instanceof AggregateError) {
-              const msg = err.errors
-                .map((error: any) => error.message || error)
-                .join(';');
-              logger.cancelMuteGroupError(msg);
-            } else {
-              logger.cancelMuteGroupError(err);
-            }
-            console.log('cancelMuteAll 失败', err);
-            message.error('全员禁言关闭失败');
-          });
-        return;
-      }
-      // 全员禁言
-      auiMessage
-        .muteGroup()
-        .then(() => {
-          // 在整个入口文件中监听 全员禁言 事件
-        })
-        .catch((err: any) => {
-          if (err instanceof AggregateError) {
-            const msg = err.errors
-              .map((error: any) => error.message || error)
-              .join(';');
-            logger.muteGroupError(msg);
-          } else {
-            logger.muteGroupError(err);
-          }
-          console.log('muteAll 失败', err);
-          message.error('全员禁言开启失败');
-        });
-    },
-    [joinedGroupId]
-  );
 
   return (
     <div className={classNames(styles['chat-panel'], className)}>
@@ -233,13 +181,6 @@ const ChatPanel: React.FC<IChatPanelProps> = props => {
             handleSent();
           }}
         />
-        <Checkbox
-          disabled={!joinedGroupId}
-          checked={groupMuted}
-          onChange={toggleMuteGroup}
-        >
-          全员禁言
-        </Checkbox>
         <div
           className={classNames(styles['chat-send-btn'], {
             disabled: !allowChat,

@@ -46,6 +46,7 @@ export interface PlayerParams {
   keyShortCuts?: boolean;
   keyFastForwardStep?: number;
   components?: Array<any>;
+  rtsSdkUrl?: string;
   onRtsFallback?: () => void;
 }
 

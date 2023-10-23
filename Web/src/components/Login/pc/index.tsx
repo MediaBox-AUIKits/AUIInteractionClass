@@ -1,15 +1,20 @@
-import React, { useState } from 'react';
-import { Button, Form, Input, Select, message } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Button, Form, Input, Select } from 'antd';
 import { useDebounceFn } from 'ahooks';
 import { UserRoleEnum, ClassroomModeEnum, LoginProps } from '@/types';
 import reporter from '@/utils/Reporter';
+import toast from '@/utils/toast';
 import { handleEnterClassroom } from '../utils';
 import './styles.less';
 
 const RoleOptions = [
   {
-    value: UserRoleEnum.Teacther,
+    value: UserRoleEnum.Teacher,
     label: '教师',
+  },
+  {
+    value: UserRoleEnum.Student,
+    label: '学生',
   },
 ];
 
@@ -28,21 +33,46 @@ const PCLogin = (props: LoginProps) => {
   const { onLoginSuccess } = props;
 
   const [form] = Form.useForm();
+  const [idRequired, setIdRequired] = useState<boolean>(false);
   const [allowSubmit, setAllowSubmit] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
 
+  useEffect(() => {
+    if (!idRequired) {
+      form.validateFields(['id']); // 非必填时重置教室ID校验
+    }
+  }, [idRequired]);
+
   const { run: updateAllowSubmit } = useDebounceFn(
     (changedFields: any[]) => {
-      // 因为目前只有用户名称必需用户输入，其他的有默认值或非必需
-      // 所以校验用户名有值，且无错误即可
-      const target = changedFields.find(item => item.name.includes('userName'));
-      if (!target) {
-        return;
+      let idItemRequired = idRequired;
+      const roleTarget = changedFields.find(item => item.name.includes('role'));
+      if (roleTarget) {
+        idItemRequired = roleTarget.value === UserRoleEnum.Student;
+        setIdRequired(idItemRequired);
       }
-      if (target.value && target.errors && !target.errors.length) {
-        setAllowSubmit(true);
-      } else {
+
+      // 目前若为教师角色只有用户名称为必填项
+      // 若为学生角色则教室号也是必填项
+      // 所以校验用户名、教室号有值，且无错误即可
+      let bool = changedFields.some(item => {
+        if (item.name.includes('userName') || item.name.includes('id')) {
+          if (item.errors && item.errors.length) {
+            return true;
+          }
+        }
+        return false;
+      });
+      if (bool) {
         setAllowSubmit(false);
+      } else {
+        const values = form.getFieldsValue(['userName', 'id']);
+        // 若教室号 id 为必填项，则需要 id 为有值
+        if (!values.userName || (idItemRequired && !values.id)) {
+          setAllowSubmit(false);
+        } else {
+          setAllowSubmit(true);
+        }
       }
     },
     {
@@ -53,7 +83,6 @@ const PCLogin = (props: LoginProps) => {
   const enterClassroom = () => {
     setSubmitting(true);
     const values = form.getFieldsValue();
-    // console.log(values);
 
     handleEnterClassroom(values)
       .then(detail => {
@@ -70,7 +99,7 @@ const PCLogin = (props: LoginProps) => {
       .catch(err => {
         console.log(err);
         const msg = (err && err.message) || '进入课堂失败，请检查！';
-        message.error(msg);
+        toast.error(msg);
         reporter.createOrEnterClassroomError({
           ...values,
           message: msg,
@@ -103,7 +132,7 @@ const PCLogin = (props: LoginProps) => {
           layout="vertical"
           autoComplete="off"
           initialValues={{
-            role: UserRoleEnum.Teacther,
+            role: UserRoleEnum.Teacher,
             mode: ClassroomModeEnum.Open,
           }}
           onFieldsChange={updateAllowSubmit}
@@ -130,12 +159,14 @@ const PCLogin = (props: LoginProps) => {
           <Form.Item
             name="id"
             label="教室号"
-            // TODO: 后续若是支持 PC 版学生登录，教室ID 必填
+            rules={[{ required: idRequired, message: '请输入教室ID' }]}
           >
             <Input.TextArea
               rows={2}
               style={{ resize: 'none' }}
-              placeholder="请输入教室ID，未输入将新创建教室"
+              placeholder={`请输入教室ID${
+                idRequired ? '' : '，未输入将新创建教室'
+              }`}
             />
           </Form.Item>
           <Form.Item

@@ -31,54 +31,15 @@ public class RongCloudServerImpl implements RongCloudServer {
     private static RongCloud rongCloud;
 
     @Value("${biz.live_rongcloud_im.app_key}")
-    private String appKey = "8luwapkv8hwfl";
+    private String appKey;
 
     @Value("${biz.live_rongcloud_im.app_secret}")
-    private String appSecret = "efsXjXlMhvqp";
+    private String appSecret;
 
     @PostConstruct
     public void init() {
 
         rongCloud = RongCloud.getInstance(appKey, appSecret);
-    }
-
-    public static void main(String[] args) {
-        RongCloudServerImpl imp = new RongCloudServerImpl();
-        imp.init();
-
-        String token = imp.getToken("1111", "1111usesrnmae", "");
-        System.out.println("token:" + token);
-
-        String chatroomId = imp.createChatroom("test");
-        System.out.println("chatroomId:" + chatroomId);
-
-        boolean b = imp.muteUser(chatroomId, "1111", 60);
-        System.out.println("muteUser. result:" + b);
-
-        boolean muteUser = imp.isMuteUser(chatroomId, "1111");
-        System.out.println("muteUser:" + muteUser);
-
-        boolean b1 = imp.cancelMuteUser(chatroomId, "1111");
-        System.out.println("cancelMuteUser. result:" + b1);
-
-
-        boolean b2 = imp.muteChatroom(chatroomId);
-        System.out.println("muteChatroom. result:" + b2);
-
-
-        boolean muteChatroom = imp.isMuteChatroom(chatroomId);
-        System.out.println("isMuteChatroom. result:" + muteChatroom);
-
-        boolean b3 = imp.cancelMuteChatroom(chatroomId);
-        System.out.println("cancelMuteChatroom. result:" + b3);
-
-
-        boolean muteChatroom2 = imp.isMuteChatroom(chatroomId);
-        System.out.println("isMuteChatroom. result:" + muteChatroom2);
-
-
-
-
     }
 
     /**

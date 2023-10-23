@@ -1,9 +1,27 @@
 import axios from 'axios';
 import { serialize, parse } from 'cookie-es';
 import { v4 as uuidv4 } from 'uuid';
-import { ApiNames, RequestBaseUrl } from './base';
-import { convertToCamel, convertToUnderline } from '@/utils/common';
-import { IClassroomInfo, ISpectatorInfo } from '@/types';
+import { ApiNames, RequestBaseUrl, getApiUrl } from './base';
+import { convertToCamel, convertToUnderline, getRandomAvatar } from '@/utils/common';
+import { IClassroomInfo, ISpectatorInfo, MeetingInfo } from '@/types';
+
+async function postUseFerch(url: string, authToken: string, data: any = {}) {
+  const response = await fetch(url, {
+    method: "POST", // *GET, POST, PUT, DELETE, etc.
+    mode: "cors", // no-cors, *cors, same-origin
+    cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+    credentials: "same-origin", // include, *same-origin, omit
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${authToken}`,
+    },
+    keepalive: true,
+    redirect: "follow", // manual, *follow, error
+    referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+    body: JSON.stringify(data), // body data type must match "Content-Type" header
+  });
+  return response.json(); // parses JSON response into native JavaScript objects
+}
 
 // 用于本地测试储存用户信息的 cookie key，可以换成您实际自己的 key
 const AuiUserNameCookieKey = 'aui_classroom_usernick';
@@ -15,6 +33,7 @@ class Services {
   private authToken: string = '';
   private userId: string = '';
   private userName: string = '';
+  private userAvatar: string = ''; // 体验头像
   // 创建 axios 实例
   private request = axios.create({
     baseURL: RequestBaseUrl,
@@ -36,9 +55,14 @@ class Services {
             });
           }
           if (!res.data.success) {
+            let message = res.data.errorMsg || 'The error message is empty';
+            if (res.data.data && res.data.data.reason) {
+              // 部分接口错误信息放在这
+              message = res.data.data.reason;
+            }
             return this.handleError({
               code: res.data.errorCode || -2,
-              message: res.data.errorMsg || 'The error message is empty',
+              message,
             });
           }
           return res.data.data;
@@ -65,6 +89,7 @@ class Services {
     return {
       userId: this.userId,
       userName: this.userName,
+      userAvatar: this.userAvatar,
     };
   }
 
@@ -113,6 +138,7 @@ class Services {
         this.authToken = token;
         this.userName = username;
         this.userId = userId;
+        this.userAvatar = getRandomAvatar(userId); // 随机取头像，用于体验demo，实际开发请使用真实数据
 
         this.setLoginCookie(expire);
         this.setHeaderAuthorization();
@@ -239,13 +265,13 @@ class Services {
    * 获取连麦用户信息
    * @param {string} classId 课堂id
    */
-  public async getMeetingInfo(classId: string): Promise<ISpectatorInfo[]> {
+  public async getMeetingInfo(classId: string): Promise<MeetingInfo> {
     try {
       const res = await this.request.post(ApiNames.getMeetingInfo, {
         id: classId,
       });
       const detail: any = convertToCamel(res);
-      return detail.members || [];
+      return detail || [];
     } catch (error) {
       throw error;
     }
@@ -256,11 +282,14 @@ class Services {
    * @param {string} classId 直播间id
    * @param {ISpectatorInfo[]} members 连麦用户信息数组
    */
-  public async updateMeetingInfo(classId: string, members: ISpectatorInfo[]) {
+  public async updateMeetingInfo(
+    classId: string,
+    payload: Partial<MeetingInfo>
+  ) {
     try {
       const res = await this.request.post(ApiNames.updateMeetingInfo, {
         id: classId,
-        members: convertToUnderline(members),
+        ...convertToUnderline(payload),
       });
       return res;
     } catch (error) {
@@ -343,6 +372,65 @@ class Services {
       server_type: serverType,
       user_id: userId,
     });
+  }
+
+  public joinClass(class_id: string) {
+    return this.request.post(ApiNames.joinClass, {
+      class_id,
+      user_id: this.userId,
+      user_name: this.userName,
+      user_avatar: getRandomAvatar(this.userId),
+    });
+  }
+
+  public leaveClass(class_id: string) {
+    // 因为 fetch 开启 keepalive 时即便页面刷新、关闭也可以成功发送数据，所以离开的接口优先使用 fetch
+    if (typeof fetch === 'function') {
+      return postUseFerch(getApiUrl(ApiNames.leaveClass), this.authToken, {
+        class_id,
+        user_id: this.userId,
+      });
+    }
+    return this.request.post(ApiNames.leaveClass, {
+      class_id,
+      user_id: this.userId,
+    });
+  }
+
+  public kickClass(class_id: string, user_id: string) {
+    return this.request.post(ApiNames.kickClass, {
+      class_id,
+      user_id,
+    });
+  }
+
+  /**
+   * 成员列表
+   *
+   * @param {{
+   *     class_id: string;
+   *     identity: number;
+   *     status: number;
+   *     page_num?: number;
+   *     page_size?: number;
+   *   }} options
+   * @return {*} 
+   * @memberof Services
+   */
+  public async listMembers(options: {
+    class_id: string;
+    identity: number;
+    status: number;
+    page_num?: number;
+    page_size?: number;
+  }) {
+    try {
+      const res = await this.request.post(ApiNames.listMembers, options);
+      const detail: any = convertToCamel(res);
+      return detail;
+    } catch (error) {
+      throw error;
+    }
   }
 }
 

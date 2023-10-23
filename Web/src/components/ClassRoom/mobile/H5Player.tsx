@@ -3,7 +3,7 @@ import useClassroomStore from '../store';
 import Player from '../components/Player';
 import Icon from '@ant-design/icons';
 import { CameraCloseSolidSvg } from '../components/icons';
-import { ClassroomStatusEnum, ILinkUrlInfo, SourceType } from '../types';
+import { ClassroomStatusEnum, SourceType, ICdnUrlMap } from '../types';
 
 import styles from './H5Player.less';
 
@@ -27,11 +27,13 @@ const TextMapBySourceType: Record<
 
 interface H5PlayerProps {
   id: string;
+  device?: 'mobile' | 'pc';
   rtsFirst?: boolean;
   noSource?: boolean;
   sourceType?: SourceType;
+  statusTextVisible?: boolean;
   mute?: boolean;
-  linkInfo?: ILinkUrlInfo;
+  cdnUrlMap?: ICdnUrlMap;
   controlBarVisibility?: string;
   onBarVisibleChange?: (bool: boolean) => void;
   onRtsFallback?: () => void;
@@ -43,25 +45,27 @@ interface H5PlayerProps {
 function H5Player(props: H5PlayerProps) {
   const {
     id,
+    device = 'mobile',
+    statusTextVisible = true,
     sourceType,
     noSource,
     rtsFirst,
     mute,
-    linkInfo,
+    cdnUrlMap,
     controlBarVisibility,
     onBarVisibleChange,
     onRtsFallback,
   } = props;
 
-  const {
-    status,
-    vodInfo,
-    linkInfo: _classLinkInfo,
-  } = useClassroomStore(state => state.classroomInfo);
+  const { status, vodInfo } = useClassroomStore(state => state.classroomInfo);
+  const connectedSpectators = useClassroomStore(
+    state => state.connectedSpectators
+  );
 
   const isLiving = useMemo(
-    () => status === ClassroomStatusEnum.started,
-    [status]
+    () =>
+      status === ClassroomStatusEnum.started && !!connectedSpectators.length,
+    [status, connectedSpectators]
   );
 
   const allowPlayback = useMemo(() => {
@@ -105,13 +109,15 @@ function H5Player(props: H5PlayerProps) {
             <Icon component={CameraCloseSolidSvg} />
           </div>
         ) : null}
-        {statusText}
+        {statusTextVisible ? statusText : null}
       </div>
     </div>
   );
 
   return (
-    <div className={styles.h5player}>
+    <div
+      className={device === 'mobile' ? styles.h5player : styles['pc-player']}
+    >
       {isLiving || allowPlayback ? (
         noSource ? (
           noSourceDisplay
@@ -121,11 +127,11 @@ function H5Player(props: H5PlayerProps) {
             sourceType={sourceType}
             allowPlayback={allowPlayback}
             rtsFirst={rtsFirst}
-            liveInfo={linkInfo ?? _classLinkInfo}
+            cdnUrlMap={cdnUrlMap}
             vodInfo={vodInfo}
             mute={mute}
             wrapClassName={styles['h5player-container']}
-            device="mobile"
+            device={device}
             controlBarVisibility={controlBarVisibility}
             onBarVisibleChange={onBarVisibleChange}
             onError={handlePlayerError}

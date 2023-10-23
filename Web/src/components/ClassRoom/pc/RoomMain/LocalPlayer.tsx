@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useMemo, CSSProperties } from 'react';
-import { message } from 'antd';
+import toast from '@/utils/toast';
 import { CloseOutlined } from '@ant-design/icons';
 import useClassroomStore from '../../store';
 import { loadJS } from '../../utils/common';
@@ -15,7 +15,7 @@ interface IProps {
 const LocalPlayer: React.FC<IProps> = props => {
   const { rendererStyle } = props;
   const { sources } = useClassroomStore(state => state.localMedia);
-  const { setLocalMeida, setLocalMeidaStream } = useClassroomStore.getState();
+  const { setLocalMedia, setLocalMediaStream } = useClassroomStore.getState();
   const player = useRef<any>();
   const livePusher = useMemo(() => {
     return livePush.getInstance('alivc')!;
@@ -70,7 +70,7 @@ const LocalPlayer: React.FC<IProps> = props => {
         if (videoDom && videoDom.captureStream) {
           const mediaStream: MediaStream = videoDom.captureStream();
           if (mediaStream.getVideoTracks().length) {
-            setLocalMeidaStream(mediaStream);
+            setLocalMediaStream(mediaStream);
           }
         }
       });
@@ -85,8 +85,8 @@ const LocalPlayer: React.FC<IProps> = props => {
         ) {
           msg = '播放失败，不支持该编码格式的音视频';
         }
-        message.error(msg);
-        setLocalMeidaStream(undefined);
+        toast.error(msg);
+        setLocalMediaStream(undefined);
       });
       ins.on('volumechange', () => {
         livePusher.setVolume({
@@ -116,7 +116,7 @@ const LocalPlayer: React.FC<IProps> = props => {
   }, [sources]);
 
   const closeLocalPlayer = () => {
-    setLocalMeida({
+    setLocalMedia({
       sources: [],
     });
   };

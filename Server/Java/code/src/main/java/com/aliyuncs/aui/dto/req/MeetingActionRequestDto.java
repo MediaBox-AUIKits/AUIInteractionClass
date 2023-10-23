@@ -23,4 +23,12 @@ public class MeetingActionRequestDto {
     @JsonProperty("members")
     private List<MeetingMemberInfo> members;
 
+    @ApiModelProperty(value = "是否全员静音")
+    @JsonProperty("all_mute")
+    private Boolean allMute;
+
+    @ApiModelProperty(value = "是否允许连麦")
+    @JsonProperty("interaction_allowed")
+    private Boolean interactionAllowed;
+
 }

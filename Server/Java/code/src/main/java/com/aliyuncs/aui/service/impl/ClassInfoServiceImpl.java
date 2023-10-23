@@ -43,7 +43,6 @@ import java.util.concurrent.*;
 
 /**
  * 房间服务实现类
- *
  */
 @Service("roomInfosService")
 @Slf4j
@@ -59,7 +58,7 @@ public class ClassInfoServiceImpl extends ServiceImpl<RoomInfoDao, ClassInfoEnti
      */
     private static final String TOKEN_SECRET = "323assa2323.dqe223b434";
 
-    private static final char[] HEX_DIGITS = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+    private static final char[] HEX_DIGITS = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
     @Value("${room.boards.app_secret}")
     private String APP_SECRET;
@@ -89,7 +88,7 @@ public class ClassInfoServiceImpl extends ServiceImpl<RoomInfoDao, ClassInfoEnti
         RoomInfoDto roomInfoDto = new RoomInfoDto();
         long start = System.currentTimeMillis();
         Date now = new Date();
-        String id = aLiYunId == null ? rongCloudId: aLiYunId;
+        String id = aLiYunId == null ? rongCloudId : aLiYunId;
         ClassInfoEntity roomInfoEntity = ClassInfoEntity.builder()
                 .id(id)
                 .createdAt(now)
@@ -275,7 +274,7 @@ public class ClassInfoServiceImpl extends ServiceImpl<RoomInfoDao, ClassInfoEnti
         if (roomInfoDto == null) {
             return null;
         }
-        JSONObject jsonBoard = JSON.parseObject(roomInfoDto.getBoardsInfo() == null? "": roomInfoDto.getBoardsInfo());
+        JSONObject jsonBoard = JSON.parseObject(roomInfoDto.getBoardsInfo() == null ? "" : roomInfoDto.getBoardsInfo());
 
         String cid = jsonBoard.get("cid").toString();
         BoardCreateResponse result = boardRoomService.deleteBoardRoom(cid);
@@ -328,14 +327,27 @@ public class ClassInfoServiceImpl extends ServiceImpl<RoomInfoDao, ClassInfoEnti
         ClassInfoEntity re = new ClassInfoEntity();
         re.setId(meetingActionRequestDto.getId());
 
-        MeetingMemberInfo.Members members = new MeetingMemberInfo.Members();
-        members.setMembers(meetingActionRequestDto.getMembers());
+        MeetingGetRequestDto meetingGetRequestDto = new MeetingGetRequestDto();
+        meetingGetRequestDto.setId(meetingActionRequestDto.getId());
 
-        re.setMeetingInfo(JSONObject.toJSONString(members));
+        MeetingMemberInfo.Members meetingInfo = getMeetingInfo(meetingGetRequestDto);
+        if (meetingInfo == null) {
+            meetingInfo = new MeetingMemberInfo.Members();
+        }
+        if (meetingActionRequestDto.getMembers() != null) {
+            meetingInfo.setMembers(meetingActionRequestDto.getMembers());
+        }
+        if (meetingActionRequestDto.getAllMute() != null) {
+            meetingInfo.setAllMute(meetingActionRequestDto.getAllMute());
+        }
+        if (meetingActionRequestDto.getInteractionAllowed() != null) {
+            meetingInfo.setInteractionAllowed(meetingActionRequestDto.getInteractionAllowed());
+        }
+        re.setMeetingInfo(JSONObject.toJSONString(meetingInfo));
         re.setUpdatedAt(new Date());
 
         if (this.updateById(re)) {
-            return members;
+            return meetingInfo;
         }
         return null;
     }
@@ -509,6 +521,7 @@ public class ClassInfoServiceImpl extends ServiceImpl<RoomInfoDao, ClassInfoEnti
     public static String getCheckSum(String appSecret, String nonce, int curTime) {
         return encode(appSecret + nonce + curTime);
     }
+
     private static String encode(String value) {
         if (value == null) {
             return null;
@@ -599,5 +612,16 @@ public class ClassInfoServiceImpl extends ServiceImpl<RoomInfoDao, ClassInfoEnti
     public boolean isExistById(String id) {
         ClassInfoEntity roomInfoEntity = this.getById(id);
         return roomInfoEntity != null;
+    }
+
+    @Override
+    public ClassInfoEntity getClassInfoEntity(String classId) {
+
+        ClassInfoEntity roomInfoEntity = this.getById(classId);
+        if (roomInfoEntity == null) {
+            log.warn("get roomInfoEntity is null. classId:{}", classId);
+            return null;
+        }
+        return roomInfoEntity;
     }
 }

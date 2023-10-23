@@ -1,5 +1,10 @@
 import services from '@/services';
-import { UserRoleEnum, ClassroomModeEnum, IClassroomInfo, ClassroomStatusEnum } from "@/types";
+import {
+  UserRoleEnum,
+  ClassroomModeEnum,
+  IClassroomInfo,
+  ClassroomStatusEnum,
+} from '@/types';
 import reporter from '@/utils/Reporter';
 
 interface IHandleEnterClassroomProps {
@@ -9,7 +14,9 @@ interface IHandleEnterClassroomProps {
   userName: string;
 }
 
-export const handleEnterClassroom = async (props: IHandleEnterClassroomProps) => {
+export const handleEnterClassroom = async (
+  props: IHandleEnterClassroomProps
+) => {
   const { role, mode, id, userName } = props;
 
   // 先登录，userId 与 userName 为相同值，此为体验逻辑，实际开发请修改
@@ -27,13 +34,13 @@ export const handleEnterClassroom = async (props: IHandleEnterClassroomProps) =>
       throw new Error('该课程已结束');
     }
     // 若是老师，是否判断是该课堂的创建者，不能以教师身份进入非自己创建的课堂
-    if (role === UserRoleEnum.Teacther && detail.teacherId !== userName) {
+    if (role === UserRoleEnum.Teacher && detail.teacherId !== userName) {
       throw new Error('该课堂非您创建，不能以老师身份进入');
     }
   } else {
     // 若无 id，调用 create 接口创建新的课堂
     // 不允许学生创建
-    if (role !== UserRoleEnum.Teacther) {
+    if (role !== UserRoleEnum.Teacher) {
       throw new Error('非老师身份不能创建课堂');
     }
     // 目前未支持输入课堂名称，所以使用当前时间生成默认名称
@@ -49,7 +56,7 @@ export const handleEnterClassroom = async (props: IHandleEnterClassroomProps) =>
     detail = await services.createRoom({
       teacher_id: userName,
       teacher_nick: userName,
-      extends: "{}",
+      extends: '{}',
       mode: mode || ClassroomModeEnum.Open,
       title,
       im_server,
@@ -57,4 +64,4 @@ export const handleEnterClassroom = async (props: IHandleEnterClassroomProps) =>
   }
 
   return detail;
-}
+};

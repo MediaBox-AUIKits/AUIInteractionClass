@@ -1,0 +1,20 @@
+<svg width="1em" height="1em" viewBox="0 0 18 18" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <filter x="-58.3%" y="-58.3%" width="216.7%" height="216.7%" filterUnits="objectBoundingBox" id="view_switch_svg__view-switch-filter">
+      <feOffset dx="1" dy="1" in="SourceAlpha" result="shadowOffsetOuter1"/>
+      <feGaussianBlur stdDeviation="2" in="shadowOffsetOuter1" result="shadowBlurOuter1"/>
+      <feColorMatrix values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0  0 0 0 0.06 0" type="matrix" in="shadowBlurOuter1" result="shadowMatrixOuter1"/>
+      <feMerge>
+        <feMergeNode in="shadowMatrixOuter1"/><feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <path d="M16.7142857,0 C17.4214286,0 18,0.578571429 18,1.28571429 L18,16.7142857 C18,17.4214286 17.4214286,18 16.7142857,18 L1.28571429,18 C0.578571429,18 0,17.4214286 0,16.7142857 L0,1.28571429 C0,0.578571429 0.578571429,0 1.28571429,0 L16.7142857,0 Z M12.8571429,5.78571429 L11.9507143,6.69214286 L13.6092857,8.35714286 L4.39071429,8.35714286 L6.04928571,6.69214286 L5.14285714,5.78571429 L1.92857143,9 L5.14285714,12.2142857 L6.04928571,11.3078571 L4.39071429,9.64285714 L13.6092857,9.64285714 L11.9507143,11.3078571 L12.8571429,12.2142857 L16.0714286,9 L12.8571429,5.78571429 Z" id="view_switch_svg__view-switch-path"/>
+  </defs>
+  <g>
+    <mask id="view_switch_svg__view-switch-mask" fill="currentColor">
+      <use xlink:href="#view_switch_svg__view-switch-path"/>
+    </mask>
+    
+    <rect fill="currentColor" mask="url(#view_switch_svg__view-switch-mask)" x="-1.28571429" y="-1.28571429" width="20.5714286" height="20.5714286"/>
+  </g>
+</svg>

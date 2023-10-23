@@ -8,7 +8,7 @@ import React, {
   useContext,
   CSSProperties,
 } from 'react';
-import { message } from 'antd';
+import toast from '@/utils/toast';
 import classNames from 'classnames';
 import useClassroomStore from '../../store';
 import { ClassContext } from '../../ClassContext';
@@ -111,7 +111,7 @@ const NeteaseBoard: React.FC<IProps> = props => {
       const { setBoard } = useClassroomStore.getState();
       setBoard({ server: 'netease', mediaStream: stream });
     } else {
-      message.error('获取白板流失败，将无法上课推流！');
+      toast.error('获取白板流失败，将无法上课推流！');
     }
   };
 
@@ -159,13 +159,13 @@ const NeteaseBoard: React.FC<IProps> = props => {
           })
           .catch(err => {
             console.log('白板joinRoom失败', err);
-            message.error('白板初始化失败！');
+            toast.error('白板初始化失败！');
             logger.joinWhiteBoardRoomError(err);
           });
       })
       .catch(err => {
         console.log('白板初始化失败', err);
-        message.error('白板初始化失败！');
+        toast.error('白板初始化失败！');
         logger.initWhiteBoardError(err);
       });
     return () => {

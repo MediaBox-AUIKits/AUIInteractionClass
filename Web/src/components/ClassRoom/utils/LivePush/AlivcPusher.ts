@@ -3,34 +3,43 @@ import {
   StreamWidth,
   SubStreamHeight,
   SubStreamWidth,
+  CameraResolution,
+  CameraFps,
+  ShadowCameraResolution,
+  ShadowCameraFps,
+  CameraWidth,
+  CameraHeight,
+  LiveTranscodingSourceType,
 } from '../../constances';
 import { checkSystemRequirements } from '../common';
+import { getLayoutArray } from '../..//utils/common';
 
 class AlivcPusher extends window.AlivcLivePush.AlivcLivePusher {
   shadowInstance?: any; // 用于大班课混流
 
-  init() {
+  init(config: any = {}) {
     return super.init({
-      resolution: window.AlivcLivePush.AlivcResolutionEnum.RESOLUTION_540P,
-      fps: window.AlivcLivePush.AlivcFpsEnum.FPS_30,
+      resolution: CameraResolution,
+      fps: CameraFps,
       // 摄像头关闭时所推的静态帧
       cameraCloseImagePath:
         'https://img.alicdn.com/imgextra/i1/O1CN01tyOtvh1s7oMRG716S_!!6000000005720-0-tps-960-540.jpg',
       connectRetryCount: 12, // 网络异常重试次数
       logLevel: 1,
       instanceId: 'reality', // 主实例
+      ...config,
     });
   }
 
-  initShadow() {
+  async initShadow() {
     if (this.shadowInstance) {
       return;
     }
     console.log('-----initShadow-----');
     this.shadowInstance = new window.AlivcLivePush.AlivcLivePusher();
-    this.shadowInstance.init({
-      resolution: window.AlivcLivePush.AlivcResolutionEnum.RESOLUTION_180P,
-      fps: window.AlivcLivePush.AlivcFpsEnum.FPS_10,
+    await this.shadowInstance.init({
+      resolution: ShadowCameraResolution,
+      fps: ShadowCameraFps,
       // 摄像头关闭时所推的静态帧
       cameraCloseImagePath:
         'https://img.alicdn.com/imgextra/i1/O1CN01tyOtvh1s7oMRG716S_!!6000000005720-0-tps-960-540.jpg',
@@ -93,7 +102,7 @@ class AlivcPusher extends window.AlivcLivePush.AlivcLivePusher {
     return window.AlivcLivePush.AlivcLivePusher.getCameras();
   }
 
-  updateTrancodingConfig(includeCamera = true) {
+  updateTranscodingConfig(includeCamera = true) {
     const uid = super.getUserId(); // 当前推流用户id
     if (!uid) {
       return Promise.resolve();
@@ -133,12 +142,43 @@ class AlivcPusher extends window.AlivcLivePush.AlivcLivePusher {
     config.mixStreams = mixStreams;
 
     if (this.shadowInstance) {
+      return this.shadowInstance.setLiveMixTranscodingConfig(
+        config,
+        LiveTranscodingSourceType.LiveTranscodingShareScreen
+      );
+    }
+    return super.setLiveMixTranscodingConfig(config);
+  }
+
+  resetTranscodingConfig() {
+    if (this.shadowInstance) {
+      return this.shadowInstance.setLiveMixTranscodingConfig(
+        {},
+        LiveTranscodingSourceType.LiveTranscodingShareScreen
+      );
+    }
+    return super.setLiveMixTranscodingConfig();
+  }
+
+  updateInteractionMembersCameraLayout(users: { userId: string }[]) {
+    const config = new window.AlivcLivePush.AlivcLiveTranscodingConfig();
+    config.width = CameraWidth;
+    config.height = CameraHeight;
+    config.cropMode = 2;
+    config.mixStreams = getLayoutArray(
+      users,
+      CameraWidth,
+      CameraHeight,
+      16 / 9
+    );
+
+    if (this.shadowInstance) {
       return this.shadowInstance.setLiveMixTranscodingConfig(config);
     }
     return super.setLiveMixTranscodingConfig(config);
   }
 
-  resetTrancodingConfig() {
+  resetInteractionMembersCameraLayout() {
     if (this.shadowInstance) {
       return this.shadowInstance.setLiveMixTranscodingConfig();
     }
@@ -148,22 +188,21 @@ class AlivcPusher extends window.AlivcLivePush.AlivcLivePusher {
   async startPush(url: string, shadowUrl?: string) {
     if (shadowUrl && this.shadowInstance) {
       await this.shadowInstance.startPush(shadowUrl);
+      this.shadowInstance.startCustomStream(
+        this.shadowInstance.rtcEngineProxy.client.publishStream.mediaStream
+      );
     }
     await super.startPush(url);
   }
 
   async stopPush() {
-    if (this.shadowInstance) {
-      await this.shadowInstance.stopPush();
-    }
+    await this.shadowInstance?.stopPush();
     await super.stopPush();
   }
 
-  destroy() {
-    if (this.shadowInstance) {
-      this.shadowInstance.destroy();
-    }
-    super.destroy();
+  async destroy() {
+    await this.shadowInstance?.destroy();
+    await super.destroy();
   }
 }
 

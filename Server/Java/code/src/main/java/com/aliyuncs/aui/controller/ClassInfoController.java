@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.aliyuncs.aui.common.utils.PageUtils;
 import com.aliyuncs.aui.common.utils.Result;
 import com.aliyuncs.aui.common.utils.ValidatorUtils;
+import com.aliyuncs.aui.dto.InvokeResult;
 import com.aliyuncs.aui.dto.MeetingMemberInfo;
 import com.aliyuncs.aui.dto.req.*;
 import com.aliyuncs.aui.dto.res.*;
@@ -43,6 +44,8 @@ public class ClassInfoController {
     @Resource
     private RongCloudServer rongCloudServer;
 
+    @Resource
+    private ClassMemberService classMemberService;
 
     /**
      * 获取Im的token
@@ -398,5 +401,68 @@ public class ClassInfoController {
     private Result returnResult(Object object) {
 
         return Result.ok(object);
+    }
+
+
+    @RequestMapping("/joinClass")
+    public Result joinClass(@RequestBody JoinClassRequestDto joinClassRequestDto) {
+
+        ValidatorUtils.validateEntity(joinClassRequestDto);
+        //if (!joinClassRequestDto.valid()) {
+        //    return Result.invalidParam();
+        //}
+
+        InvokeResult result = classMemberService.joinClass(joinClassRequestDto);
+        if (result.isSuccess()) {
+            return Result.ok();
+        }
+        Result r = new Result();
+        r.setSuccess(false);
+        Map<String, Object> map = new HashMap<>();
+        map.put("reason", result.getReason());
+        r.setData(map);
+        return r;
+    }
+
+    @RequestMapping("/leaveClass")
+    public Result leaveClass(@RequestBody LeaveClassRequestDto leaveClassRequestDto) {
+
+        ValidatorUtils.validateEntity(leaveClassRequestDto);
+        InvokeResult result = classMemberService.leaveClass(leaveClassRequestDto);
+        if (result.isSuccess()) {
+            return Result.ok();
+        }
+        Result r = new Result();
+        r.setSuccess(false);
+        Map<String, Object> map = new HashMap<>();
+        map.put("reason", result.getReason());
+        r.setData(map);
+        return r;
+    }
+
+    @RequestMapping("/kickClass")
+    public Result kickClass(@RequestBody kickClassRequestDto kickClassRequestDto) {
+
+        ValidatorUtils.validateEntity(kickClassRequestDto);
+        InvokeResult result = classMemberService.kickClass(kickClassRequestDto);
+        if (result.isSuccess()) {
+            return Result.ok();
+        }
+        return Result.error();
+    }
+
+    @RequestMapping("/listMembers")
+    public Result listMembers(@RequestBody ClassMemberListRequestDto classMemberListRequestDto) {
+
+        ValidatorUtils.validateEntity(classMemberListRequestDto);
+        if (!classMemberListRequestDto.valid()) {
+            return Result.invalidParam();
+        }
+
+        ClassMemberListDto classMemberListDto = classMemberService.listMembers(classMemberListRequestDto);
+        if (classMemberListDto != null) {
+            return Result.ok(classMemberListDto);
+        }
+        return Result.error();
     }
 }

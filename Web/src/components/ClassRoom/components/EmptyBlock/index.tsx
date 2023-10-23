@@ -20,7 +20,7 @@ const EmptyBlock: React.FC<IEmptyBlock> = props => {
         className
       )}
     >
-      {text || '暂无内容'}
+      {text ?? '暂无内容'}
     </div>
   );
 };

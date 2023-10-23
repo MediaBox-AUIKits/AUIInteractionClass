@@ -26,6 +26,10 @@ export enum ApiNames {
   cancelMuteChatroom = 'cancelMuteChatroom',
   muteUser = 'muteUser',
   cancelMuteUser = 'cancelMuteUser',
+  joinClass = 'joinClass',
+  leaveClass = 'leaveClass',
+  kickClass = 'kickClass',
+  listMembers = 'listMembers',
 };
 
 export function getApiUrl(name: ApiNames) {

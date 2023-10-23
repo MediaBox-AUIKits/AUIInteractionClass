@@ -13,7 +13,6 @@ import H5Tabs, {
   ChatTabKey,
   IntroTabKey,
 } from './H5Tabs';
-// import { Toast } from 'antd-mobile';
 import IntroPanel from './IntroPanel';
 import ChatPanel from './ChatPanel';
 import ChatControls from './ChatControls';
@@ -22,6 +21,7 @@ import { SwitchArrowsSvg } from '../components/icons';
 import { ClassroomStatusEnum, SourceType } from '../types';
 import useClassroomStore from '../store';
 import { supportSafeArea, checkSystemRequirements } from '../utils/common';
+
 import styles from './index.less';
 
 interface BigClassProps {
@@ -37,6 +37,7 @@ const defaultTabsForSingleScreen = [ChatTabKey, IntroTabKey];
 function BigClass(props: BigClassProps) {
   const { onBarVisibleChange, active } = props;
   const {
+    supportWebRTC,
     classroomInfo: {
       status,
       teacherId,
@@ -44,34 +45,30 @@ function BigClass(props: BigClassProps) {
       shadowLinkInfo, // 不支持 WebRTC 的设备上，只展示一个画面，画面是混流后的布局，数据来源是 shadowLinkInfo
     },
     connectedSpectators,
+    setSupportWebRTC,
   } = useClassroomStore(state => state);
 
   const isInited = useMemo(() => {
     return status !== ClassroomStatusEnum.no_data;
   }, [status]);
+  const interacting = useMemo(
+    () => connectedSpectators.length > 1,
+    [connectedSpectators]
+  );
 
   const [tabs, setTabs] = useState<string[]>([]);
   const [tabKey, setTabKey] = useState(CameraTabKey);
-  const [supportWebRTC, setSupportWebRTC] = useState<boolean | undefined>(
-    undefined
-  );
+  const [rtsFallback, setRtsFallback] = useState(false);
+
   useEffect(() => {
     const check = async () => {
       const result = await checkSystemRequirements();
-      // TODO: DEL
-      // Toast.show({
-      //   content: `检测 WebRTC ${result.support ? 'pass' : 'failed'}`,
-      //   duration: 1000,
-      // });
       setSupportWebRTC(result.support);
     };
-    check();
-  }, []);
-
-  const linkInfo = useMemo(() => {
-    if (supportWebRTC === undefined) return;
-    return supportWebRTC ? teacherLinkInfo : shadowLinkInfo;
-  }, [supportWebRTC, teacherLinkInfo, shadowLinkInfo]);
+    if (supportWebRTC === undefined) {
+      check();
+    }
+  }, [supportWebRTC]);
 
   const hasSafeAreaBottom = useMemo(() => {
     return supportSafeArea('bottom');
@@ -108,6 +105,9 @@ function BigClass(props: BigClassProps) {
   }, [tabKey, mainScreenKey]);
 
   const [hasCamera, setHasCamera] = useState<boolean>(false);
+  const [hasMainScreenSource, setHasMainScreenSource] =
+    useState<boolean>(false);
+  const [hasSubScreenSource, setHasSubScreenSource] = useState<boolean>(false);
 
   useEffect(() => {
     const teacherPubStatus = connectedSpectators.find(
@@ -117,17 +117,21 @@ function BigClass(props: BigClassProps) {
       isScreenPublishing: false,
       isVideoPublishing: false,
     };
-    setHasCamera(!!teacherPubStatus.isVideoPublishing);
-  }, [connectedSpectators, teacherId]);
+    const hasCamera = !!teacherPubStatus.isVideoPublishing;
+    const hasMaterial = !!teacherPubStatus.isScreenPublishing;
+    setHasCamera(hasCamera);
+    setHasMainScreenSource(
+      mainScreenKey === MaterialTabKey ? hasMaterial : hasCamera
+    );
+    setHasSubScreenSource(
+      subScreenKey === MaterialTabKey ? hasMaterial : hasCamera
+    );
+  }, [connectedSpectators, teacherId, mainScreenKey, subScreenKey]);
 
   const handleRtsFallback = () => {
-    // TODO: DEL
-    // Toast.show({
-    //   content: 'RTS 降级',
-    //   duration: 1000,
-    // });
-    setSupportWebRTC(false);
+    setRtsFallback(true);
   };
+
   const tabList = useMemo(
     () =>
       tabs.map(key => ({
@@ -142,50 +146,102 @@ function BigClass(props: BigClassProps) {
     [tabs]
   );
 
-  if (!active) return;
-
-  const mainScreen = supportWebRTC ? (
-    <H5Player
-      id={mainScreenKey}
-      noSource={mainScreenKey === CameraTabKey && !hasCamera}
-      linkInfo={linkInfo}
-      sourceType={
-        mainScreenKey === MaterialTabKey
-          ? SourceType.Material
-          : SourceType.Camera
-      }
-      onBarVisibleChange={onBarVisibleChange}
-      onRtsFallback={handleRtsFallback}
-    />
-  ) : (
-    <H5Player
-      id={CameraTabKey}
-      linkInfo={linkInfo}
-      rtsFirst={false}
-      onBarVisibleChange={onBarVisibleChange}
-    />
+  const liveUrlsForWebRTCSupported = useMemo(
+    () => ({
+      [SourceType.Material]: teacherLinkInfo?.cdnPullInfo ?? {},
+      [SourceType.Camera]:
+        (interacting ? shadowLinkInfo : teacherLinkInfo)?.cdnPullInfo ?? {},
+    }),
+    [teacherLinkInfo, shadowLinkInfo, interacting]
   );
 
-  // 主次画面中都会有声音，因此次画面可以静音处理
-  const subScreen =
-    supportWebRTC && tabKey === CameraTabKey ? (
-      <H5Player
-        id={CameraTabKey}
-        mute={true}
-        noSource={!hasCamera}
-        sourceType={SourceType.Camera}
-        linkInfo={linkInfo}
-        controlBarVisibility="never"
-      />
-    ) : supportWebRTC && tabKey === MaterialTabKey ? (
-      <H5Player
-        id={MaterialTabKey}
-        mute={true}
-        sourceType={SourceType.Material}
-        linkInfo={linkInfo}
-        controlBarVisibility="never"
-      />
-    ) : null;
+  const liveUrlsForWebRTCNotSupported = useMemo(
+    () => ({
+      [SourceType.Material]: shadowLinkInfo?.cdnPullInfo ?? {},
+      [SourceType.Camera]: teacherLinkInfo?.cdnPullInfo ?? {},
+    }),
+    [teacherLinkInfo, shadowLinkInfo]
+  );
+
+  const mainScreen = useMemo(
+    () =>
+      supportWebRTC && !rtsFallback ? (
+        <H5Player
+          id={mainScreenKey}
+          noSource={!hasMainScreenSource}
+          cdnUrlMap={liveUrlsForWebRTCSupported}
+          sourceType={
+            mainScreenKey === MaterialTabKey
+              ? SourceType.Material
+              : SourceType.Camera
+          }
+          // 主次画面中都会有声音，因此静音某个画面
+          mute={mainScreenKey !== CameraTabKey && hasCamera}
+          onBarVisibleChange={onBarVisibleChange}
+          onRtsFallback={handleRtsFallback}
+        />
+      ) : (
+        <H5Player
+          id={CameraTabKey}
+          sourceType={SourceType.Material}
+          noSource={!hasMainScreenSource || !hasSubScreenSource}
+          cdnUrlMap={liveUrlsForWebRTCNotSupported}
+          rtsFirst={false}
+          onBarVisibleChange={onBarVisibleChange}
+        />
+      ),
+    [
+      supportWebRTC,
+      mainScreenKey,
+      hasMainScreenSource,
+      hasSubScreenSource,
+      liveUrlsForWebRTCSupported,
+      liveUrlsForWebRTCNotSupported,
+      onBarVisibleChange,
+    ]
+  );
+
+  const subScreen = useMemo(() => {
+    if (
+      !supportWebRTC ||
+      rtsFallback ||
+      (tabKey !== CameraTabKey && tabKey !== MaterialTabKey)
+    )
+      return null;
+
+    if (tabKey === CameraTabKey)
+      return (
+        <H5Player
+          id={CameraTabKey}
+          noSource={!hasSubScreenSource}
+          sourceType={SourceType.Camera}
+          cdnUrlMap={liveUrlsForWebRTCSupported}
+          mute={subScreenKey !== CameraTabKey && hasCamera}
+          controlBarVisibility="never"
+        />
+      );
+
+    if (tabKey === MaterialTabKey)
+      return (
+        <H5Player
+          id={MaterialTabKey}
+          noSource={!hasSubScreenSource}
+          sourceType={SourceType.Material}
+          cdnUrlMap={liveUrlsForWebRTCSupported}
+          mute={subScreenKey !== CameraTabKey && hasCamera}
+          controlBarVisibility="never"
+        />
+      );
+  }, [
+    supportWebRTC,
+    rtsFallback,
+    tabKey,
+    subScreenKey,
+    hasSubScreenSource,
+    liveUrlsForWebRTCSupported,
+  ]);
+
+  if (!active) return;
 
   return (
     <>
@@ -215,6 +271,7 @@ function BigClass(props: BigClassProps) {
                 hidden={tabKey !== ChatTabKey}
               />
             ) : null}
+            <></>
 
             <ChatControls
               className={styles.h5controls}

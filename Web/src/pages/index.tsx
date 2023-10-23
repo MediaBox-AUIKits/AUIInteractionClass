@@ -7,7 +7,9 @@ export default function HomePage() {
   const navigate = useNavigate();
 
   const onLoginSuccess = (id: any, role?: any) => {
-    const params = createSearchParams(role ? { id, role } : { id });
+    const params = createSearchParams(
+      role !== undefined ? { id, role } : { id }
+    );
     navigate({
       pathname: '/classroom',
       search: `?${params}`,
