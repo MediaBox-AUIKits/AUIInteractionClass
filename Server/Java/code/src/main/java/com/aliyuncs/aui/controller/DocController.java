@@ -14,7 +14,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/class")
@@ -62,10 +64,13 @@ public class DocController {
 
         List<DocResponse> docResponseList =  docService.queryDoc(docQueryRequest);
         if (docResponseList == null) {
-            return Result.invalidParam();
+            return Result.notFound();
         }
 
-        return Result.ok(docResponseList);
+        Map<String, Object> map = new HashMap<>();
+        map.put("docInfos", docResponseList);
+
+        return Result.ok(map);
     }
 
 
