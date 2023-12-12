@@ -3,6 +3,7 @@
 
 .amaui-classroom__pc-login {
   display: flex;
+  align-items: center;
   position: absolute;
   top: 50%;
   left: 50%;
@@ -22,7 +23,7 @@
 
 .amaui-classroom__pc-login__form {
   width: 560px;
-  padding: 92px 144px 80px;
+  padding: 0 140px;
 
   .ant-btn-block {
     margin: 16px 0 8px;
@@ -34,6 +35,19 @@
     border-color: #bbdeff;
     color: #fcfcfd;
   }
+}
+
+.amaui-classroom__pc-login__form__item__content {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.amaui-classroom__pc-login__form__item__content__loading {
+  display: flex;
+  justify-content: center;
+  width: 100%;
 }
 
 .amaui-classroom__pc-login__title {
@@ -56,4 +70,8 @@
   span {
     color: #1597ff;
   }
+}
+
+.mr4 {
+  margin-right: 4px;
 }

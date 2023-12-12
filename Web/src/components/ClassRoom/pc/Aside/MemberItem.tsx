@@ -4,12 +4,18 @@ import { Avatar } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
 import useClassroomStore from '../../store';
 import { ClassContext } from '../../ClassContext';
+import { MemberListContext } from './index';
 import styles from './MemberItem.less';
 import toast from '@/utils/toast';
+import {
+  AssistantCooperationManager,
+  MuteGroupOrUserEvent,
+} from '../../utils/AdminCooperation';
 
 export const ControlsContext = React.createContext<{
   userId: string;
   isTeacher: boolean;
+  isAssistant: boolean;
   kicking: boolean;
   userName?: string;
   userNick?: string;
@@ -17,6 +23,7 @@ export const ControlsContext = React.createContext<{
 }>({
   userId: '',
   isTeacher: false,
+  isAssistant: false,
   userName: '',
   userNick: '',
   kicking: false,
@@ -39,21 +46,41 @@ interface IMemberItemProps {
 const MemberItem: React.FC<IMemberItemProps> = props => {
   const { notOnline = false, userInfo, controls, subInfo } = props;
   const { userId, userName, userNick, userAvatar } = userInfo;
-  const { teacherId } = useClassroomStore(state => state.classroomInfo);
-  const { connectedSpectators, updateConnectedSpectator } = useClassroomStore(
-    state => state
-  );
-  const { services, auiMessage } = useContext(ClassContext);
+  const {
+    isAssistant: currentUserIsAssistant,
+    isTeacher: currentUserIsTeacher,
+    classroomInfo: { teacherId, assistantId },
+    connectedSpectators,
+    updateConnectedSpectator,
+  } = useClassroomStore(state => state);
+  const {
+    userInfo: currentUserInfo,
+    services,
+    auiMessage,
+    cooperationManager,
+  } = useContext(ClassContext);
+  const { canKickMember } = useContext(MemberListContext);
   const [kicking, setKicking] = useState(false);
 
-  const isTeacher = useMemo(() => {
-    return !!userId && userId === teacherId;
-  }, [userId, teacherId]);
-
-  const inactive = useMemo(
-    () => !isTeacher && notOnline,
-    [notOnline, isTeacher]
+  const isTeacher = useMemo(() => userId === teacherId, [userId, teacherId]);
+  const isAssistant = useMemo(
+    () => userId === assistantId,
+    [userId, assistantId]
   );
+  const isSelf = useMemo(
+    () => userId === currentUserInfo?.userId,
+    [currentUserInfo, userId]
+  );
+  const inactive = useMemo(() => {
+    if (currentUserIsTeacher) return !isTeacher && notOnline;
+    if (currentUserIsAssistant) return !isAssistant && notOnline;
+  }, [
+    notOnline,
+    isTeacher,
+    isAssistant,
+    currentUserIsAssistant,
+    currentUserIsTeacher,
+  ]);
 
   const stopInteraction = useCallback(
     (kickedUserId: string) => {
@@ -67,46 +94,92 @@ const MemberItem: React.FC<IMemberItemProps> = props => {
     [connectedSpectators]
   );
 
-  const handleKick = useCallback(() => {
-    if (kicking) {
+  const doMuteUser = useCallback(
+    async (userId: string, mute = true) => {
+      try {
+        if (mute) {
+          await auiMessage.muteUser(userId);
+        } else {
+          await auiMessage.cancelMuteUser(userId);
+        }
+      } catch (error) {
+        console.warn(`${userId}${mute ? '' : '解除'}禁言失败`);
+        throw error;
+      }
+    },
+    [auiMessage]
+  );
+
+  const muteUserProxy = useCallback(
+    (userId: string, mute = true) =>
+      new Promise<void>((resolve, reject) => {
+        const stateMachine = (
+          cooperationManager as AssistantCooperationManager
+        )?.muteUser({
+          userId,
+          mute,
+        });
+        stateMachine.on(MuteGroupOrUserEvent.Responsed, (payload: any) => {
+          if (payload.success === false) reject();
+          resolve();
+        });
+        stateMachine.on(MuteGroupOrUserEvent.Timeout, () => {
+          reject();
+        });
+      }),
+    [connectedSpectators]
+  );
+
+  const muteUser = useCallback(
+    (userId: string, mute = true) => {
+      if (currentUserIsTeacher) return doMuteUser(userId, mute);
+      // 由于旧阿里云IM无法支持非创建者禁言，因此使用IM请求创建者处理
+      return muteUserProxy(userId, mute);
+    },
+    [currentUserIsTeacher, doMuteUser, muteUserProxy]
+  );
+
+  const handleKick = useCallback(async () => {
+    if (kicking || !canKickMember) {
       return;
     }
     setKicking(true);
-    services
-      ?.kickClass(userId)
-      .then(() => {
-        const { increaseMemberListFlag } = useClassroomStore.getState();
-        toast.success(`${userName} 已被移除出教室`);
-        increaseMemberListFlag();
-        stopInteraction(userId);
-        // 移除时也需要禁言该用户，若后续支持解除黑名单，也需要解除禁言
-        auiMessage
-          .muteUser(userId)
-          .then(() => {})
-          .catch(() => {
-            console.warn(`${userId}禁言失败`);
-          });
-      })
-      .catch(err => {
-        console.log('member kick', err);
-        toast.error(`${userName} 移除失败`);
-      })
-      .finally(() => {
-        setKicking(false);
-      });
-  }, [stopInteraction]);
+    try {
+      await services?.kickClass(userId);
+      const { increaseMemberListFlag } = useClassroomStore.getState();
+      toast.success(`${userName} 已被移除出教室`);
+      increaseMemberListFlag();
+      stopInteraction(userId);
+      // 移除时也需要禁言该用户，若后续支持解除黑名单，也需要解除禁言
+      await muteUser(userId);
+    } catch (err) {
+      console.log('member kick', err);
+      toast.error(`${userName} 移除失败`);
+    } finally {
+      setKicking(false);
+    }
+  }, [canKickMember, kicking, muteUser]);
+
+  const renderAdminTag = () => {
+    if (isTeacher)
+      return (
+        <span className={styles['member-item__info__teacher']}>
+          老师{isSelf ? '(我)' : null}
+        </span>
+      );
+    if (isAssistant)
+      return (
+        <span className={styles['member-item__info__assistant']}>
+          助教{isSelf ? '(我)' : null}
+        </span>
+      );
+  };
 
   const renderSubInfo = () => {
-    if (isTeacher || subInfo) {
+    if (isTeacher || isAssistant || subInfo) {
       return (
         <div className={styles['member-item__info__sub']}>
-          {isTeacher ? (
-            <span className={styles['member-item__info__teacher']}>
-              老师(我)
-            </span>
-          ) : (
-            subInfo
-          )}
+          {renderAdminTag() ?? subInfo}
         </div>
       );
     }
@@ -132,6 +205,7 @@ const MemberItem: React.FC<IMemberItemProps> = props => {
           value={{
             userId,
             isTeacher,
+            isAssistant,
             kicking,
             userName,
             userNick,

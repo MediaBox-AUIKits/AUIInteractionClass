@@ -106,8 +106,7 @@ export default function Player(props: PlayerProps) {
 
     if (rtsFirst) {
       liveService.on('rtsFallback', () => {
-        callbacksRef.current.onRtsFallback &&
-          callbacksRef.current.onRtsFallback();
+        callbacksRef.current.onRtsFallback?.();
       });
     }
   }, [rtsFirst]);

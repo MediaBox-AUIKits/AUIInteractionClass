@@ -4,8 +4,11 @@ import React, {
   Fragment,
   useCallback,
   useEffect,
+  useContext,
 } from 'react';
+import { ClassContext } from '../ClassContext';
 import classNames from 'classnames';
+import FrontContent from './FrontContent';
 import H5Player from './H5Player';
 import H5Tabs, {
   CameraTabKey,
@@ -18,7 +21,8 @@ import ChatPanel from './ChatPanel';
 import ChatControls from './ChatControls';
 import Icon from '@ant-design/icons';
 import { SwitchArrowsSvg } from '../components/icons';
-import { ClassroomStatusEnum, SourceType } from '../types';
+import { ClassroomStatusEnum, SourceType, CustomMessageTypes } from '../types';
+import { AUIMessageEvents } from '@/BaseKits/AUIMessage/types';
 import useClassroomStore from '../store';
 import { supportSafeArea, checkSystemRequirements } from '../utils/common';
 
@@ -48,6 +52,8 @@ function BigClass(props: BigClassProps) {
     setSupportWebRTC,
   } = useClassroomStore(state => state);
 
+  const { whiteBoardHidden, auiMessage, userInfo } = useContext(ClassContext);
+
   const isInited = useMemo(() => {
     return status !== ClassroomStatusEnum.no_data;
   }, [status]);
@@ -59,6 +65,10 @@ function BigClass(props: BigClassProps) {
   const [tabs, setTabs] = useState<string[]>([]);
   const [tabKey, setTabKey] = useState(CameraTabKey);
   const [rtsFallback, setRtsFallback] = useState(false);
+  const multiScreen = useMemo(
+    () => supportWebRTC && !rtsFallback,
+    [supportWebRTC, rtsFallback]
+  );
 
   useEffect(() => {
     const check = async () => {
@@ -104,29 +114,78 @@ function BigClass(props: BigClassProps) {
     }
   }, [tabKey, mainScreenKey]);
 
-  const [hasCamera, setHasCamera] = useState<boolean>(false);
-  const [hasMainScreenSource, setHasMainScreenSource] =
-    useState<boolean>(false);
-  const [hasSubScreenSource, setHasSubScreenSource] = useState<boolean>(false);
+  const [hasCamera, setHasCamera] = useState(false);
+  const [whiteBoardActivated, setWhiteBoardActivated] = useState(
+    !whiteBoardHidden
+  );
+  const [hasMainScreenSource, setHasMainScreenSource] = useState(false);
+  const [hasSubScreenSource, setHasSubScreenSource] = useState(false);
+
+  const teacherInteractionInfo = useMemo(
+    () => connectedSpectators.find(({ userId }) => userId === teacherId),
+    [connectedSpectators, teacherId]
+  );
 
   useEffect(() => {
-    const teacherPubStatus = connectedSpectators.find(
-      item => item.userId === teacherId
-    ) ?? {
+    const teacherPubStatus = teacherInteractionInfo ?? {
       isAudioPublishing: false,
       isScreenPublishing: false,
       isVideoPublishing: false,
+      screenShare: false,
+      mutilMedia: false,
     };
     const hasCamera = !!teacherPubStatus.isVideoPublishing;
     const hasMaterial = !!teacherPubStatus.isScreenPublishing;
     setHasCamera(hasCamera);
+    if (!whiteBoardHidden) {
+      setWhiteBoardActivated(
+        !teacherPubStatus.mutilMedia && !teacherPubStatus.screenShare
+      );
+    }
     setHasMainScreenSource(
       mainScreenKey === MaterialTabKey ? hasMaterial : hasCamera
     );
     setHasSubScreenSource(
       subScreenKey === MaterialTabKey ? hasMaterial : hasCamera
     );
-  }, [connectedSpectators, teacherId, mainScreenKey, subScreenKey]);
+  }, [
+    teacherInteractionInfo,
+    teacherId,
+    mainScreenKey,
+    subScreenKey,
+    whiteBoardHidden,
+  ]);
+
+  const handleReceivedMessage = useCallback(
+    (eventData: any) => {
+      const { type, senderId } = eventData || {};
+      switch (type) {
+        case CustomMessageTypes.WhiteBoardVisible:
+          if (senderId === teacherId && senderId !== userInfo?.userId) {
+            setWhiteBoardActivated(true);
+          }
+          break;
+        default:
+          break;
+      }
+    },
+    [teacherId, userInfo]
+  );
+
+  useEffect(() => {
+    if (whiteBoardHidden) return;
+
+    auiMessage.addListener(
+      AUIMessageEvents.onMessageReceived,
+      handleReceivedMessage
+    );
+    return () => {
+      auiMessage.removeListener(
+        AUIMessageEvents.onMessageReceived,
+        handleReceivedMessage
+      );
+    };
+  }, [auiMessage, handleReceivedMessage, whiteBoardHidden]);
 
   const handleRtsFallback = () => {
     setRtsFallback(true);
@@ -137,13 +196,14 @@ function BigClass(props: BigClassProps) {
       tabs.map(key => ({
         key,
         before:
-          key === MaterialTabKey || key === CameraTabKey ? (
+          whiteBoardHidden &&
+          (key === MaterialTabKey || key === CameraTabKey) ? (
             <div className={styles['h5tabs-item-button']}>
               <Icon component={SwitchArrowsSvg} onClick={onSwitch} />
             </div>
           ) : null,
       })),
-    [tabs]
+    [tabs, whiteBoardHidden]
   );
 
   const liveUrlsForWebRTCSupported = useMemo(
@@ -165,7 +225,7 @@ function BigClass(props: BigClassProps) {
 
   const mainScreen = useMemo(
     () =>
-      supportWebRTC && !rtsFallback ? (
+      multiScreen ? (
         <H5Player
           id={mainScreenKey}
           noSource={!hasMainScreenSource}
@@ -191,7 +251,7 @@ function BigClass(props: BigClassProps) {
         />
       ),
     [
-      supportWebRTC,
+      multiScreen,
       mainScreenKey,
       hasMainScreenSource,
       hasSubScreenSource,
@@ -202,13 +262,10 @@ function BigClass(props: BigClassProps) {
   );
 
   const subScreen = useMemo(() => {
-    if (
-      !supportWebRTC ||
-      rtsFallback ||
-      (tabKey !== CameraTabKey && tabKey !== MaterialTabKey)
-    )
+    if (!multiScreen || (tabKey !== CameraTabKey && tabKey !== MaterialTabKey))
       return null;
 
+    const mute = subScreenKey !== CameraTabKey && hasCamera;
     if (tabKey === CameraTabKey)
       return (
         <H5Player
@@ -216,7 +273,7 @@ function BigClass(props: BigClassProps) {
           noSource={!hasSubScreenSource}
           sourceType={SourceType.Camera}
           cdnUrlMap={liveUrlsForWebRTCSupported}
-          mute={subScreenKey !== CameraTabKey && hasCamera}
+          mute={mute}
           controlBarVisibility="never"
         />
       );
@@ -228,13 +285,12 @@ function BigClass(props: BigClassProps) {
           noSource={!hasSubScreenSource}
           sourceType={SourceType.Material}
           cdnUrlMap={liveUrlsForWebRTCSupported}
-          mute={subScreenKey !== CameraTabKey && hasCamera}
+          mute={mute}
           controlBarVisibility="never"
         />
       );
   }, [
-    supportWebRTC,
-    rtsFallback,
+    multiScreen,
     tabKey,
     subScreenKey,
     hasSubScreenSource,
@@ -245,7 +301,12 @@ function BigClass(props: BigClassProps) {
 
   return (
     <>
-      {mainScreen}
+      <FrontContent
+        onControlVisibleChange={onBarVisibleChange}
+        hasWhiteBoard={multiScreen && !whiteBoardHidden}
+      >
+        {whiteBoardActivated && multiScreen ? null : mainScreen}
+      </FrontContent>
       <div
         className={classNames(styles.h5main, {
           [styles['not-safe-area']]: !hasSafeAreaBottom,

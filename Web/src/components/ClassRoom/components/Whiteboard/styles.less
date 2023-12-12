@@ -1,0 +1,55 @@
+@import '../../styles/base.less';
+
+// 定制网易白板部分样式
+.netease-board {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  // 白板ppt音视频控制条 是 fixed 的，有时候溢出白板区域所以使用 clip-path 隐藏
+  clip-path: inset(0px 0px);
+
+  :global {
+    .u-btn,
+    .u-progress .u-progress-state,
+    .whiteboard-alert .alert-button-group .alert-confirm {
+      background-color: @primary-color;
+    }
+
+    .u-btn:hover:not([disabled]) {
+      background-color: @primary-color-hover;
+    }
+
+    .docUpload-popup .docUpload-footer .upload .opts {
+      right: 22px;
+
+      div {
+        color: @text-color;
+        &:hover {
+          background-color: @primary-color-hover;
+        }
+      }
+    }
+
+    .docUpload-popup .docUpload-footer,
+    .tc-unit-docSelect .dropdown .option.selected,
+    .page-preview-container .footer {
+      color: @primary-color;
+    }
+
+    .tc-unit.selected,
+    .tc-tool-select-container .tc-tool-select-cell-wrapper.selected,
+    .tc-color-platte .tc-color-row .tc-color-cell-wrapper.selected {
+      outline-color: @primary-color;
+    }
+
+    .page-preview-container .preview-box-list .preview-box {
+      &:hover,
+      &.active {
+        border-color: @primary-color;
+      }
+    }
+  }
+}

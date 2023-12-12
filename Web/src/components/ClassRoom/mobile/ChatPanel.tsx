@@ -18,6 +18,7 @@ interface IChatPanelProps {
 const ChatPanel: React.FC<IChatPanelProps> = props => {
   const { className, hidden } = props;
   const messageList = useClassroomStore(state => state.messageList);
+  const { assistantId } = useClassroomStore(state => state.classroomInfo);
   const autoScroll = useRef<boolean>(true);
   const listRef = useRef<HTMLUListElement | null>(null);
   const [newTipVisible, setNewTipVisible] = useState<boolean>(false);
@@ -88,6 +89,9 @@ const ChatPanel: React.FC<IChatPanelProps> = props => {
           <li className={styles['chat-item']} key={data.messageId || index}>
             {data.isTeacher ? (
               <span className={styles['chat-item__anchor']}>老师</span>
+            ) : null}
+            {data.isAssistant || assistantId === data.userId ? (
+              <span className={styles['chat-item__assistant']}>助教</span>
             ) : null}
             {data.isSelf ? (
               <span className={styles['chat-item__self']}>我</span>

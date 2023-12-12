@@ -1,21 +1,16 @@
 import { useRef, useEffect, useMemo, Fragment } from 'react';
-import { Button, Modal, notification } from 'antd';
-import toast from '@/utils/toast';
+import { Button, Modal, Popover, notification } from 'antd';
 import useClassroomStore from '../../../store';
 import livePush from '../../../utils/LivePush';
-import logger from '../../../utils/Logger';
-import { ClassroomStatusEnum } from '../../../types';
+import logger, { EMsgid } from '../../../utils/Logger';
+import {
+  ClassroomStatusEnum,
+  PermissionVerificationProps,
+} from '../../../types';
 import styles from './index.less';
 
-interface IProps {
-  isMicrophoneDisabled: boolean;
-  isCameraDisabled: boolean;
-}
-
-export default function PushButton({
-  isMicrophoneDisabled,
-  isCameraDisabled,
-}: IProps) {
+export default function PushButton(props: PermissionVerificationProps) {
+  const { noPermission = false, noPermissionNotify } = props;
   const livePusher = useMemo(() => {
     return livePush.getInstance('alivc')!;
   }, []);
@@ -44,25 +39,26 @@ export default function PushButton({
         return;
       }
       lostTipVisible.current = true;
-      logger.connectionLost();
       // 推流异常，尝试重连中
       notice.warning({
         key: 'connectionlost',
         message: '推流异常，正在尝试重连中...',
         duration: 0,
       });
+
+      logger.reportInfo(EMsgid.CONNECTION_LOST);
     };
 
     const networkrecoveryHandler = () => {
-      logger.networkRecovery();
       closeLostTip();
       notice.success({
         message: '推流重连成功',
       });
+
+      logger.reportInfo(EMsgid.NETWORK_RECOVERY);
     };
 
     const reconnectexhaustedHandler = () => {
-      logger.reconnectExhausted();
       closeLostTip();
       notice.error({
         key: 'reconnectexhausted',
@@ -70,6 +66,8 @@ export default function PushButton({
         duration: 0,
       });
       setPushing(false);
+
+      logger.reportInfo(EMsgid.RECONNECT_EXHAUSTED);
     };
 
     livePusher.network.on('connectionlost', connectionlostHandler);
@@ -99,32 +97,6 @@ export default function PushButton({
     );
   }, [status, microphone, camera, hasBoardStream, joinedGroupId]);
 
-  // 目前允许无麦克风、摄像头也能推流，所以暂时无用
-  const checkDevices = () => {
-    let msg = '';
-    if (isMicrophoneDisabled && isCameraDisabled) {
-      msg = '应用程序未被授权摄像头/麦克风的访问权限，请在系统设置中授权访问';
-    } else if (isMicrophoneDisabled) {
-      msg = '应用程序未被授权麦克风的访问权限，请在系统设置中授权访问';
-    } else if (isCameraDisabled) {
-      msg = '应用程序未被授权摄像头的访问权限，请在系统设置中授权访问';
-    } else {
-      const classroomState = useClassroomStore.getState();
-      const noMicrophone = classroomState.microphone.deviceCount === 0;
-      const noCamera = classroomState.camera.deviceCount === 0;
-      if (noMicrophone && noCamera) {
-        msg = '未发现摄像头/麦克风，请检查设备状况';
-      } else if (noMicrophone) {
-        msg = '未发现麦克风，请检查设备状况';
-      } else if (noCamera) {
-        msg = '未发现摄像头，请检查设备状况';
-      }
-    }
-    if (msg) {
-      toast.warning(msg);
-    }
-  };
-
   const handleClick = () => {
     if (pusher.pushing) {
       modal.confirm({
@@ -140,7 +112,6 @@ export default function PushButton({
         },
       });
     } else {
-      // checkDevices();
       setPusherExecuting(true);
     }
   };
@@ -149,17 +120,18 @@ export default function PushButton({
     <Fragment>
       {contextHolder}
       {noticeHolder}
-
-      <Button
-        type="primary"
-        className={styles['push-button']}
-        danger={pusher.pushing}
-        disabled={!pusher.pushing && !canPush}
-        loading={pusher.executing}
-        onClick={handleClick}
-      >
-        {pusher.pushing ? '结束课程' : '上课'}
-      </Button>
+      <Popover content={noPermissionNotify}>
+        <Button
+          type="primary"
+          className={styles['push-button']}
+          danger={pusher.pushing}
+          disabled={noPermission || (!pusher.pushing && !canPush)}
+          loading={pusher.executing}
+          onClick={handleClick}
+        >
+          {pusher.pushing ? '结束课程' : '上课'}
+        </Button>
+      </Popover>
     </Fragment>
   );
 }

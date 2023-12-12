@@ -1,20 +1,12 @@
-import React, {
-  useMemo,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  CSSProperties,
-} from 'react';
+import React, { useCallback, useContext } from 'react';
 import classNames from 'classnames';
-import ResizeObserver from 'resize-observer-polyfill';
-import NeteaseBoard from './NeteaseBoard';
+import useClassroomStore from '../../store';
+import NeteaseBoard from '../../components/Whiteboard/NeteaseBoard';
+import PCMainWrap from '../../components/PCMainWrap';
 import SharingMask from './SharingMask';
 import LocalPlayer from './LocalPlayer';
-import { StreamWidth, StreamHeight } from '../../constances';
+import { ClassContext } from '../../ClassContext';
 import styles from './styles.less';
-
-const RenderRatio = StreamWidth / StreamHeight;
 
 interface IProps {
   wrapClassName?: string;
@@ -22,57 +14,25 @@ interface IProps {
 
 const RoomMain: React.FC<IProps> = props => {
   const { wrapClassName } = props;
-  const wrapEl = useRef<HTMLDivElement | null>(null);
-  const [rendererStyle, setRendererStyle] = useState<CSSProperties>();
+  const { cooperationManager } = useContext(ClassContext);
+  const { isAdmin } = useClassroomStore(state => state);
 
-  const updateRenderStyle = useCallback(
-    (wrapWidth: number, wrapHeight: number) => {
-      const wrapRatio = wrapWidth / wrapHeight;
-      let width = wrapWidth;
-      let height = wrapHeight;
-      if (wrapRatio > RenderRatio) {
-        width = Math.round(wrapHeight * RenderRatio);
-      } else {
-        height = Math.round(wrapWidth / RenderRatio);
-      }
-      setRendererStyle({
-        width,
-        height,
-      });
-    },
-    []
-  );
-
-  const resizeObserver = useMemo(() => {
-    return new ResizeObserver(entries => {
-      for (let entry of entries) {
-        const cr = entry.contentRect;
-        updateRenderStyle(cr.width, cr.height);
-      }
-    });
-  }, []);
-
-  useEffect(() => {
-    if (wrapEl.current) {
-      resizeObserver.observe(wrapEl.current);
-    }
-
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, []);
+  const handleDocsUpdated = useCallback(() => {
+    cooperationManager?.syncDocsUpdated();
+  }, [cooperationManager]);
 
   return (
-    <div
-      ref={wrapEl}
-      className={classNames(wrapClassName, styles['room-main'])}
-    >
-      <NeteaseBoard rendererStyle={rendererStyle} />
+    <PCMainWrap className={classNames(wrapClassName, styles['room-main'])}>
+      <NeteaseBoard
+        canControl={isAdmin}
+        canTurnPage
+        onDocsUpdated={handleDocsUpdated}
+      />
 
-      <LocalPlayer rendererStyle={rendererStyle} />
+      <LocalPlayer />
 
       <SharingMask />
-    </div>
+    </PCMainWrap>
   );
 };
 

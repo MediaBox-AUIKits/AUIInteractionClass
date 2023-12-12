@@ -9,6 +9,7 @@ import AUIMessage from '@/BaseKits/AUIMessage';
 import { CustomMessageTypes, UserRoleEnum } from '@/types';
 import { getEnumKey } from '@/utils/common';
 import { formatTime } from '@/components/ClassRoom/utils/common';
+import logger, { EMsgid } from '../Logger';
 
 interface GetSessionParams {
   sessionId?: string;
@@ -19,13 +20,11 @@ interface GetSessionParams {
 export default class InteractionManager {
   role?: UserRoleEnum;
   message: InstanceType<typeof AUIMessage>;
-  groupId: string;
   protected expiredSessionIds: string[] = [];
   protected pendingSessionQueue: InteractionSession[] = [];
 
   constructor(props: InteractionManagerProps) {
     this.message = props.message;
-    this.groupId = props.groupId;
   }
 
   protected isExpiredSessionId(sessionId: string): boolean {
@@ -68,20 +67,31 @@ export default class InteractionManager {
     console.log(this.pendingSessionQueue);
   }
 
-  sendIM(type: CustomMessageTypes, data: InteractionIMData) {
+  async sendIM(type: CustomMessageTypes, data: InteractionIMData) {
     console.log(
       `${formatTime(new Date())} [INTERACTION_MANAGER] sendIM`,
       `\ntype: ${getEnumKey(CustomMessageTypes, type)}`,
       '\ndata:',
       data
     );
-    this.message.sendMessageToGroup({
-      groupId: this.groupId,
-      type,
-      skipAudit: true,
-      skipMuteCheck: true,
-      data,
-    });
+
+    logger.reportInvoke(EMsgid.SEND_INTERACTION_IM);
+    try {
+      await this.message.sendMessageToGroup({
+        type,
+        skipAudit: true,
+        skipMuteCheck: true,
+        data,
+      });
+      logger.reportInvokeResult(EMsgid.SEND_INTERACTION_IM_RESULT, true);
+    } catch (error) {
+      logger.reportInvokeResult(
+        EMsgid.SEND_INTERACTION_IM_RESULT,
+        false,
+        '',
+        error
+      );
+    }
   }
 
   // 检查角色是否合法

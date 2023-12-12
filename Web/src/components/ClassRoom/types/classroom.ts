@@ -1,7 +1,11 @@
+import { IdentityForServer } from '@/types';
+import { IMemberInfo } from './index';
+
 export enum UserRoleEnum {
   Student = 0,
   Teacher = 1,
-  Assistant = 2, // 助教，预留字段
+  Assistant = 2, // 助教
+  Patrol = 3, // 巡课
 }
 
 export enum ClassroomModeEnum {
@@ -70,6 +74,10 @@ export interface IVODInfo {
   playlist: IPlaylistItem[];
 }
 
+export interface IAssistantInfo extends IMemberInfo {
+  classId: string;
+}
+
 export interface IClassroomInfo {
   id: string; // 教室 id
   chatId?: string; // 上一版的群组ID字段名
@@ -77,6 +85,8 @@ export interface IClassroomInfo {
   rongCloudId?: string; // 融云IM消息组id
   teacherId: string; // 教师id
   teacherNick: string; // 教师昵称
+  assistantId?: string; // 助教id
+  assistantPermit?: IAssistantInfo; // 助教信息
   boards: string; // JSONString 白板相关数据
   createdAt: string; // 创建时间
   extends: string; // 额外配置 jsonstring
@@ -108,6 +118,8 @@ export interface ISpectatorInfo {
   rtcPullUrl?: string;
   cameraOpened?: boolean; // 是否开启摄像头
   micOpened?: boolean; // 是否开启麦克风
+  screenShare?: boolean; // 是否开启屏幕分享
+  mutilMedia?: boolean; // 是否开启插播
   isAudioPublishing?: boolean; // 是否有 audio track
   isVideoPublishing?: boolean; // 是否有 video track
   isScreenPublishing?: boolean; // 是否有 screen track
@@ -124,4 +136,10 @@ export interface MeetingInfo {
 export enum InteractionInvitationUpdateType {
   Add,
   Remove,
+}
+
+export interface GroupIdObject {
+  aliyunV2GroupId?: string;
+  aliyunV1GroupId?: string;
+  rongIMId?: string;
 }

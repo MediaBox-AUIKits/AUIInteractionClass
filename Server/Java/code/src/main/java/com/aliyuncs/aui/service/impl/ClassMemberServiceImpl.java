@@ -1,6 +1,7 @@
 package com.aliyuncs.aui.service.impl;
 
 import com.aliyuncs.aui.dao.ClassMemberDao;
+import com.aliyuncs.aui.dto.AssistantPermitDto;
 import com.aliyuncs.aui.dto.ClassMemberDto;
 import com.aliyuncs.aui.dto.InvokeResult;
 import com.aliyuncs.aui.dto.enums.ClassMemberStatus;
@@ -11,10 +12,7 @@ import com.aliyuncs.aui.dto.res.ClassMemberListDto;
 import com.aliyuncs.aui.entity.ClassInfoEntity;
 import com.aliyuncs.aui.entity.ClassKickMemberEntity;
 import com.aliyuncs.aui.entity.ClassMemberEntity;
-import com.aliyuncs.aui.service.ALiYunService;
-import com.aliyuncs.aui.service.ClassInfoService;
-import com.aliyuncs.aui.service.ClassKickMemberService;
-import com.aliyuncs.aui.service.ClassMemberService;
+import com.aliyuncs.aui.service.*;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -32,7 +30,6 @@ import java.util.List;
 
 /**
  * 课堂成员服务实现类
- *
  */
 @Service("classMemberService")
 @Slf4j
@@ -44,6 +41,8 @@ public class ClassMemberServiceImpl extends ServiceImpl<ClassMemberDao, ClassMem
     private ClassKickMemberService classKickMemberService;
     @Resource
     private ALiYunService videoCloudService;
+    @Resource
+    private AssistantPermitService assistantPermitService;
 
     @Override
     public InvokeResult joinClass(JoinClassRequestDto joinClassRequestDto) {
@@ -63,7 +62,7 @@ public class ClassMemberServiceImpl extends ServiceImpl<ClassMemberDao, ClassMem
 
         Long pk = null;
         ClassMemberDto entity = getClassMemberDto(joinClassRequestDto.getClassId(), joinClassRequestDto.getUserId());
-        if (entity!= null) {
+        if (entity != null) {
             if (entity.getStatus() == ClassMemberStatus.Normal.getVal()) {
                 log.info("userId:{} is in class:{}", joinClassRequestDto.getUserId(), joinClassRequestDto.getClassId());
                 return InvokeResult.builder().success(true).build();
@@ -78,11 +77,27 @@ public class ClassMemberServiceImpl extends ServiceImpl<ClassMemberDao, ClassMem
                 .userId(joinClassRequestDto.getUserId())
                 .userName(joinClassRequestDto.getUserName())
                 .userAvatar(joinClassRequestDto.getUserAvatar())
-                .identity(getIdentity(classInfoEntity.getTeacherId(), joinClassRequestDto.getUserId()))
+                .identity(getIdentity(classInfoEntity.getTeacherId(), joinClassRequestDto.getUserId(), joinClassRequestDto.getIdentity()))
                 .status(ClassMemberStatus.Normal.getVal())
                 .createdAt(new Date())
                 .updatedAt(new Date())
                 .build();
+
+        if (classMemberEntity.getIdentity() == Identity.Assistant.getVal()) {
+
+            AssistantPermitDto assistantPermit = assistantPermitService.getAssistantPermit(AssistantPermitGetRequest.builder().classId(joinClassRequestDto.getClassId()).build());
+            if (assistantPermit == null) {
+                log.warn("classId:{} is not assistant permit.", joinClassRequestDto.getClassId());
+                return InvokeResult.builder().success(false).reason("ClassNotAssistantPermit").build();
+            }
+
+            // 一个课堂只允许一个在线的助教
+            ClassMemberDto classMemberDto = getAssistantClassMemberDto(joinClassRequestDto.getClassId());
+            if (classMemberDto != null && !classMemberDto.getUserId().equals(joinClassRequestDto.getUserId())) {
+                log.warn("The classId:{} had a assistant.", joinClassRequestDto.getClassId());
+                return InvokeResult.builder().success(false).reason("ClassHasAssistant").build();
+            }
+        }
 
         boolean result = this.saveOrUpdate(classMemberEntity);
 
@@ -93,11 +108,15 @@ public class ClassMemberServiceImpl extends ServiceImpl<ClassMemberDao, ClassMem
         return InvokeResult.builder().success(result).build();
     }
 
-    private Integer getIdentity(String teacherId, String userId) {
+    private Integer getIdentity(String teacherId, String userId, Integer identity) {
 
         if (StringUtils.isNotEmpty(teacherId) && StringUtils.isNotEmpty(userId)) {
             if (teacherId.equals(userId)) {
                 return Identity.Teacher.getVal();
+            }
+
+            if (identity != null && identity == Identity.Assistant.getVal()) {
+                return Identity.Assistant.getVal();
             }
         }
         return Identity.Student.getVal();
@@ -132,6 +151,29 @@ public class ClassMemberServiceImpl extends ServiceImpl<ClassMemberDao, ClassMem
             videoCloudService.sendMessageToGroup(groupId, MessageType.Exit.getVal(), classMemberDto);
         }
 
+        return InvokeResult.builder().success(true).build();
+    }
+
+    @Override
+    public InvokeResult deleteAssistantClass(String classId) {
+
+        String groupId = getGroupId(classId);
+        if (StringUtils.isEmpty(groupId)) {
+            log.warn("classId:{} is not found.", classId);
+            return InvokeResult.builder().success(false).reason("ClassNotFound").build();
+        }
+
+        ClassMemberDto assistantClassMemberDto = getAssistantClassMemberDto(classId);
+        if (assistantClassMemberDto != null) {
+            if (assistantClassMemberDto.getStatus() == ClassMemberStatus.Normal.getVal()) {
+                boolean b = videoCloudService.sendMessageToGroup(groupId, MessageType.Exit.getVal(), assistantClassMemberDto);
+                log.info("leave assistant. classId:{}, userId:{}, sendMsg result:{}", assistantClassMemberDto.getClassId(), assistantClassMemberDto.getUserId(), b);
+            } else {
+                log.info("leave assistant. classId:{}, userId:{}, status:{}, so not sendMsg", assistantClassMemberDto.getClassId(), assistantClassMemberDto.getUserId(),
+                        assistantClassMemberDto.getStatus());
+            }
+            this.removeById(assistantClassMemberDto.getId());
+        }
         return InvokeResult.builder().success(true).build();
     }
 
@@ -207,11 +249,34 @@ public class ClassMemberServiceImpl extends ServiceImpl<ClassMemberDao, ClassMem
                 .members(data).build();
     }
 
+    @Override
+    public ClassMemberDto getAssistantClassMemberDto(String classId) {
+
+        ClassMemberEntity classMemberEntity = this.lambdaQuery()
+                .eq(ClassMemberEntity::getClassId, classId)
+                .eq(ClassMemberEntity::getIdentity, Identity.Assistant.getVal())
+                .one();
+        if (classMemberEntity == null) {
+            log.error("classId:{}, identity:{} classMemberEntity is null", classId, Identity.Assistant);
+            return null;
+        }
+        return ClassMemberDto.builder()
+                .id(classMemberEntity.getId())
+                .classId(classId)
+                .userId(classMemberEntity.getUserId())
+                .userName(classMemberEntity.getUserName())
+                .userAvatar(classMemberEntity.getUserAvatar())
+                .identity(classMemberEntity.getIdentity())
+                .status(classMemberEntity.getStatus())
+                .joinTime(classMemberEntity.getCreatedAt())
+                .build();
+    }
+
     private ClassMemberDto getClassMemberDto(String classId, String userId) {
 
         ClassMemberEntity classMemberEntity = this.lambdaQuery().eq(ClassMemberEntity::getClassId, classId)
                 .eq(ClassMemberEntity::getUserId, userId).one();
-        if (classMemberEntity ==  null) {
+        if (classMemberEntity == null) {
             log.error("classId:{}, userId:{} classMemberEntity is null", classId, userId);
             return null;
         }

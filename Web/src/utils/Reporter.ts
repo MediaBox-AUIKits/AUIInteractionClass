@@ -1,10 +1,14 @@
 import SlsTracker from '@aliyun-sls/web-track-browser';
 import { SystemUtil, BrowserUtil, Guid } from 'useragent-utils';
 
-enum EMsgid {
-  CREATE_CLASSROOM = 100,
-  CREATE_OR_ENTER_CLASSROOM_ERROR = 101,
-  CLASSROOM_PARAMS_ILLEGAL = 102,
+export enum EMsgid {
+  LOGIN = 100,
+  LOGIN_RESULT = 101,
+  ENTER_CLASSROOM = 200,
+  ENTER_CLASSROOM_RESULT = 201,
+  CREATE_CLASSROOM = 300,
+  CREATE_CLASSROOM_RESULT = 301,
+  CLASSROOM_PARAMS_ILLEGAL = 400,
 }
 
 interface ICommonParams {
@@ -41,11 +45,11 @@ interface ICommonParams {
   /**
    * 当前页面 host
    */
-  host: string;
+  appid: string;
   /**
-   * 当前页面地址 page url
+   * 当前页面 title
    */
-  pu: string;
+  appname: string;
   /**
    * 页面不刷新就不会变
    */
@@ -57,7 +61,7 @@ interface ICommonParams {
   /**
    * 采集时间
    */
-  ct?: number;
+  stm?: number;
   /**
    * useragent
    */
@@ -68,6 +72,7 @@ interface ICommonParams {
    */
   userid?: string;
   username?: string;
+  role?: number;
 
   /**
    * 教室id、名称
@@ -78,12 +83,18 @@ interface ICommonParams {
   /**
    * 事件id
    */
-  msgid?: EMsgid;
+  event_id?: EMsgid;
 
   /**
-   * msgid 对应的参数
+   * event_id 对应的参数
    */
   args?: Record<string, any>;
+
+  /**
+   * event_id 对应的结果
+   */
+  rslt?: number;
+  err?: Error | string | unknown;
 }
 
 export class Reporter {
@@ -92,7 +103,7 @@ export class Reporter {
 
   constructor() {
     this._commonParams = this.initCommonParams();
-    if (CONFIG && CONFIG.reporter && CONFIG.reporter.enable) {
+    if (CONFIG?.reporter?.enable) {
       this._track = this.initTracker();
     }
   }
@@ -105,8 +116,8 @@ export class Reporter {
       ov: SystemUtil.systemVersion,
       bt: BrowserUtil.browserName,
       bv: BrowserUtil.browserVersion,
-      host: window.location.origin,
-      pu: window.location.href,
+      appid: window?.location?.host ?? '',
+      appname: window?.document.title ?? '',
       tid: Guid.create(32),
       uuid: this.getUuid(),
       ua: (navigator && navigator.userAgent) || '',
@@ -115,9 +126,9 @@ export class Reporter {
 
   private initTracker() {
     const opts = {
-      host: CONFIG.reporter.host, // 所在地域的服务入口
-      project: CONFIG.reporter.projectName, // Project名称。
-      logstore: CONFIG.reporter.logstore, // Logstore名称。
+      host: CONFIG?.reporter?.host, // 所在地域的服务入口
+      project: CONFIG?.reporter?.projectName, // Project名称。
+      logstore: CONFIG?.reporter?.logstore, // Logstore名称。
       time: 5, // 发送日志的时间间隔，默认是10秒。
       count: 10, // 发送日志的数量大小，默认是10条。
       topic: 'topic', // 自定义日志主题。
@@ -131,8 +142,8 @@ export class Reporter {
 
   private getUuid() {
     const STORE_KEY = window.btoa
-      ? window.btoa(CONFIG.reporter.projectName)
-      : `__${CONFIG.reporter.projectName}__UUID__`;
+      ? window.btoa(CONFIG?.reporter?.projectName)
+      : `__${CONFIG?.reporter?.projectName}__UUID__`;
 
     const uuid = localStorage.getItem(STORE_KEY) || Guid.create(32);
     localStorage.setItem(STORE_KEY, uuid);
@@ -149,33 +160,64 @@ export class Reporter {
     };
   }
 
-  public report(params: Pick<ICommonParams, 'args' | 'msgid'>) {
-    if (this._track) {
-      const reportData = {
-        ...this._commonParams,
-        ...params,
-        ct: Date.now(),
-      };
-      this._track.send(reportData);
-    }
+  public report(
+    params: Pick<ICommonParams, 'args' | 'event_id' | 'rslt' | 'err'>
+  ) {
+    const reportData = {
+      ...this._commonParams,
+      ...params,
+      stm: Date.now(),
+    };
+    // TODO: DEL
+    // console.log(`#发送日志 ${reportData.event_id}`, reportData);
+    this._track?.send(reportData);
   }
 
-  public createClassroom() {
+  // 上报应用运行过程中采集的信息（比如环境信息、设备授权情况等）或者异常状态
+  public reportInfo(eventId: number, args: any = '') {
     this.report({
-      msgid: EMsgid.CREATE_CLASSROOM,
-    });
-  }
-
-  public createOrEnterClassroomError(args: any) {
-    this.report({
-      msgid: EMsgid.CREATE_OR_ENTER_CLASSROOM_ERROR,
+      event_id: eventId,
       args,
     });
   }
 
-  public classroomParamsIllegal(args: any) {
+  // 上报行为触发
+  public reportInvoke(eventId: number, args: any = '') {
     this.report({
-      msgid: EMsgid.CLASSROOM_PARAMS_ILLEGAL,
+      event_id: eventId,
+      args,
+    });
+  }
+
+  // 上报行为触发结果
+  public reportInvokeResult(
+    eventId: number,
+    success: boolean,
+    args: any = '',
+    error?: Error | AggregateError | unknown
+  ) {
+    const err = success
+      ? undefined
+      : error instanceof AggregateError
+      ? error.errors
+          .map(errItem =>
+            errItem instanceof Error
+              ? errItem.message || errItem
+              : JSON.stringify(errItem)
+          )
+          .join('; ')
+      : error;
+    this.report({
+      event_id: eventId,
+      rslt: success ? 0 : 1,
+      err: err ?? '',
+      args,
+    });
+  }
+
+  public classroomParamsIllegal(args?: any) {
+    this.report({
+      event_id: EMsgid.CLASSROOM_PARAMS_ILLEGAL,
       args,
     });
   }

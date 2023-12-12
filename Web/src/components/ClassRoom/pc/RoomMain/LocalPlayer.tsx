@@ -1,19 +1,16 @@
-import React, { useRef, useEffect, useMemo, CSSProperties } from 'react';
+import React, { useRef, useEffect, useMemo, useContext } from 'react';
 import toast from '@/utils/toast';
 import { CloseOutlined } from '@ant-design/icons';
 import useClassroomStore from '../../store';
 import { loadJS } from '../../utils/common';
 import livePush from '../../utils/LivePush';
+import { PCMainWrapContext } from '../../components/PCMainWrap';
 import styles from './styles.less';
 
 const LocalPlayerID = 'local-media-player';
 
-interface IProps {
-  rendererStyle?: CSSProperties;
-}
-
-const LocalPlayer: React.FC<IProps> = props => {
-  const { rendererStyle } = props;
+const LocalPlayer: React.FC = () => {
+  const { rendererStyle } = useContext(PCMainWrapContext);
   const { sources } = useClassroomStore(state => state.localMedia);
   const { setLocalMedia, setLocalMediaStream } = useClassroomStore.getState();
   const player = useRef<any>();
@@ -77,12 +74,7 @@ const LocalPlayer: React.FC<IProps> = props => {
       ins.on('error', (err: any) => {
         console.log('player error', err);
         let msg = '播放失败，无法推本地音视频流';
-        if (
-          err &&
-          err.paramData &&
-          err.paramData.error_msg &&
-          err.paramData.error_msg.includes('Format error')
-        ) {
+        if (err?.paramData?.error_msg?.includes('Format error')) {
           msg = '播放失败，不支持该编码格式的音视频';
         }
         toast.error(msg);

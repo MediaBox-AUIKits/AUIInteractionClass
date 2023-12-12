@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Dropdown, Tooltip } from 'antd';
+import { Dropdown, Popover } from 'antd';
 import classNames from 'classnames';
 import livePush from '../../utils/LivePush';
 import { uniqueDevice } from '../../utils/common';
@@ -12,6 +12,7 @@ import {
   MicNormalSvg,
 } from '../../components/icons';
 import toast from '@/utils/toast';
+import { PermissionVerificationProps } from '../../types';
 import styles from './index.less';
 
 interface IProps {
@@ -19,7 +20,22 @@ interface IProps {
   disabledTooltip?: string;
 }
 
-export default function Mic({ disabled, disabledTooltip }: IProps) {
+export default function Mic(props: PermissionVerificationProps<IProps>) {
+  const {
+    disabled: _disabled,
+    disabledTooltip,
+    noPermission,
+    noPermissionNotify,
+  } = props;
+  const disabled = useMemo(
+    () => noPermission || _disabled,
+    [_disabled, noPermission]
+  );
+  const disabledText = useMemo(() => {
+    if (noPermission) return noPermissionNotify;
+    if (disabled) return disabledTooltip;
+  }, [_disabled, disabledTooltip, noPermission, noPermissionNotify]);
+
   const livePusher = useMemo(() => {
     return livePush.getInstance('alivc')!;
   }, []);
@@ -68,9 +84,12 @@ export default function Mic({ disabled, disabledTooltip }: IProps) {
     };
 
     updateMicList();
-    navigator.mediaDevices.addEventListener('devicechange', updateMicList);
+    navigator?.mediaDevices?.addEventListener('devicechange', updateMicList);
     return () => {
-      navigator.mediaDevices.removeEventListener('devicechange', updateMicList);
+      navigator?.mediaDevices?.removeEventListener(
+        'devicechange',
+        updateMicList
+      );
     };
   }, [disabled]);
 
@@ -98,12 +117,12 @@ export default function Mic({ disabled, disabledTooltip }: IProps) {
   const renderIcon = () => {
     if (switching || disabled || deviceList.length === 0) {
       return (
-        <Tooltip title={disabledTooltip} placement="top" trigger="hover">
+        <Popover content={disabledText}>
           <div className={classNames(styles.button, styles.disabled)}>
             {switching ? <MicLoadingSvg /> : <MicDisableSvg />}
             <div className={styles['button-text']}>麦克风</div>
           </div>
-        </Tooltip>
+        </Popover>
       );
     }
     return (

@@ -1,16 +1,32 @@
-import React, { useCallback, useContext } from 'react';
+import React, { useState, useCallback, useContext, useMemo } from 'react';
 import { Popover, Checkbox } from 'antd';
 import toast from '@/utils/toast';
 import { SettingSvg } from '@/components/ClassRoom/components/icons';
 import useClassroomStore from '@/components/ClassRoom/store';
 import { ClassContext } from '../../ClassContext';
-import logger from '../../utils/Logger';
+import logger, { EMsgid } from '../../utils/Logger';
 import { ClassroomModeEnum } from '../../types';
+import {
+  AssistantCooperationManager,
+  MuteGroupOrUserEvent,
+} from '../../utils/AdminCooperation';
 import styles from './index.less';
 
-const ScreenShare: React.FC = () => {
+interface IProps {
+  canMuteGroup?: boolean; // 全员禁言
+  canMuteInteraction?: boolean; // 连麦全员静音
+  canAllowInteraction?: boolean; // 允许连麦
+}
+
+const Setting: React.FC<IProps> = props => {
+  const {
+    canMuteGroup = false,
+    canMuteInteraction = false,
+    canAllowInteraction = false,
+  } = props;
   const {
     classroomInfo: { mode },
+    isTeacher,
     joinedGroupId,
     interactionAllowed,
     allMicMuted,
@@ -20,126 +36,206 @@ const ScreenShare: React.FC = () => {
     setAllMicMuted,
     setInteractionAllowed,
   } = useClassroomStore(state => state);
-  const { auiMessage } = useContext(ClassContext);
+  const { auiMessage, cooperationManager } = useContext(ClassContext);
+
+  const [groupMuting, setGroupMuting] = useState(false);
+
+  const doMuteGroup = useCallback(
+    async (mute = true) => {
+      try {
+        if (mute) {
+          await auiMessage.muteGroup();
+        } else {
+          await auiMessage.cancelMuteGroup();
+        }
+      } catch (error) {
+        console.warn(`${mute ? '' : '解除'}群组禁言失败`);
+        throw error;
+      }
+    },
+    [auiMessage]
+  );
+
+  const muteGroupProxy = useCallback(
+    (mute = true) =>
+      new Promise<void>((resolve, reject) => {
+        const stateMachine = (
+          cooperationManager as AssistantCooperationManager
+        )?.muteGroup({
+          mute,
+        });
+        stateMachine.on(MuteGroupOrUserEvent.Responsed, (payload: any) => {
+          if (payload.success === false) reject();
+          resolve();
+        });
+        stateMachine.on(MuteGroupOrUserEvent.Timeout, () => {
+          reject();
+        });
+      }),
+    [cooperationManager]
+  );
 
   const toggleMuteGroup = useCallback(
-    (e: any) => {
-      if (!e.target.checked) {
-        // 取消禁言
-        auiMessage
-          .cancelMuteGroup()
-          .then(() => {
-            // 在整个入口文件中监听 取消全员禁言 事件
-          })
-          .catch((err: any) => {
-            if (err instanceof AggregateError) {
-              const msg = err.errors
-                .map((error: any) => error.message || error)
-                .join(';');
-              logger.cancelMuteGroupError(msg);
-            } else {
-              logger.cancelMuteGroupError(err);
-            }
-            console.log('cancelMuteAll 失败', err);
-            toast.error('全员禁言关闭失败');
-          });
-        return;
-      }
-      // 全员禁言
-      auiMessage
-        .muteGroup()
-        .then(() => {
-          // 在整个入口文件中监听 全员禁言 事件
-        })
-        .catch((err: any) => {
-          if (err instanceof AggregateError) {
-            const msg = err.errors
-              .map((error: any) => error.message || error)
-              .join(';');
-            logger.muteGroupError(msg);
-          } else {
-            logger.muteGroupError(err);
-          }
-          console.log('muteAll 失败', err);
-          toast.error('全员禁言开启失败');
+    async (e: any) => {
+      if (groupMuting) return;
+
+      const mute = e.target.checked;
+      logger.reportInvoke(EMsgid.MUTE_GROUP, { mute });
+      setGroupMuting(true);
+
+      try {
+        if (isTeacher) {
+          await doMuteGroup(mute);
+        } else {
+          // 由于旧阿里云IM无法支持非创建者群组禁言，因此使用IM请求创建者处理
+          await muteGroupProxy(mute);
+        }
+        logger.reportInvokeResult(EMsgid.MUTE_GROUP_RESULT, true, {
+          mute,
         });
+      } catch (err) {
+        toast.error(`全员禁言${mute ? '开启' : '关闭'}失败`);
+        console.log('cancelMuteAll 失败', err);
+        logger.reportInvokeResult(
+          EMsgid.MUTE_GROUP_RESULT,
+          false,
+          { mute },
+          err
+        );
+      } finally {
+        setGroupMuting(false);
+      }
     },
-    [joinedGroupId]
+    [isTeacher, doMuteGroup, muteGroupProxy]
   );
 
   const onSwitchInteractionAllowed = useCallback(() => {
     setInteractionAllowed(!interactionAllowed);
   }, [interactionAllowed]);
+
   const onSwitchAllMicMuted = useCallback(() => {
     setAllMicMuted(!allMicMuted);
   }, [allMicMuted]);
 
-  const settingPanel = (
-    <div className={styles['setting-panel']}>
-      <div className={styles['setting-panel__group']}>
-        <div className={styles['setting-panel__group__title']}>成员讨论</div>
-        <div className={styles['setting-panel__group__content']}>
-          <div className={styles['setting-panel__group__content_item']}>
-            <div className={styles['setting-panel__group__content_item_label']}>
-              全员禁言
-            </div>
-            <div
-              className={styles['setting-panel__group__content_item_checkbox']}
-            >
-              <Checkbox
-                disabled={!joinedGroupId}
-                checked={groupMuted}
-                onChange={toggleMuteGroup}
-              />
-            </div>
+  const renderMuteGroup = useMemo(
+    () =>
+      canMuteGroup ? (
+        <div className={styles['setting-panel__group__content_item']}>
+          <div className={styles['setting-panel__group__content_item_label']}>
+            全员禁言
+          </div>
+          <div
+            className={styles['setting-panel__group__content_item_checkbox']}
+          >
+            <Checkbox
+              disabled={!joinedGroupId || groupMuting}
+              checked={groupMuted}
+              onChange={toggleMuteGroup}
+            />
           </div>
         </div>
-      </div>
-      {mode === ClassroomModeEnum.Open ? null : (
+      ) : null,
+    [canMuteGroup, joinedGroupId, groupMuted, groupMuting, toggleMuteGroup]
+  );
+
+  const showMemberManagement = useMemo(() => canMuteGroup, [canMuteGroup]);
+
+  const renderMemberManagement = useMemo(
+    () =>
+      showMemberManagement ? (
+        <div className={styles['setting-panel__group']}>
+          <div className={styles['setting-panel__group__title']}>成员讨论</div>
+          <div className={styles['setting-panel__group__content']}>
+            {renderMuteGroup}
+          </div>
+        </div>
+      ) : null,
+    [showMemberManagement, renderMuteGroup]
+  );
+
+  const renderAllowInteraction = useMemo(
+    () =>
+      canAllowInteraction ? (
+        <div className={styles['setting-panel__group__content_item']}>
+          <div className={styles['setting-panel__group__content_item_label']}>
+            允许学员连麦
+          </div>
+          <div
+            className={styles['setting-panel__group__content_item_checkbox']}
+          >
+            <Checkbox
+              disabled={!!interactionInvitationUsers.length}
+              checked={interactionAllowed}
+              onChange={onSwitchInteractionAllowed}
+            />
+          </div>
+        </div>
+      ) : null,
+    [
+      canAllowInteraction,
+      interactionInvitationUsers.length,
+      interactionAllowed,
+      onSwitchInteractionAllowed,
+    ]
+  );
+
+  const renderMuteInteraction = useMemo(
+    () =>
+      canMuteInteraction ? (
+        <div className={styles['setting-panel__group__content_item']}>
+          <div className={styles['setting-panel__group__content_item_label']}>
+            全员静音
+          </div>
+          <div
+            className={styles['setting-panel__group__content_item_checkbox']}
+          >
+            <Checkbox
+              checked={allMicMuted}
+              disabled={connectedSpectators.length < 2}
+              onChange={onSwitchAllMicMuted}
+            />
+          </div>
+        </div>
+      ) : null,
+    [
+      canMuteInteraction,
+      allMicMuted,
+      connectedSpectators.length,
+      onSwitchAllMicMuted,
+    ]
+  );
+
+  const showInteractionManagement = useMemo(
+    () => canAllowInteraction || canMuteInteraction,
+    [canAllowInteraction, canMuteInteraction]
+  );
+
+  const renderInteractionManagement = useMemo(
+    () =>
+      mode === ClassroomModeEnum.Open || !showInteractionManagement ? null : (
         <div className={styles['setting-panel__group']}>
           <div className={styles['setting-panel__group__title']}>连麦成员</div>
           <div className={styles['setting-panel__group__content']}>
-            <div className={styles['setting-panel__group__content_item']}>
-              <div
-                className={styles['setting-panel__group__content_item_label']}
-              >
-                允许学员连麦
-              </div>
-              <div
-                className={
-                  styles['setting-panel__group__content_item_checkbox']
-                }
-              >
-                <Checkbox
-                  disabled={!!interactionInvitationUsers.length}
-                  checked={interactionAllowed}
-                  onChange={onSwitchInteractionAllowed}
-                />
-              </div>
-            </div>
-            <div className={styles['setting-panel__group__content_item']}>
-              <div
-                className={styles['setting-panel__group__content_item_label']}
-              >
-                全员静音
-              </div>
-              <div
-                className={
-                  styles['setting-panel__group__content_item_checkbox']
-                }
-              >
-                <Checkbox
-                  checked={allMicMuted}
-                  disabled={connectedSpectators.length < 2}
-                  onChange={onSwitchAllMicMuted}
-                />
-              </div>
-            </div>
+            {renderAllowInteraction}
+            {renderMuteInteraction}
           </div>
         </div>
-      )}
-    </div>
+      ),
+    [mode, renderAllowInteraction, renderMuteInteraction]
   );
+
+  const settingPanel = useMemo(
+    () => (
+      <div className={styles['setting-panel']}>
+        {renderMemberManagement}
+        {renderInteractionManagement}
+      </div>
+    ),
+    [renderMemberManagement, renderInteractionManagement]
+  );
+
+  if (!showMemberManagement && !showInteractionManagement) return null;
+
   return (
     <Popover content={settingPanel}>
       <div className={styles['button-wrapper']}>
@@ -152,4 +248,4 @@ const ScreenShare: React.FC = () => {
   );
 };
 
-export default ScreenShare;
+export default Setting;

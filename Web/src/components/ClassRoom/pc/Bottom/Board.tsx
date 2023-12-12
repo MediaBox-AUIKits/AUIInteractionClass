@@ -6,10 +6,13 @@ import whiteBoardFactory from '../../utils/whiteboard';
 import { BoardSvg, BoardDisableSvg } from '../../components/icons';
 import styles from './index.less';
 
-const Board: React.FC = () => {
-  const wbIns = useMemo(() => {
-    return whiteBoardFactory.getInstance('netease');
-  }, []);
+interface IProps {
+  disabled?: boolean;
+}
+
+const Board: React.FC<IProps> = props => {
+  const { disabled: propDisabled = false } = props;
+  const wbIns = whiteBoardFactory.getInstance('netease');
   const { enable: displayEnable } = useClassroomStore(state => state.display);
   const localPreviewing = useClassroomStore(
     state => state.localMedia.sources.length !== 0
@@ -26,11 +29,25 @@ const Board: React.FC = () => {
     return '';
   }, [displayEnable, localPreviewing]);
 
+  const disabled: boolean = useMemo(
+    () => !!(disabledText || propDisabled),
+    [disabledText, propDisabled]
+  );
+
   const switchToBoard = useCallback(() => {
-    if (!disabledText) {
-      wbIns?.switchToBoard();
+    if (!disabled) {
+      const { boardNames = [] } = wbIns?.getBoardInfos() ?? {};
+      // 简单用「白板」或「whiteboard」开头的字符串来筛选白板
+      const firstWhiteboard = boardNames.find(boardName =>
+        /^(白板|whiteboard)/i.test(boardName)
+      );
+      if (firstWhiteboard) {
+        wbIns?.switchToBoard(firstWhiteboard);
+      } else {
+        wbIns?.addBoard('白板');
+      }
     }
-  }, [disabledText]);
+  }, [disabled, wbIns]);
 
   return (
     <Popover
@@ -43,11 +60,11 @@ const Board: React.FC = () => {
       <div className={styles['button-wrapper']}>
         <div
           className={classNames(styles.button, {
-            [styles.disabled]: !!disabledText,
+            [styles.disabled]: disabled,
           })}
           onClick={switchToBoard}
         >
-          {disabledText ? <BoardDisableSvg /> : <BoardSvg />}
+          {disabled ? <BoardDisableSvg /> : <BoardSvg />}
           <div className={styles['button-text']}>白板</div>
         </div>
       </div>

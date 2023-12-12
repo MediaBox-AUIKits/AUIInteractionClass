@@ -1,17 +1,15 @@
-import {
-  UserRoleEnum,
-  IClassroomInfo,
-  IUserInfo,
-  MeetingInfo,
-} from './classroom';
+import { IClassroomInfo, IUserInfo, MeetingInfo } from './index';
+import { Permission } from '@/types';
+import { Reporter } from '@/utils/Reporter';
+import { AUIMessageConfig } from '@/BaseKits/AUIMessage/types';
 
 export interface IClassroomServices {
   fetchClassroomInfo: () => Promise<IClassroomInfo>;
-  fetchIMToken: (imServer: string[]) => Promise<{
-    aliyunAccessToken?: string;
-    rongCloudToken?: string;
-    rongCloudAppKey?: string;
-  }>;
+  fetchAssistantPermissions: () => Promise<Permission[] | undefined>;
+  fetchIMToken: (
+    imServer: string[],
+    role?: string
+  ) => Promise<AUIMessageConfig>;
   startClass: () => Promise<IClassroomInfo>;
   stopClass: () => Promise<void>;
   updateMeetingInfo: (payload: Partial<MeetingInfo>) => Promise<any>;
@@ -60,10 +58,13 @@ export interface IClassroomServices {
 }
 
 export interface IClassRoomProps {
-  role?: UserRoleEnum;
   userInfo: IUserInfo;
   id: string;
+  // 用于学生端是否不加载白板组件，若为 true，将通过播放器播放白板流
+  // 仅对非公开课模式的学生端生效
+  whiteBoardHidden: boolean;
   services: IClassroomServices;
+  reporter: Reporter;
   report: (msgId: number, data?: any) => void;
   onExit: () => void;
 }

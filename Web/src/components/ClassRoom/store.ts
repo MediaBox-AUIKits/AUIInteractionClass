@@ -17,8 +17,11 @@ import {
   InteractionInvitationUpdateType,
   IMemberInfo,
   IUserInfo,
+  UserRoleEnum,
+  ClassroomFunction,
 } from './types';
-import { MaxConnectedSpectatorNum } from './constances';
+import { Permission } from '@/types';
+import { MaxConnectedSpectatorNum, FunctionMapByPermission } from './constants';
 
 const DEFAULT_SIZE = { width: 1280, height: 720 };
 
@@ -73,6 +76,15 @@ export const defaultClassroomState: IClassroomState = {
   memberListFlag: 0,
   memberList: [],
 
+  // role
+  isTeacher: false,
+  isAssistant: false,
+  isStudent: false,
+  // permission
+  isAdmin: false,
+  accessibleFunctions: [],
+  asstAccessibleFunctions: [],
+
   joinedGroupId: '',
   messageList: [],
   commentInput: '',
@@ -90,12 +102,12 @@ export const defaultClassroomState: IClassroomState = {
   localMedia: {
     sources: [],
   },
+  docsUpdateFlag: 0,
   // 连麦相关
   connectedSpectators: [], // 连麦用户列表
   interactionAllowed: true, // 允许连麦
   allMicMuted: false, // 全员静音
   // 学生侧
-  interactionInvitationSessionId: undefined, // 学生被连麦邀请 sessionId
   interactionStarting: false, // 连麦启动中开始
   interacting: false, // 连麦开始
   controlledMicOpened: true, // 受控麦克风静音
@@ -121,6 +133,38 @@ const useClassroomStore = create(
         })
       ),
 
+    setRoleAssertion: (role: UserRoleEnum) =>
+      set(
+        produce((state: IClassroomState) => {
+          const isTeacher = role === UserRoleEnum.Teacher;
+          const isAssistant = role === UserRoleEnum.Assistant;
+          state.isTeacher = isTeacher;
+          state.isAssistant = isAssistant;
+          state.isStudent = !isTeacher && !isAssistant;
+
+          state.isAdmin = isTeacher || isAssistant;
+        })
+      ),
+    setAccessibleFunctions: (permissions: Permission[]) =>
+      set(
+        produce((state: IClassroomState) => {
+          const functions: ClassroomFunction[] = [];
+          permissions.forEach(permission => {
+            functions.push(...FunctionMapByPermission[permission]);
+          });
+          state.accessibleFunctions = functions;
+        })
+      ),
+    setAsstPermAccessibleFunctions: (permissions: Permission[]) =>
+      set(
+        produce((state: IClassroomState) => {
+          const functions: ClassroomFunction[] = [];
+          permissions.forEach(permission => {
+            functions.push(...FunctionMapByPermission[permission]);
+          });
+          state.asstAccessibleFunctions = functions;
+        })
+      ),
     setJoinedGroupId: (id: string) =>
       set(
         produce((state: IClassroomState) => {
@@ -306,6 +350,12 @@ const useClassroomStore = create(
           state.localMedia.sources = sources;
         })
       ),
+    setDocsUpdateFlag: () =>
+      set(
+        produce<IClassroomState>(state => {
+          state.docsUpdateFlag += 1;
+        })
+      ),
     // 更新邀请中的用户id
     updateInteractionInvitationUsers: (
       type: InteractionInvitationUpdateType,
@@ -401,14 +451,6 @@ const useClassroomStore = create(
 
           state.connectedSpectators = list;
           state.interactionFull = list.length >= MaxConnectedSpectatorNum;
-        })
-      ),
-
-    // 连麦受邀中
-    setInteractionInvitationSessionId: (sessionId?: string) =>
-      set(
-        produce<IClassroomState>(state => {
-          state.interactionInvitationSessionId = sessionId;
         })
       ),
 

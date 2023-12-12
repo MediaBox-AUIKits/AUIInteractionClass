@@ -19,7 +19,6 @@ export enum InteractionInvitationState {
   Accepted = 'accepted',
 }
 
-// TODO: 补充示例图
 export enum InteractionInvitationEvent {
   SendInvitation = 'sendInvitation',
   Retry = 'retry',
@@ -148,7 +147,6 @@ export interface InteractionSession {
 
 export interface InteractionManagerProps {
   message: InstanceType<typeof AUIMessage>;
-  groupId: string;
 }
 
 // 基础连麦IM消息数据

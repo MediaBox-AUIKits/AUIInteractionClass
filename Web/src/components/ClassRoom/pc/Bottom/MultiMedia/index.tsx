@@ -1,8 +1,9 @@
-import React, { Fragment, useState, useMemo } from 'react';
+import React, { Fragment, useState, useMemo, useCallback } from 'react';
 import classNames from 'classnames';
 import { useThrottleFn } from 'ahooks';
 import { Modal, Upload, Button, Popover } from 'antd';
 import useClassroomStore from '../../../store';
+import { PermissionVerificationProps } from '../../../types';
 import {
   MediaSvg,
   MediaDisableSvg,
@@ -18,24 +19,28 @@ interface RcFile extends File {
   uid: string;
 }
 
-const MultiMedia: React.FC = () => {
+const MultiMedia: React.FC<PermissionVerificationProps> = props => {
+  const { noPermission = false, noPermissionNotify } = props;
   const { setLocalMediaSources } = useClassroomStore.getState();
   const { enable: displayEnable } = useClassroomStore(state => state.display);
   const [modalOpened, setModalOpened] = useState<boolean>(false);
   const [fileList, setFileList] = useState<RcFile[]>([]);
   const [tipOpen, setTipOpen] = useState(false);
-  // 判断是否可以使用本地媒体流
-  const allowUsing = useMemo(() => {
-    const video: any = document.createElement('video');
-    return !!video.captureStream;
-  }, []);
 
-  const openMediaModal = () => {
-    if (displayEnable) {
-      return;
-    }
+  const disabled = useMemo(
+    () => displayEnable || noPermission,
+    [displayEnable, noPermission]
+  );
+  const disabledText = useMemo(() => {
+    if (noPermission) return noPermissionNotify;
+    if (displayEnable) return '结束屏幕共享后可使用';
+  }, [displayEnable, noPermission, noPermissionNotify]);
+
+  const openMediaModal = useCallback(() => {
+    if (disabled) return;
+
     setModalOpened(true);
-  };
+  }, [disabled]);
 
   const closeMediaModal = () => {
     setModalOpened(false);
@@ -84,6 +89,12 @@ const MultiMedia: React.FC = () => {
     }),
     []
   );
+
+  // 判断是否可以使用本地媒体流
+  const allowUsing = useMemo(() => {
+    const video: any = document.createElement('video');
+    return !!video.captureStream;
+  }, []);
 
   const renderEmty = () => (
     <div className={styles['local-meida-modal__content']}>
@@ -168,20 +179,20 @@ const MultiMedia: React.FC = () => {
       </Modal>
 
       <Popover
-        content="结束屏幕共享后可使用"
+        content={disabledText}
         open={tipOpen}
         onOpenChange={bool => {
-          setTipOpen(displayEnable ? bool : false);
+          setTipOpen(disabledText ? bool : false);
         }}
       >
         <div className={commonStyles['button-wrapper']}>
           <div
             className={classNames(commonStyles.button, {
-              [commonStyles.disabled]: displayEnable,
+              [commonStyles.disabled]: disabled,
             })}
             onClick={openMediaModal}
           >
-            {displayEnable ? <MediaDisableSvg /> : <MediaSvg />}
+            {disabled ? <MediaDisableSvg /> : <MediaSvg />}
             <div className={commonStyles['button-text']}>多媒体</div>
           </div>
         </div>

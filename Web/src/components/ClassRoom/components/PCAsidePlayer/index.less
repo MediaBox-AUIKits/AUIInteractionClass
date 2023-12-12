@@ -2,16 +2,7 @@
 
 @player-bottom-height: 28px;
 
-.student-main-player {
-  font-size: 16px;
-}
-
-.student-page__video {
-  width: 100%;
-  height: 100%;
-}
-
-.student-aside-player {
+.audience-aside-player {
   position: relative;
   flex-shrink: 0;
   width: @aside-player-width;
@@ -21,7 +12,7 @@
   color: #b3b9c5;
 }
 
-.student-aside-player__role {
+.audience-aside-player__role {
   position: absolute;
   top: 8px;
   left: 12px;
@@ -31,7 +22,7 @@
   background-color: @primary-background-color;
 }
 
-.student-aside-player__bottom {
+.audience-aside-player__bottom {
   position: absolute;
   left: 0;
   right: 0;
@@ -45,7 +36,7 @@
   );
 }
 
-.student-aside-player__bottom__right {
+.audience-aside-player__bottom__right {
   position: absolute;
   top: 0;
   right: 8px;
@@ -54,16 +45,11 @@
   align-items: center;
 }
 
-.student-aside-player__bottom__item {
+.audience-aside-player__bottom__item {
   display: inline-block;
   vertical-align: middle;
   padding: 0 4px;
   line-height: @player-bottom-height;
   color: #fcfcfd;
   font-size: 20px;
-}
-
-.student-aside-player__bottom__action {
-  .student-aside-player__bottom__item;
-  cursor: pointer;
 }

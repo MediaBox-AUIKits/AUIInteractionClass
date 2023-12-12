@@ -7,7 +7,7 @@ import React, {
 } from 'react';
 import toast from '@/utils/toast';
 import useClassroomStore from '../../store';
-import { ClassroomStatusEnum, UserRoleEnum } from '../../types';
+import { ClassroomStatusEnum } from '../../types';
 import { getTimeFormat, isValidDate } from '../../utils/common';
 import copyText from '../../utils/copyText';
 import {
@@ -19,11 +19,11 @@ import { ClassContext } from '../../ClassContext';
 import styles from './index.less';
 
 const RoomStatus: React.FC = () => {
-  const { status, startedAt } = useClassroomStore(state => state.classroomInfo);
-  const { pushing, startTime: pusherStartTime } = useClassroomStore(
-    state => state.pusher
-  );
-  const { userInfo } = useContext(ClassContext);
+  const {
+    isTeacher,
+    classroomInfo: { status, startedAt },
+    pusher: { pushing, startTime: pusherStartTime },
+  } = useClassroomStore(state => state);
   const [startTime, setStartTime] = useState<Date>();
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -32,15 +32,15 @@ const RoomStatus: React.FC = () => {
       return false;
     }
     // 老师角色时还需要 pushing 也为 ture
-    if (userInfo?.role === UserRoleEnum.Teacher) {
+    if (isTeacher) {
       return pushing;
     }
     return true;
-  }, [status, pushing, userInfo]);
+  }, [status, pushing, isTeacher]);
 
   useEffect(() => {
     if (status === ClassroomStatusEnum.started) {
-      if (userInfo?.role === UserRoleEnum.Teacher) {
+      if (isTeacher) {
         // 当时老师时直接使用 pusher.startTime
         setStartTime(pusherStartTime);
       } else {
@@ -50,12 +50,12 @@ const RoomStatus: React.FC = () => {
         setStartTime(time);
       }
     }
-  }, [userInfo, startedAt, pusherStartTime, status]);
+  }, [isTeacher, startedAt, pusherStartTime, status]);
 
   useEffect(() => {
-    let timer: NodeJS.Timer;
+    let timer: number;
     if (started) {
-      timer = setInterval(() => {
+      timer = window.setInterval(() => {
         setCurrentTime(new Date());
       }, 1000);
     }
@@ -92,8 +92,11 @@ const RoomStatus: React.FC = () => {
 };
 
 const RoomHeader: React.FC = () => {
-  const { id } = useClassroomStore(state => state.classroomInfo);
-  const { exit, userInfo } = useContext(ClassContext);
+  const {
+    classroomInfo: { id },
+    isTeacher,
+  } = useClassroomStore(state => state);
+  const { exit } = useContext(ClassContext);
 
   const copy = () => {
     const bool = copyText(id);
@@ -105,7 +108,7 @@ const RoomHeader: React.FC = () => {
   };
 
   const renderRight = () => {
-    if (userInfo?.role === UserRoleEnum.Teacher) {
+    if (isTeacher) {
       return null;
     }
 

@@ -10,7 +10,7 @@ import {
   CameraWidth,
   CameraHeight,
   LiveTranscodingSourceType,
-} from '../../constances';
+} from '../../constants';
 import { checkSystemRequirements } from '../common';
 import { getLayoutArray } from '../..//utils/common';
 
@@ -68,7 +68,7 @@ class AlivcPusher extends window.AlivcLivePush.AlivcLivePusher {
     } = {};
     if (options.audio) {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
+        const stream = await navigator?.mediaDevices?.getUserMedia({
           audio: true,
         });
         ret.audio = true;
@@ -80,13 +80,13 @@ class AlivcPusher extends window.AlivcLivePush.AlivcLivePusher {
     }
     if (options.video) {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
+        const stream = await navigator?.mediaDevices?.getUserMedia({
           video: true,
         });
         ret.video = true;
         stream.getVideoTracks()[0].stop();
       } catch (error) {
-        console.log('麦克风设备异常', error);
+        console.log('摄像头设备异常', error);
         ret.video = false;
       }
     }

@@ -7,7 +7,7 @@ import useClassroomStore from '@/components/ClassRoom/store';
 import AlivcPusher from '@/components/ClassRoom/utils/LivePush/AlivcPusher';
 import livePush from '@/components/ClassRoom/utils/LivePush';
 import { ClassContext } from '@/components/ClassRoom/ClassContext';
-import { AUIMessageEvents } from '@/BaseKits/AUIMessage';
+import { AUIMessageEvents } from '@/BaseKits/AUIMessage/types';
 import { CustomMessageTypes } from '@/components/ClassRoom/types';
 import {
   InteractionApplicationEvent,
@@ -16,6 +16,7 @@ import {
   RejectInteractionInvitationReason,
 } from '@/components/ClassRoom/utils/InteractionManager';
 import { UA } from '@/utils/common';
+import logger, { EMsgid } from '@/components/ClassRoom/utils/Logger';
 import toast from '@/utils/toast';
 import { getEnumKey } from '@/utils/common';
 import { formatTime } from '@/components/ClassRoom/utils/common';
@@ -46,7 +47,6 @@ function StudentInteraction(props: StudentInteractionProps) {
     classroomInfo: { teacherId, linkInfo },
     interacting,
     interactionStarting,
-    interactionInvitationSessionId,
     supportWebRTC,
     interactionAllowed,
     controlledCameraOpened,
@@ -57,7 +57,6 @@ function StudentInteraction(props: StudentInteractionProps) {
     setInteracting,
     setInteractionStarting,
     setPushing,
-    setInteractionInvitationSessionId,
     setCameraEnable,
     setCameraControlling,
     setMicrophoneEnable,
@@ -70,6 +69,8 @@ function StudentInteraction(props: StudentInteractionProps) {
 
   const [applicationWaiting, setApplicationWaiting] = useState(false);
   const [applicationAccepted, setApplicationAccepted] = useState(false);
+  const [interactionInvitationSessionId, setInteractionInvitationSessionId] =
+    useState<string | undefined>();
   const [mediaDevicePermission, setMediaDevicePermission] =
     useState<MediaDevicePermission>({
       audio: false,
@@ -105,16 +106,21 @@ function StudentInteraction(props: StudentInteractionProps) {
         audio: false,
         video: false,
       };
+      logger.reportInfo(EMsgid.MEDIA_DEVICE_PERMISSION, result);
       setMediaDevicePermission(result);
     };
     checkPermissions();
+
+    return () => {
+      livePush.destroyInstance('alivc');
+    };
   }, []);
 
   // 处理老师的连麦邀请
   const handleReceiveInvitation = useCallback(
     (data: any) => {
       if (!supportWebRTC) {
-        (interactionManager as StudentInteractionManager).rejectInvitation({
+        (interactionManager as StudentInteractionManager)?.rejectInvitation({
           ...data,
           reason: RejectInteractionInvitationReason.NotSupportWebRTC,
         });
@@ -122,7 +128,7 @@ function StudentInteraction(props: StudentInteractionProps) {
       }
 
       if (!mediaDevicePermission.video && !mediaDevicePermission.audio) {
-        (interactionManager as StudentInteractionManager).rejectInvitation({
+        (interactionManager as StudentInteractionManager)?.rejectInvitation({
           ...data,
           reason: RejectInteractionInvitationReason.NoDevicePermissions,
         });
@@ -136,12 +142,17 @@ function StudentInteraction(props: StudentInteractionProps) {
 
       const isNewInvitation = (
         interactionManager as StudentInteractionManager
-      ).receiveInvitation(data);
+      )?.receiveInvitation(data);
       if (!isNewInvitation) return;
 
       setInteractionInvitationSessionId(data.sessionId);
     },
-    [supportWebRTC, interactionAllowed, mediaDevicePermission]
+    [
+      interactionManager,
+      supportWebRTC,
+      interactionAllowed,
+      mediaDevicePermission,
+    ]
   );
 
   const stopPush = useCallback(async () => {
@@ -157,12 +168,45 @@ function StudentInteraction(props: StudentInteractionProps) {
     setPushing(false);
   }, [livePusher]);
 
+  useEffect(() => {
+    if (!pusher.pushing || !livePusher) return;
+
+    const connectionlostHandler = () => {
+      toast.warning('推流异常，正在尝试重连中...');
+
+      logger.reportInfo(EMsgid.CONNECTION_LOST);
+    };
+
+    const networkrecoveryHandler = () => {
+      toast.success('推流重连成功');
+
+      logger.reportInfo(EMsgid.NETWORK_RECOVERY);
+    };
+
+    const reconnectexhaustedHandler = () => {
+      toast.warning('推流中断，请在网络恢复后刷新页面重新连麦');
+      setPushing(false);
+
+      logger.reportInfo(EMsgid.RECONNECT_EXHAUSTED);
+    };
+
+    livePusher.network.on('connectionlost', connectionlostHandler);
+    livePusher.network.on('networkrecovery', networkrecoveryHandler);
+    livePusher.network.on('reconnectexhausted', reconnectexhaustedHandler);
+
+    return () => {
+      livePusher.network.off('connectionlost', connectionlostHandler);
+      livePusher.network.off('networkrecovery', networkrecoveryHandler);
+      livePusher.network.on('reconnectexhausted', reconnectexhaustedHandler);
+    };
+  }, [pusher.pushing, livePusher]);
+
   // 处理老师的连麦邀请取消
   const handleInvitationCanceled = useCallback(
     (data: any) => {
       (
         interactionManager as StudentInteractionManager
-      ).handleInvitationCanceled(data);
+      )?.handleInvitationCanceled(data);
       // 如果正在启动连麦或者连麦已建立，则回退
       if (interactionStarting || interacting) {
         setInteracting(false);
@@ -174,7 +218,13 @@ function StudentInteraction(props: StudentInteractionProps) {
       setInteractionInvitationSessionId(undefined);
       toast('老师取消了连麦邀请');
     },
-    [pusher, interactionStarting, interacting, interactionManager, stopPush]
+    [
+      pusher.pushing,
+      interactionStarting,
+      interacting,
+      interactionManager,
+      stopPush,
+    ]
   );
 
   // 处理连麦申请被拒绝
@@ -183,7 +233,7 @@ function StudentInteraction(props: StudentInteractionProps) {
       const { full = false, interactionAllowed = true } = data;
       (
         interactionManager as StudentInteractionManager
-      ).handleApplicationRejected(data);
+      )?.handleApplicationRejected(data);
       if (full) {
         toast('连麦人数已满，请稍后尝试');
       } else if (!interactionAllowed) {
@@ -204,14 +254,17 @@ function StudentInteraction(props: StudentInteractionProps) {
   }, [interacting]);
 
   // 学生端发起结束连麦，老师端允许后执行结束连麦
-  const doEndInteraction = (data: any) => {
-    (
-      interactionManager as StudentInteractionManager
-    ).handleEndingInteractionAllowed(data);
+  const doEndInteraction = useCallback(
+    (data: any) => {
+      (
+        interactionManager as StudentInteractionManager
+      )?.handleEndingInteractionAllowed(data);
 
-    setInteracting(false);
-    toast('连麦已结束');
-  };
+      setInteracting(false);
+      toast('连麦已结束');
+    },
+    [interactionManager]
+  );
 
   // 处理老师端设置「允许连麦」
   const handleInteractionAllowed = (data: any) => {
@@ -225,7 +278,7 @@ function StudentInteraction(props: StudentInteractionProps) {
     (data: any) => {
       const isValidCommand = (
         interactionManager as StudentInteractionManager
-      ).handleCameraControl(data);
+      )?.handleCameraControl(data);
       if (isValidCommand) {
         const to = data.turnOn;
         setControlledCameraOpened(to);
@@ -243,7 +296,7 @@ function StudentInteraction(props: StudentInteractionProps) {
     (data?: any) => {
       const isValidCommand = (
         interactionManager as StudentInteractionManager
-      ).handleMicControl(data);
+      )?.handleMicControl(data);
       if (isValidCommand) {
         const to = data.turnOn;
         setControlledMicOpened(to);
@@ -312,7 +365,7 @@ function StudentInteraction(props: StudentInteractionProps) {
           ) {
             (
               interactionManager as StudentInteractionManager
-            ).handleApplicationAccepted(data);
+            )?.handleApplicationAccepted(data);
           }
           break;
 
@@ -426,10 +479,22 @@ function StudentInteraction(props: StudentInteractionProps) {
       throw new Error('no livePusher');
     }
 
+    const enableVideo =
+      // 无 deviceId 为初始化状态，默认开启；否则以 enable 为准
+      (camera.enable || camera.deviceId === undefined) &&
+      controlledCameraOpened &&
+      mediaDevicePermission.video;
+
+    const enableAudio =
+      // 无 deviceId 为初始化状态，默认开启；否则以 enable 为准
+      (microphone.enable || microphone.deviceId === undefined) &&
+      controlledMicOpened &&
+      mediaDevicePermission.audio;
+
     // 初始化对应的推流
     await livePusher.init({
-      video: controlledCameraOpened && mediaDevicePermission.video,
-      audio: controlledMicOpened && mediaDevicePermission.audio,
+      video: enableVideo,
+      audio: enableAudio,
     });
 
     await livePusher.startPush(rtcPushUrl);
@@ -440,6 +505,8 @@ function StudentInteraction(props: StudentInteractionProps) {
     controlledCameraOpened,
     controlledMicOpened,
     linkInfo,
+    microphone,
+    camera,
   ]);
 
   useEffect(() => {
@@ -473,11 +540,14 @@ function StudentInteraction(props: StudentInteractionProps) {
               isCameraPublishing, // 摄像头不可用，因为有占位图，所以流中也有 camera track
             } = livePusher?.getPublishingStatus() ?? {};
             const cameraOpened =
-              isCameraPublishing && mediaDevicePermission.video;
+              isCameraPublishing &&
+              mediaDevicePermission.video &&
+              // 无 deviceId 为初始化状态，默认开启；否则以 enable 为准
+              (camera.enable || camera.deviceId === undefined);
             if (beingInvited) {
               (
                 interactionManager as StudentInteractionManager
-              ).sendAcceptedResp({
+              )?.sendAcceptedResp({
                 sessionId: interactionInvitationSessionId,
                 studentId,
                 teacherId,
@@ -489,7 +559,7 @@ function StudentInteraction(props: StudentInteractionProps) {
             }
 
             if (applicationAccepted) {
-              (interactionManager as StudentInteractionManager).interacting({
+              (interactionManager as StudentInteractionManager)?.interacting({
                 studentId,
                 teacherId,
                 rtcPullUrl,
@@ -505,6 +575,7 @@ function StudentInteraction(props: StudentInteractionProps) {
     );
     return sub;
   }, [
+    camera,
     livePusher,
     mediaDevicePermission,
     teacherId,
@@ -536,12 +607,12 @@ function StudentInteraction(props: StudentInteractionProps) {
       return;
     }
 
-    const state = (interactionManager as StudentInteractionManager).application(
-      {
-        studentId: userInfo?.userId,
-        teacherId,
-      }
-    );
+    const state = (
+      interactionManager as StudentInteractionManager
+    )?.application({
+      studentId: userInfo?.userId,
+      teacherId,
+    });
     setApplicationWaiting(true);
     state.on(InteractionApplicationEvent.Accepted, () => {
       setApplicationAccepted(true);
@@ -568,7 +639,7 @@ function StudentInteraction(props: StudentInteractionProps) {
 
   const cancelApplication = useCallback(() => {
     try {
-      (interactionManager as StudentInteractionManager).cancelApplication({
+      (interactionManager as StudentInteractionManager)?.cancelApplication({
         studentId: userInfo?.userId ?? '',
         teacherId: teacherId,
       });
@@ -580,7 +651,7 @@ function StudentInteraction(props: StudentInteractionProps) {
   const noticeEndingInteraction = useCallback(() => {
     const state = (
       interactionManager as StudentInteractionManager
-    ).noticeEndingInteraction({
+    )?.noticeEndingInteraction({
       studentId: userInfo?.userId ?? '',
       teacherId,
     });
@@ -654,7 +725,10 @@ function StudentInteraction(props: StudentInteractionProps) {
   return (
     <>
       {renderComp()}
-      <InteractionInvitationModal />
+      <InteractionInvitationModal
+        interactionInvitationSessionId={interactionInvitationSessionId}
+        onReject={() => setInteractionInvitationSessionId(undefined)}
+      />
       <NoDevicePermissionsModal
         show={noDevicePermissionsModalVisible}
         onClose={() => setNoDevicePermissionsModalVisible(false)}

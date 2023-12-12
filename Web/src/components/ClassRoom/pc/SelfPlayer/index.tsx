@@ -3,7 +3,7 @@ import classNames from 'classnames';
 import { useDebounceFn } from 'ahooks';
 import livePush from '../../utils/LivePush';
 import useClassroomStore from '../../store';
-import { PreviewPlayerId } from '../../constances';
+import { PreviewPlayerId } from '../../constants';
 import {
   MicCloseSvg,
   MicNormalSvg,

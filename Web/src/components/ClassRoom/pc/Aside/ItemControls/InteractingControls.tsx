@@ -18,6 +18,7 @@ import {
 } from '@/components/ClassRoom/components/icons';
 import { ClassContext } from '@/components/ClassRoom/ClassContext';
 import { ControlsContext } from '../MemberItem';
+import { MemberListContext } from '../index';
 import useClassroomStore from '@/components/ClassRoom/store';
 import {
   TeacherInteractionManager,
@@ -35,6 +36,7 @@ const InteractingControls: React.FC<ISpectatorInfo> = (
 ) => {
   const { interactionManager } = useContext(ClassContext);
   const { isTeacher, userId, onKick } = useContext(ControlsContext);
+  const { canKickMember } = useContext(MemberListContext);
   const {
     camera: teacherCamera,
     microphone: teacherMicrophone,
@@ -61,7 +63,7 @@ const InteractingControls: React.FC<ISpectatorInfo> = (
       const controlledCameraOpened = !cameraOpened;
       const stateMachine = (
         interactionManager as TeacherInteractionManager
-      ).ToggleCamera(userId, controlledCameraOpened);
+      )?.ToggleCamera(userId, controlledCameraOpened);
       setCameraToggleState(stateMachine);
     }
   }, [
@@ -104,7 +106,7 @@ const InteractingControls: React.FC<ISpectatorInfo> = (
       const controlledMicOpened = !micOpened;
       const stateMachine = (
         interactionManager as TeacherInteractionManager
-      ).ToggleMic(userId, controlledMicOpened);
+      )?.ToggleMic(userId, controlledMicOpened);
       setMicToggleState(stateMachine);
     }
   }, [
@@ -140,7 +142,7 @@ const InteractingControls: React.FC<ISpectatorInfo> = (
 
   // 结束连麦
   const endAllInteraction = useCallback(() => {
-    (interactionManager as TeacherInteractionManager).endAllInteraction();
+    (interactionManager as TeacherInteractionManager)?.endAllInteraction();
     // 只保留老师在连麦成员中
     setConnectedSpectators(
       connectedSpectators.filter(
@@ -151,7 +153,7 @@ const InteractingControls: React.FC<ISpectatorInfo> = (
 
   // 下麦
   const endInteraction = useCallback(() => {
-    (interactionManager as TeacherInteractionManager).endInteraction(userId);
+    (interactionManager as TeacherInteractionManager)?.endInteraction(userId);
     updateConnectedSpectator(userId);
   }, [userId, interactionManager]);
 
@@ -180,17 +182,20 @@ const InteractingControls: React.FC<ISpectatorInfo> = (
         },
       ];
     }
-    return [
+    const normalActions = [
       {
         label: '下麦',
         key: 'endInteraction',
       },
-      {
+    ];
+    if (canKickMember) {
+      normalActions.push({
         label: '移除教室',
         key: 'kick',
-      },
-    ];
-  }, [isTeacher]);
+      });
+    }
+    return normalActions;
+  }, [isTeacher, canKickMember]);
 
   const renderMic = () => {
     if (micToggleState?.state === ToggleRemoteDeviceState.Waiting)

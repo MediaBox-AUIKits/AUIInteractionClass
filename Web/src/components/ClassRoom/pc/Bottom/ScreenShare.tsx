@@ -3,26 +3,48 @@ import { Popover } from 'antd';
 import classNames from 'classnames';
 import useClassroomStore from '../../store';
 import livePush from '../../utils/LivePush';
-import logger from '../../utils/Logger';
+import logger, { EMsgid } from '../../utils/Logger';
+import { PermissionVerificationProps } from '../../types';
 import { ScreenShareSvg, ScreenShareDisableSvg } from '../../components/icons';
-import toast from '@/utils/toast';
 import styles from './index.less';
 
-const ScreenShare: React.FC = () => {
+const ScreenShare: React.FC<PermissionVerificationProps> = props => {
+  const { noPermission = false, noPermissionNotify } = props;
   const livePusher = useMemo(() => {
     return livePush.getInstance('alivc')!;
   }, []);
-  const { setDisplayEnable } = useClassroomStore.getState();
-  const { enable } = useClassroomStore(state => state.display);
   const localPreviewing = useClassroomStore(
     state => state.localMedia.sources.length !== 0
   );
-  const [tipOpen, setTipOpen] = useState(false);
+  const [screenShareSupported, setScreenShareSupported] = useState(true);
+
+  const disabled = useMemo(
+    () => noPermission || !screenShareSupported || localPreviewing,
+    [localPreviewing, noPermission, screenShareSupported]
+  );
+  const disabledText = useMemo(() => {
+    if (noPermission) return noPermissionNotify;
+    if (!screenShareSupported) return '无屏幕分享的权限';
+    if (localPreviewing) return '关闭音视频画面后可恢复使用';
+  }, [localPreviewing]);
+
+  const { setDisplayEnable } = useClassroomStore.getState();
+  const { enable } = useClassroomStore(state => state.display);
+
+  useEffect(() => {
+    if (livePusher) {
+      const bool = livePusher.checkScreenShareSupported();
+      console.log(bool);
+      setScreenShareSupported(bool);
+      logger.reportInfo(EMsgid.SCREEN_SHARE_SUPPORTED, { supported: bool });
+    }
+  }, [livePusher]);
 
   useEffect(() => {
     const handler = () => {
-      logger.stopScreen();
       setDisplayEnable(false);
+
+      logger.reportInvoke(EMsgid.STOP_SCREEN);
     };
 
     // 通过监听 screenshareended 屏幕分享轨结束事件，同步状态
@@ -34,57 +56,52 @@ const ScreenShare: React.FC = () => {
   }, [livePusher, setDisplayEnable]);
 
   const toggleScreenShare = useCallback(() => {
-    if (localPreviewing) {
+    if (disabled) {
       return;
     }
+
     if (enable) {
-      logger.stopScreen();
+      logger.reportInvoke(EMsgid.STOP_SCREEN);
+
       livePusher
         .stopScreenShare()
         .then(() => {
           setDisplayEnable(false);
+          logger.reportInvokeResult(EMsgid.STOP_SCREEN_RESULT, true);
         })
         .catch((err: any) => {
-          logger.stopScreenError(err);
           console.log('停止屏幕分享失败', err);
+
+          logger.reportInvokeResult(EMsgid.STOP_SCREEN_RESULT, false, '', err);
         });
     } else {
-      const bool = livePusher.checkScreenShareSupported();
-      logger.screenShareSupported(bool);
-      if (!bool) {
-        toast.error('无屏幕分享的权限！');
-        return;
-      }
-      logger.startScreen();
+      logger.reportInvoke(EMsgid.START_SCREEN);
+
       livePusher
-        ?.startScreenShare()
+        ?.startScreenShare(true)
         .then(() => {
           setDisplayEnable(true);
+
+          logger.reportInvokeResult(EMsgid.START_SCREEN_RESULT, true);
         })
         .catch((err: any) => {
-          logger.startScreenError(err);
           console.log('屏幕分享失败', err);
+          logger.reportInvokeResult(EMsgid.START_SCREEN_RESULT, false, '', err);
         });
     }
   }, [livePusher, enable, localPreviewing]);
 
   return (
-    <Popover
-      content="关闭音视频画面后可恢复使用"
-      open={tipOpen}
-      onOpenChange={bool => {
-        setTipOpen(localPreviewing ? bool : false);
-      }}
-    >
+    <Popover content={disabledText}>
       <div className={styles['button-wrapper']}>
         <div
           className={classNames(styles.button, {
             [styles.active]: enable,
-            [styles.disabled]: localPreviewing,
+            [styles.disabled]: disabled,
           })}
           onClick={toggleScreenShare}
         >
-          {localPreviewing ? <ScreenShareDisableSvg /> : <ScreenShareSvg />}
+          {disabled ? <ScreenShareDisableSvg /> : <ScreenShareSvg />}
           <div className={styles['button-text']}>
             {enable ? '结束共享' : '共享屏幕'}
           </div>

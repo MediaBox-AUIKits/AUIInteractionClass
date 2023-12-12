@@ -15,7 +15,9 @@ const ApplyingControls: React.FC = () => {
   const [buttonDisabled, setButtonDisabled] = useState(false);
 
   const reject = useCallback(() => {
-    (interactionManager as TeacherInteractionManager).rejectApplication(userId);
+    (interactionManager as TeacherInteractionManager)?.rejectApplication(
+      userId
+    );
     updateApplyingList(userId);
     setButtonDisabled(true);
   }, [userId, interactionManager]);
@@ -25,7 +27,9 @@ const ApplyingControls: React.FC = () => {
       toast.warning('麦上人员已满');
       return;
     }
-    (interactionManager as TeacherInteractionManager).acceptApplication(userId);
+    (interactionManager as TeacherInteractionManager)?.acceptApplication(
+      userId
+    );
     setButtonDisabled(true);
   }, [userId, interactionManager, interactionFull]);
 

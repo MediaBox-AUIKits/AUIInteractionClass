@@ -2,7 +2,6 @@ import React, { useMemo, useEffect, useContext } from 'react';
 import classNames from 'classnames';
 import MicIcon from './MicIcon';
 import { CameraCloseSolidSvg } from '../../components/icons';
-import { UserRoleEnum } from '../../types';
 import useClassroomStore from '../../store';
 import { ClassContext } from '../../ClassContext';
 import livePush from '../../utils/LivePush';
@@ -17,6 +16,8 @@ interface ISelfProps {
 const Self: React.FC<ISelfProps> = props => {
   const { wrapClassName } = props;
   const {
+    isTeacher,
+    isStudent,
     interacting,
     camera: { enable: cameraEnable },
     microphone: { enable: micEnable, deviceCount: micDeviceCount },
@@ -29,12 +30,12 @@ const Self: React.FC<ISelfProps> = props => {
   }, []);
 
   useEffect(() => {
-    if (userInfo?.role === UserRoleEnum.Student && livePusher) {
+    if (isStudent && livePusher) {
       livePusher.startPreview(SelfPlayerID);
     }
-  }, [userInfo, livePusher]);
+  }, [isStudent, livePusher]);
 
-  if (userInfo?.role === UserRoleEnum.Teacher && !interacting) return null;
+  if (isTeacher && !interacting) return null;
 
   return (
     <div className={classNames(styles['interaction-player'], wrapClassName)}>

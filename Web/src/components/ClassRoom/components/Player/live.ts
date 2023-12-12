@@ -115,7 +115,7 @@ export class LiveService {
       controlBarVisibility: 'never',
       useH5Prism: true,
       rtsSdkUrl:
-        'https://g.alicdn.com/apsara-media-box/imp-web-rts-sdk/2.5.1/aliyun-rts-sdk.js',
+        'https://g.alicdn.com/apsara-media-box/imp-web-rts-sdk/2.6.2/aliyun-rts-sdk.js',
       ...config,
     };
 

@@ -264,3 +264,20 @@ export function getLayoutArray(
     height: itemHeight,
   }));
 }
+
+/**
+ * 随机生成一个数字 uid
+ * @param {number} prefix 需要是正整数
+ * @return {number}
+ */
+export function createRandomNumberUid(prefix: number): number {
+  const now = Date.now();
+  // 000 - 999 随机取一个
+  const random = (`${Math.floor(Math.random() * 1000)}`).padStart(3, '0');
+  const str = `${prefix}${random}${now}`;
+  const uid = Number(str);
+  if (isNaN(uid)) {
+    throw new Error('uid is not a number');
+  }
+  return uid;
+}

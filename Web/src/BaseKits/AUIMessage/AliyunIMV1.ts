@@ -5,14 +5,15 @@ import {
   IMessageOptions,
   IMuteGroupReqModel,
   IMMuteUserReqModel,
-  IGetMuteInfoReqModel,
   IGetMuteInfoRspModel,
-  IListMessageReqModel,
+  IMSendLikeReqModel,
+  BroadcastTypeEnum,
 } from './types';
 import EventBus from './utils/EventBus';
+
 const { InteractionEngine } = window.AliyunInteraction;
 
-class Interaction extends EventBus {
+class AliyunIMV1 extends EventBus {
   engine: InstanceType<typeof InteractionEngine>;
   private config?: AUIMessageConfig;
   private userInfo?: AUIMessageUserInfo;
@@ -20,6 +21,7 @@ class Interaction extends EventBus {
 
   constructor() {
     super();
+
     this.engine = InteractionEngine.create();
     this.engine.on(InteractionEventNames.Message, (eventData: any) => {
       this.emit('event', eventData || {});
@@ -30,16 +32,24 @@ class Interaction extends EventBus {
     this.config = config;
   }
 
+  init() {
+    return Promise.resolve();
+  }
+
+  unInit() {
+    return Promise.resolve();
+  }
+
   login(userInfo: AUIMessageUserInfo) {
     return new Promise((resolve, reject) => {
-      if (!this.config || !this.config.aliyunAccessToken) {
+      if (!this.config || !this.config.aliyunIMV1?.accessToken) {
         reject('please set config first');
         return;
       }
       this.userInfo = userInfo;
-      const { aliyunAccessToken } = this.config;
+      const { accessToken } = this.config.aliyunIMV1;
       this.engine
-        .auth(aliyunAccessToken)
+        .auth(accessToken)
         .then(res => {
           resolve(res);
         })
@@ -53,7 +63,7 @@ class Interaction extends EventBus {
     return this.engine.logout();
   }
 
-  removeAllEvent() {
+  removeAllListeners() {
     this.engine.removeAllEvents();
     super.removeAllEvent();
   }
@@ -66,7 +76,7 @@ class Interaction extends EventBus {
           userNick: this.userInfo?.userNick,
           userAvatar: this.userInfo?.userAvatar,
           broadCastStatistics: true,
-          broadCastType: 2,
+          broadCastType: BroadcastTypeEnum.all,
         })
         .then(res => {
           this.joinedGroupId = groupId;
@@ -85,7 +95,7 @@ class Interaction extends EventBus {
     const groupId = this.joinedGroupId;
     return new Promise((resolve, reject) => {
       this.engine
-        .leaveGroup({ groupId, broadCastType: 2 })
+        .leaveGroup({ groupId, broadCastType: BroadcastTypeEnum.all })
         .then(res => {
           this.joinedGroupId = '';
           resolve(res);
@@ -99,16 +109,16 @@ class Interaction extends EventBus {
   muteGroup() {
     const params: IMuteGroupReqModel = {
       groupId: this.joinedGroupId,
-      broadCastType: 2,
-    }
+      broadCastType: BroadcastTypeEnum.all,
+    };
     return this.engine.muteAll(params);
   }
 
   cancelMuteGroup() {
     const params: IMuteGroupReqModel = {
       groupId: this.joinedGroupId,
-      broadCastType: 2,
-    }
+      broadCastType: BroadcastTypeEnum.all,
+    };
     return this.engine.cancelMuteAll(params);
   }
 
@@ -130,7 +140,8 @@ class Interaction extends EventBus {
     return this.engine.cancelMuteUser(params);
   }
 
-  queryMuteGroup(): Promise<IGetMuteInfoRspModel> {
+  queryMuteStatus(): Promise<IGetMuteInfoRspModel> {
+    // 旧IM查询禁言状态的逻辑，互动直播不使用，代码暂时保留
     return new Promise((resolve, reject) => {
       this.engine
         .getGroupUserByIdList({
@@ -151,16 +162,23 @@ class Interaction extends EventBus {
     });
   }
 
+  sendLike(data: IMSendLikeReqModel) {
+    return this.engine.sendLike(data);
+  }
+
+  getGroupStatistics(groupId: string) {
+    return this.engine.getGroupStatistics({ groupId });
+  }
+
   sendMessageToGroup(options: IMessageOptions) {
     const params = {
       ...options,
-      groupId: this.joinedGroupId,
+      groupId: options.groupId || this.joinedGroupId,
       data: JSON.stringify(options.data),
     };
     return this.engine.sendMessageToGroup(params);
   }
 
-  // 先支持发单人的，不支持发多人
   sendMessageToGroupUser(options: IMessageOptions) {
     const params = {
       ...options,
@@ -181,6 +199,17 @@ class Interaction extends EventBus {
     };
     return this.engine.listMessage(params);
   }
+
+  listRecentMessage(type: number) {
+    const params = {
+      groupId: this.joinedGroupId,
+      type,
+      sortType: 0,
+      pageNum: 1,
+      pageSize: 20,
+    };
+    return this.engine.listMessage(params);
+  }
 }
 
-export default Interaction;
+export default AliyunIMV1;

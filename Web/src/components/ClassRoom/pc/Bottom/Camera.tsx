@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Dropdown, Tooltip } from 'antd';
+import { Dropdown, Popover } from 'antd';
 import classNames from 'classnames';
 import livePush from '../../utils/LivePush';
 import useClassroomStore from '../../store';
@@ -11,6 +11,7 @@ import {
   CameraNormalSvg,
 } from '../../components/icons';
 import toast from '@/utils/toast';
+import { PermissionVerificationProps } from '../../types';
 import styles from './index.less';
 
 interface IProps {
@@ -18,7 +19,22 @@ interface IProps {
   disabledTooltip?: string;
 }
 
-export default function Camera({ disabled, disabledTooltip }: IProps) {
+export default function Camera(props: PermissionVerificationProps<IProps>) {
+  const {
+    disabled: _disabled,
+    disabledTooltip,
+    noPermission,
+    noPermissionNotify,
+  } = props;
+  const disabled = useMemo(
+    () => noPermission || _disabled,
+    [_disabled, noPermission]
+  );
+  const disabledText = useMemo(() => {
+    if (noPermission) return noPermissionNotify;
+    if (disabled) return disabledTooltip;
+  }, [_disabled, disabledTooltip, noPermission, noPermissionNotify]);
+
   const livePusher = useMemo(() => {
     return livePush.getInstance('alivc')!;
   }, []);
@@ -64,9 +80,9 @@ export default function Camera({ disabled, disabledTooltip }: IProps) {
     };
 
     updateCameraList();
-    navigator.mediaDevices.addEventListener('devicechange', updateCameraList);
+    navigator?.mediaDevices?.addEventListener('devicechange', updateCameraList);
     return () => {
-      navigator.mediaDevices.removeEventListener(
+      navigator?.mediaDevices?.removeEventListener(
         'devicechange',
         updateCameraList
       );
@@ -97,12 +113,12 @@ export default function Camera({ disabled, disabledTooltip }: IProps) {
   const renderIcon = () => {
     if (switching || disabled || deviceList.length === 0) {
       return (
-        <Tooltip title={disabledTooltip} placement="top" trigger="hover">
+        <Popover content={disabledText}>
           <div className={classNames(styles.button, styles.disabled)}>
             {switching ? <CameraLoadingSvg /> : <CameraDisableSvg />}
             <div className={styles['button-text']}>摄像头</div>
           </div>
-        </Tooltip>
+        </Popover>
       );
     }
     return (

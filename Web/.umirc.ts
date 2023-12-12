@@ -14,7 +14,7 @@ export default defineConfig({
     CONFIG: {
       appServer: {
         origin: '', // 配置 APPServer 服务域名，例子: https://xxx.xxx.xxx，结尾字符请勿是 /
-        apiPrefixPath: '/api/v1/class/', // 配置api接口路径前缀
+        apiPrefixPath: '/api', // 配置api接口路径前缀
       },
       reporter: {
         enable: false, // 是否开启埋点
@@ -25,16 +25,20 @@ export default defineConfig({
       // IM 服务配置
       imServer: {
         // 请先开通阿里云互动消息服务，https://help.aliyun.com/zh/live/user-guide/interactive-messaging-overview?spm=a2c4g.11186623.0.0
-        aliyun: {
+        aliyunIMV1: {
           enable: true, // 是否开启
-          primary: true, // 是否是首选
+          primary: false, // 是否是首选
         },
         // 请先开通融云 IM 服务，https://www.rongcloud.cn/product/im?_sasdk=fMjQ4ODE3
         rongCloud: {
-          enable: false,
+          enable: true,
           primary: false,
           appKey: '', // 融云 SDK 的 AppKey，从控制台上获取
         },
+        aliyunIMV2: {
+          enable: true,
+          primary: true,
+        }
       },
     },
   },

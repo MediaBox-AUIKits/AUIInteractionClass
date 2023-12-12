@@ -3,8 +3,11 @@ import {
   ISpectatorInfo,
   IUserInfo,
   InteractionInvitationUpdateType,
+  UserRoleEnum,
 } from './classroom';
 import { IMemberInfo } from './member';
+import { ClassroomFunction } from './permission';
+import { Permission } from '@/types';
 
 interface MicrophoneState {
   enable: boolean;
@@ -47,12 +50,14 @@ export interface IDisplayState {
 }
 
 export interface CommentMessage {
-  messageId?: string;
+  messageId?: string; // 由 IM engine 各自生成
   nickName?: string;
   userId: string;
   content: string;
+  sid: string; // 业务方传入的唯一标识
   isSelf?: boolean; // 是否是自己发的
   isTeacher?: boolean; // 是否是老师发的
+  isAssistant?: boolean; // 是否是老师发的
 }
 
 export interface IBoard {
@@ -76,6 +81,16 @@ export interface IClassroomState {
   memberListFlag: number; // 用于触发重新获取成员列表
   memberList: IMemberInfo[];
 
+  // 角色相关
+  isTeacher: boolean; // 老师
+  isAssistant: boolean; // 助教
+  isStudent: boolean; // 学生
+
+  // 权限相关
+  isAdmin: boolean; // 管理员
+  accessibleFunctions: ClassroomFunction[]; // 管理员和非管理员的可用功能
+  asstAccessibleFunctions: ClassroomFunction[]; // 助教可用功能（老师关注）
+
   // 消息相关
   joinedGroupId: string;
   messageList: CommentMessage[];
@@ -91,14 +106,13 @@ export interface IClassroomState {
   pusher: Pusher;
   board: IBoard;
   localMedia: ILocalMedia;
+  docsUpdateFlag: number;
 
   // 连麦相关
   connectedSpectators: ISpectatorInfo[]; // 连麦观众数组
   interactionAllowed: boolean; // 允许连麦
   allMicMuted: boolean; // 全员静音
   // 学生侧
-  // TODO: 后续放到组件中维护
-  interactionInvitationSessionId?: string; // 学生被连麦邀请 sessionId
   interactionStarting: boolean; // 连麦启动中开始
   interacting: boolean; // 连麦开始
   controlledMicOpened: boolean; // 受控麦克风开启
@@ -112,6 +126,9 @@ export interface IClassroomState {
 export interface ClassroomActions {
   reset: () => void;
   setClassroomInfo: (info: IClassroomInfo) => void;
+  setRoleAssertion: (role: UserRoleEnum) => void;
+  setAccessibleFunctions: (permissions: Permission[]) => void;
+  setAsstPermAccessibleFunctions: (permissions: Permission[]) => void;
   increaseMemberListFlag: () => void;
   setMemberList: (memberList: IMemberInfo[]) => void;
   setCommentInput: (text: string) => void;
@@ -144,6 +161,7 @@ export interface ClassroomActions {
   setLocalMedia: (info: ILocalMedia) => void;
   setLocalMediaStream: (stream?: MediaStream) => void;
   setLocalMediaSources: (sources: ILocalMediaSource[]) => void;
+  setDocsUpdateFlag: () => void;
 
   updateInteractionInvitationUsers: (
     type: InteractionInvitationUpdateType,
@@ -151,7 +169,6 @@ export interface ClassroomActions {
   ) => void;
   updateApplyingList: (userId: string, userInfo?: IUserInfo) => void;
 
-  setInteractionInvitationSessionId: (sessionId?: string) => void;
   setInteractionStarting: (bool: boolean) => void;
   setInteracting: (bool: boolean) => void;
   setControlledCameraOpened: (bool: boolean) => void;

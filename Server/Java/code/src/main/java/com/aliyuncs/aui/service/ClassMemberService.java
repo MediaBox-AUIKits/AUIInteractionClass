@@ -1,5 +1,6 @@
 package com.aliyuncs.aui.service;
 
+import com.aliyuncs.aui.dto.ClassMemberDto;
 import com.aliyuncs.aui.dto.InvokeResult;
 import com.aliyuncs.aui.dto.req.ClassMemberListRequestDto;
 import com.aliyuncs.aui.dto.req.JoinClassRequestDto;
@@ -18,8 +19,12 @@ public interface ClassMemberService extends IService<ClassMemberEntity> {
 
     InvokeResult leaveClass(LeaveClassRequestDto leaveClassRequestDto);
 
+    InvokeResult deleteAssistantClass(String classId);
+
     InvokeResult kickClass(kickClassRequestDto kickClassRequestDto);
 
     ClassMemberListDto listMembers(ClassMemberListRequestDto classMemberListRequestDto);
+
+    ClassMemberDto getAssistantClassMemberDto(String classId);
 }
 

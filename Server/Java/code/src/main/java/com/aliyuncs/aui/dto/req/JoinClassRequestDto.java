@@ -1,5 +1,6 @@
 package com.aliyuncs.aui.dto.req;
 
+import com.aliyuncs.aui.dto.enums.Identity;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import org.hibernate.validator.constraints.Length;
@@ -29,15 +30,14 @@ public class JoinClassRequestDto {
     @JsonProperty("user_avatar")
     private String userAvatar;
 
-    //@NotNull(message="identity不能为空")
-    //@JsonProperty("identity")
-    //private Integer identity;
-    //
-    //public boolean valid() {
-    //    if (Identity.of(identity) == null) {
-    //        return false;
-    //    }
-    //    return true;
-    //}
+    @JsonProperty("identity")
+    private Integer identity;
+
+    public boolean valid() {
+        if (identity != null && Identity.of(identity) == null) {
+            return false;
+        }
+        return true;
+    }
 
 }

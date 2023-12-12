@@ -198,13 +198,6 @@ export default class TeacherInteractionManager extends InteractionManager {
     if (lastSession?.sessionId === sessionId) {
       return false;
     }
-    if (
-      lastSession?.sessionId !== undefined &&
-      lastSession.sessionId < sessionId
-    ) {
-      this.setApplicationExpired(studentId);
-    }
-
     this.pendingApplication.set(studentId, data);
     return true;
   }

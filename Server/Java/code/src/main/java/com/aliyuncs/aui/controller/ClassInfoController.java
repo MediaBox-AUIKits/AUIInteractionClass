@@ -408,9 +408,10 @@ public class ClassInfoController {
     public Result joinClass(@RequestBody JoinClassRequestDto joinClassRequestDto) {
 
         ValidatorUtils.validateEntity(joinClassRequestDto);
-        //if (!joinClassRequestDto.valid()) {
-        //    return Result.invalidParam();
-        //}
+        if (!joinClassRequestDto.valid()) {
+            log.info("identity invalid. identity:{}", joinClassRequestDto.getIdentity());
+            return Result.invalidParam();
+        }
 
         InvokeResult result = classMemberService.joinClass(joinClassRequestDto);
         if (result.isSuccess()) {

@@ -4,11 +4,13 @@ import type { MenuProps } from 'antd';
 import { MoreOutlined } from '@ant-design/icons';
 import useClassroomStore from '@/components/ClassRoom/store';
 import {
+  ClassroomFunction,
   ClassroomModeEnum,
   InteractionInvitationUpdateType,
 } from '@/components/ClassRoom/types';
 import { ClassContext } from '@/components/ClassRoom/ClassContext';
 import { ControlsContext } from '../MemberItem';
+import { MemberListContext } from '../index';
 import {
   TeacherInteractionManager,
   InteractionInvitationEvent,
@@ -29,9 +31,22 @@ interface IMemberControlsProps {
 const MemberControls: React.FC<IMemberControlsProps> = props => {
   const { notOnline, inviting, isApplying, isConnected } = props;
   const { interactionManager } = useContext(ClassContext);
-  const { isTeacher, userId, userName, userNick, kicking, onKick } =
-    useContext(ControlsContext);
-  const { mode } = useClassroomStore(state => state.classroomInfo);
+  const { canManageInteraction, canKickMember } = useContext(MemberListContext);
+  const {
+    isTeacher,
+    isAssistant,
+    userId,
+    userName,
+    userNick,
+    kicking,
+    onKick,
+  } = useContext(ControlsContext);
+  const {
+    isAssistant: currentUserIsAssistant,
+    isTeacher: currentUserIsTeacher,
+    classroomInfo: { mode },
+    asstAccessibleFunctions,
+  } = useClassroomStore(state => state);
   const {
     pusher,
     interactionFull,
@@ -90,12 +105,14 @@ const MemberControls: React.FC<IMemberControlsProps> = props => {
   );
 
   const inviteStudent = useCallback(() => {
+    if (!canManageInteraction) return;
+
     updateInteractionInvitationUsers(
       InteractionInvitationUpdateType.Add,
       userId
     );
     doInvite(userId);
-  }, [doInvite, userId]);
+  }, [canManageInteraction, doInvite, userId]);
 
   const doCancel = useCallback(
     (studentId: string) => {
@@ -107,18 +124,22 @@ const MemberControls: React.FC<IMemberControlsProps> = props => {
   );
 
   const cancelInvite = useCallback(() => {
+    if (!canManageInteraction) return;
+
     updateInteractionInvitationUsers(
       InteractionInvitationUpdateType.Remove,
       userId
     );
     doCancel(userId);
-  }, [doCancel, userId]);
+  }, [canManageInteraction, userId, doCancel]);
 
   // 下麦
   const endInteraction = useCallback(() => {
-    (interactionManager as TeacherInteractionManager).endInteraction(userId);
+    if (!canManageInteraction) return;
+
+    (interactionManager as TeacherInteractionManager)?.endInteraction(userId);
     updateConnectedSpectator(userId);
-  }, [userId, interactionManager]);
+  }, [canManageInteraction, userId, interactionManager]);
 
   const btnParams = useMemo(() => {
     const ret: {
@@ -166,53 +187,39 @@ const MemberControls: React.FC<IMemberControlsProps> = props => {
     pusher,
     interactionFull,
     interactionAllowed,
+    endInteraction,
   ]);
 
   const handleMoreClick: MenuProps['onClick'] = ({ key }) => {
     if (key === 'kick') {
-      onKick && onKick();
+      onKick?.();
     }
   };
 
-  if (isTeacher || notOnline) {
-    return <div className={styles['member-controls']}></div>;
-  }
+  const isSelfItem = useMemo(
+    () =>
+      isTeacher
+        ? currentUserIsTeacher
+        : isAssistant
+        ? currentUserIsAssistant
+        : false,
+    [currentUserIsAssistant, currentUserIsTeacher, isTeacher, isAssistant]
+  );
+  const isAdminItem = useMemo(
+    () => isTeacher || isAssistant,
+    [isTeacher, isAssistant]
+  );
 
-  if (mode === ClassroomModeEnum.Open) {
+  const renderInteractionButton = useCallback(() => {
+    if (
+      isTeacher ||
+      (isAssistant &&
+        !asstAccessibleFunctions.includes(ClassroomFunction.JoinInteraction)) ||
+      !canManageInteraction
+    )
+      return null;
+
     return (
-      <div className={styles['member-controls']}>
-        <Button
-          size="small"
-          type="primary"
-          className={styles['item-controls__btn']}
-          loading={kicking}
-          onClick={onKick}
-        >
-          移除
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <div className={styles['member-controls']}>
-      <Dropdown
-        menu={{
-          items: [
-            {
-              label: '移除教室',
-              key: 'kick',
-              disabled: kicking,
-            },
-          ],
-          onClick: handleMoreClick,
-        }}
-        arrow
-        placement="bottomRight"
-      >
-        <MoreOutlined className={styles['item-controls__more']} />
-      </Dropdown>
-
       <Popover
         content={btnParams.popTip}
         open={tipOpen}
@@ -230,6 +237,61 @@ const MemberControls: React.FC<IMemberControlsProps> = props => {
           {btnParams.text}
         </Button>
       </Popover>
+    );
+  }, [
+    tipOpen,
+    btnParams,
+    canManageInteraction,
+    isTeacher,
+    isAssistant,
+    asstAccessibleFunctions,
+  ]);
+
+  if (isSelfItem || notOnline) {
+    return <div className={styles['member-controls']}></div>;
+  }
+
+  if (mode === ClassroomModeEnum.Open) {
+    {
+      /* 不可移除管理员 */
+    }
+    return canKickMember && !isAdminItem ? (
+      <div className={styles['member-controls']}>
+        <Button
+          size="small"
+          type="primary"
+          className={styles['item-controls__btn']}
+          loading={kicking}
+          onClick={onKick}
+        >
+          移除
+        </Button>
+      </div>
+    ) : null;
+  }
+
+  return (
+    <div className={styles['member-controls']}>
+      {/* 不可移除管理员 */}
+      {canKickMember && !isAdminItem ? (
+        <Dropdown
+          menu={{
+            items: [
+              {
+                label: '移除教室',
+                key: 'kick',
+                disabled: kicking,
+              },
+            ],
+            onClick: handleMoreClick,
+          }}
+          arrow
+          placement="bottomRight"
+        >
+          <MoreOutlined className={styles['item-controls__more']} />
+        </Dropdown>
+      ) : null}
+      {renderInteractionButton()}
     </div>
   );
 };

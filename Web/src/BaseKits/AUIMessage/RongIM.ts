@@ -4,18 +4,37 @@ import {
   AUIMessageConfig,
   AUIMessageUserInfo,
   IMessageOptions,
-  InteractionMessageTypes,
+  AUIMessageTypes,
+  IGetMuteInfoRspModel,
 } from './types';
 import EventBus from './utils/EventBus';
 
 const RCEvents = RongIMLib.Events;
 
 interface RongServices {
-  isMuteChatroom: (chatroomId: string, serverType: string) => Promise<{ result: boolean }>;
-  muteChatroom: (chatroomId: string, serverType: string) => Promise<{ result: boolean }>;
-  cancelMuteChatroom: (chatroomId: string, serverType: string) => Promise<{ result: boolean }>;
-  muteUser: (chatroomId: string, userId: string, minute: number, serverType: string) => Promise<{ result: boolean }>
-  cancelMuteUser: (chatroomId: string, userId: string, serverType: string) => Promise<{ result: boolean }>;
+  isMuteChatroom: (
+    chatroomId: string,
+    serverType: string
+  ) => Promise<{ result: boolean }>;
+  muteChatroom: (
+    chatroomId: string,
+    serverType: string
+  ) => Promise<{ result: boolean }>;
+  cancelMuteChatroom: (
+    chatroomId: string,
+    serverType: string
+  ) => Promise<{ result: boolean }>;
+  muteUser: (
+    chatroomId: string,
+    userId: string,
+    minute: number,
+    serverType: string
+  ) => Promise<{ result: boolean }>;
+  cancelMuteUser: (
+    chatroomId: string,
+    userId: string,
+    serverType: string
+  ) => Promise<{ result: boolean }>;
   [x: string]: any;
 }
 
@@ -64,9 +83,9 @@ class RongIM extends EventBus {
             const value = users[key];
             let type = 0;
             if (value === 0) {
-              type = InteractionMessageTypes.PaaSUserLeave;
+              type = AUIMessageTypes.PaaSUserLeave;
             } else if (value === 1) {
-              type = InteractionMessageTypes.PaaSUserJoin;
+              type = AUIMessageTypes.PaaSUserJoin;
             }
             if (type) {
               this.emit('event', {
@@ -93,18 +112,21 @@ class RongIM extends EventBus {
         const { banType, chatroomId, userIdList } = event.chatroomNotifyBan;
         const map: any = {
           // banType = 0：解除指定聊天室中用户禁言
-          0: InteractionMessageTypes.PaaSCancelMuteUser,
+          0: AUIMessageTypes.PaaSCancelMuteUser,
           // banType = 1：禁言指定聊天室中用户
-          1: InteractionMessageTypes.PaaSMuteUser,
+          1: AUIMessageTypes.PaaSMuteUser,
           // banType = 2：解除聊天室全体禁言
-          2: InteractionMessageTypes.PaaSCancelMuteGroup,
+          2: AUIMessageTypes.PaaSCancelMuteGroup,
           // banType = 3：聊天室全体禁言
-          3: InteractionMessageTypes.PaaSMuteGroup,
+          3: AUIMessageTypes.PaaSMuteGroup,
         };
         if (chatroomId !== this.joinedGroupId || !map[banType]) {
           return;
         }
-        if ([0, 1].includes(banType) && !userIdList.includes(this.userInfo?.userId || '')) {
+        if (
+          [0, 1].includes(banType) &&
+          !userIdList.includes(this.userInfo?.userId || '')
+        ) {
           return;
         }
         this.emit('event', {
@@ -147,15 +169,19 @@ class RongIM extends EventBus {
     this.config = config;
   }
 
+  init() { return Promise.resolve() }
+
+  unInit() { return Promise.resolve() }
+
   login(userInfo: AUIMessageUserInfo) {
     return new Promise((resolve, reject) => {
-      if (!this.config || !this.config.rongCloudToken) {
+      if (!this.config || !this.config.rongCloud?.accessToken) {
         reject('please set config first');
         return;
       }
       this.userInfo = userInfo;
-      const { rongCloudToken } = this.config;
-      RongIMLib.connect(rongCloudToken)
+      const { accessToken } = this.config.rongCloud;
+      RongIMLib.connect(accessToken)
         .then(res => {
           if (res.code === RongIMLib.ErrorCode.SUCCESS) {
             resolve(true);
@@ -171,6 +197,12 @@ class RongIM extends EventBus {
 
   logout() {
     return RongIMLib.disconnect();
+  }
+
+  removeAllListeners() {
+    RongIMLib.removeEventListeners(RCEvents.MESSAGES);
+    RongIMLib.removeEventListeners(RCEvents.CHATROOM);
+    super.removeAllEvent();
   }
 
   joinGroup(groupId: string) {
@@ -215,11 +247,15 @@ class RongIM extends EventBus {
     });
   }
 
+  // 业务自行通过appserver实现
+  sendLike() { return Promise.resolve({}); }
+  getGroupStatistics() { return Promise.resolve(); }
+
   // 目前融云未支持该功能，原因如下：
   // 1、未开通对应的服务
   // 2、不能通过 type 过滤
   listMessage(type: number) {
-    return Promise.resolve([]);
+    return Promise.resolve({ hasMore: false, messageList: [] });
     // return new Promise((resolve, reject) => {
     //   if (!this.joinedGroupId) {
     //     return Promise.resolve([]);
@@ -243,6 +279,10 @@ class RongIM extends EventBus {
     //     reject(error);
     //   })
     // });
+  }
+
+  listRecentMessage() {
+    return Promise.resolve({ groupId: this.joinedGroupId, messageList: [] });
   }
 
   private doSendMessage(
@@ -326,13 +366,14 @@ class RongIM extends EventBus {
     });
   }
 
-  queryMuteGroup() {
+  queryMuteStatus(): Promise<IGetMuteInfoRspModel> {
     return new Promise((resolve, reject) => {
       if (!this.joinedGroupId) {
-        return reject({
+        reject({
           code: -1,
           message: 'not joined',
         });
+        return;
       }
       this.services
         .isMuteChatroom(this.joinedGroupId, 'rongCloud')
@@ -350,10 +391,11 @@ class RongIM extends EventBus {
   muteGroup() {
     return new Promise((resolve, reject) => {
       if (!this.joinedGroupId) {
-        return reject({
+        reject({
           code: -1,
           message: 'not joined',
         });
+        return;
       }
       this.services
         .muteChatroom(this.joinedGroupId, 'rongCloud')
@@ -373,10 +415,11 @@ class RongIM extends EventBus {
   cancelMuteGroup() {
     return new Promise((resolve, reject) => {
       if (!this.joinedGroupId) {
-        return reject({
+        reject({
           code: -1,
           message: 'not joined',
         });
+        return;
       }
       this.services
         .cancelMuteChatroom(this.joinedGroupId, 'rongCloud')
@@ -396,10 +439,11 @@ class RongIM extends EventBus {
   muteUser(userId: string) {
     return new Promise((resolve, reject) => {
       if (!this.joinedGroupId) {
-        return reject({
+        reject({
           code: -1,
           message: 'not joined',
         });
+        return;
       }
       // 融云单人禁言最多 43200 分钟
       this.services
@@ -420,10 +464,11 @@ class RongIM extends EventBus {
   cancelMuteUser(userId: string) {
     return new Promise((resolve, reject) => {
       if (!this.joinedGroupId) {
-        return reject({
+        reject({
           code: -1,
           message: 'not joined',
         });
+        return;
       }
       this.services
         .cancelMuteUser(this.joinedGroupId, userId, 'rongCloud')

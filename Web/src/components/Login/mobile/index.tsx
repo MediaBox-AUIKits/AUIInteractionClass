@@ -3,7 +3,7 @@ import { Toast, Input, Button } from 'antd-mobile';
 import styles from './styles.less';
 import { handleEnterClassroom } from '../utils';
 import { LoginProps } from '@/types';
-import reporter from '@/utils/Reporter';
+import reporter, { EMsgid } from '@/utils/Reporter';
 
 const MobileLogin = (props: LoginProps) => {
   const { onLoginSuccess } = props;
@@ -53,7 +53,9 @@ const MobileLogin = (props: LoginProps) => {
     }
     setLogging(true);
 
-    handleEnterClassroom({ id: roomId, userName })
+    const params = { id: roomId, userName };
+    reporter.reportInvoke(EMsgid.ENTER_CLASSROOM, params);
+    handleEnterClassroom(params)
       .then(detail => {
         // 目前移动端仅支持学生，若输入的用户是该课堂的老师，提示错误
         if (detail.teacherId === userName) {
@@ -65,6 +67,11 @@ const MobileLogin = (props: LoginProps) => {
           biz: 0,
         });
         onLoginSuccess(roomId);
+        reporter.reportInvokeResult(
+          EMsgid.ENTER_CLASSROOM_RESULT,
+          true,
+          params
+        );
       })
       .catch(err => {
         const msg = (err && err.message) || '进入课堂失败，请检查！';
@@ -73,11 +80,12 @@ const MobileLogin = (props: LoginProps) => {
           duration: 3000,
         });
         console.log(err);
-        reporter.createOrEnterClassroomError({
-          id: roomId,
-          userName,
-          message: msg,
-        });
+        reporter.reportInvokeResult(
+          EMsgid.ENTER_CLASSROOM_RESULT,
+          false,
+          params,
+          err
+        );
       })
       .finally(() => {
         setLogging(false);

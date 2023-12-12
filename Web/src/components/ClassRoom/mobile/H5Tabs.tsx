@@ -10,7 +10,7 @@ import React, {
 import classNames from 'classnames';
 import { ClassContext } from '../ClassContext';
 import { CustomMessageTypes } from '../types';
-import { AUIMessageEvents } from '@/BaseKits/AUIMessage';
+import { AUIMessageEvents } from '@/BaseKits/AUIMessage/types';
 import styles from './index.less';
 
 export const CameraTabKey = 'camera';

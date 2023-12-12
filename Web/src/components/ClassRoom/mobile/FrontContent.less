@@ -1,0 +1,29 @@
+@import '../styles/base.less';
+
+.front-content {
+  position: relative;
+  flex-shrink: 0;
+  width: 100%;
+  padding-top: 56.25%;
+  background-color: #e6e7ec;
+  color: #747a8c;
+}
+
+.front-content__tip {
+  position: absolute;
+  width: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  text-align: center;
+  font-size: 0.32rem;
+}
+
+.whiteboard-wrap {
+  .full-absolute();
+  z-index: 1;
+}
+
+.player-overlay {
+  .full-absolute();
+  z-index: 10;
+}

@@ -5,10 +5,17 @@ import React from 'react';
 import { Tooltip } from 'antd';
 import { HandSvg } from '../../components/icons';
 import StudentInteraction from '../../components/StudentInteraction';
+import { PermissionVerificationProps } from '../../types';
 import classNames from 'classnames';
 import styles from './index.less';
 
-const ApplicationPC: React.FC = () => {
+interface IProps {
+  before?: React.ReactNode;
+}
+
+const ApplicationPC: React.FC<PermissionVerificationProps<IProps>> = props => {
+  const { noPermission = false, noPermissionNotify, before = null } = props;
+
   const initial = (
     <div className={styles.button}>
       <HandSvg />
@@ -40,15 +47,22 @@ const ApplicationPC: React.FC = () => {
   );
 
   return (
-    <div className={styles['button-wrapper']}>
-      <StudentInteraction
-        compWrapperClassName={styles.buttonContainer}
-        initialComp={initial}
-        disabledComp={disabled}
-        loadingComp={loading}
-        activeComp={accepted}
-      />
-    </div>
+    <>
+      {before}
+      <div className={styles['button-wrapper']}>
+        {noPermission ? (
+          <Tooltip title={noPermissionNotify}>{disabled}</Tooltip>
+        ) : (
+          <StudentInteraction
+            compWrapperClassName={styles.buttonContainer}
+            initialComp={initial}
+            disabledComp={disabled}
+            loadingComp={loading}
+            activeComp={accepted}
+          />
+        )}
+      </div>
+    </>
   );
 };
 

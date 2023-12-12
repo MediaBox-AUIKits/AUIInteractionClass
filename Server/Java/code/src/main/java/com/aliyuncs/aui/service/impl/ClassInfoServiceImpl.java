@@ -6,6 +6,7 @@ import com.aliyuncs.aui.common.utils.JwtUtils;
 import com.aliyuncs.aui.common.utils.PageUtils;
 import com.aliyuncs.aui.common.utils.Result;
 import com.aliyuncs.aui.dao.RoomInfoDao;
+import com.aliyuncs.aui.dto.ClassMemberDto;
 import com.aliyuncs.aui.dto.LinkInfo;
 import com.aliyuncs.aui.dto.MeetingMemberInfo;
 import com.aliyuncs.aui.dto.enums.ClassRoomStatus;
@@ -13,9 +14,7 @@ import com.aliyuncs.aui.dto.enums.PushStreamStatus;
 import com.aliyuncs.aui.dto.req.*;
 import com.aliyuncs.aui.dto.res.*;
 import com.aliyuncs.aui.entity.ClassInfoEntity;
-import com.aliyuncs.aui.service.BoardRoomService;
-import com.aliyuncs.aui.service.ClassInfoService;
-import com.aliyuncs.aui.service.ALiYunService;
+import com.aliyuncs.aui.service.*;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
@@ -31,6 +30,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriUtils;
 
@@ -75,6 +75,10 @@ public class ClassInfoServiceImpl extends ServiceImpl<RoomInfoDao, ClassInfoEnti
 
     @Resource
     private BoardRoomService boardRoomService;
+
+    @Resource
+    @Lazy
+    private ClassMemberService classMemberService;
 
     @Override
     public ImTokenResponseDto getImToken(ImTokenRequestDto imTokenRequestDto) {
@@ -159,6 +163,12 @@ public class ClassInfoServiceImpl extends ServiceImpl<RoomInfoDao, ClassInfoEnti
         if (userStatus != null) {
             roomInfoDto.setUserStatus(userStatus);
         }
+
+        ClassMemberDto assistantClassMemberDto = classMemberService.getAssistantClassMemberDto(roomInfoEntity.getId());
+        if (assistantClassMemberDto != null) {
+            roomInfoDto.setAssistantClassMemberDto(assistantClassMemberDto);
+        }
+
         return roomInfoDto;
     }
 

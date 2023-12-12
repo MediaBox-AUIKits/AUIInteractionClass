@@ -1,6 +1,6 @@
 import { useSearchParams, useNavigate } from 'umi';
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { UserRoleEnum, MeetingInfo } from '@/types';
+import { UserRoleEnum, MeetingInfo, IdentityForServer } from '@/types';
 import services from '@/services';
 import ClassRoom from '@/components/ClassRoom';
 import { UA } from '@/utils/common';
@@ -10,19 +10,12 @@ import toast from '@/utils/toast';
 const ClassRoomPage = () => {
   const navigate = useNavigate();
   const [classId, setClassId] = useState<string>('');
-  const [role, setRole] = useState<number>();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const userInfo = useMemo(() => {
-    return {
-      ...services.getUserInfo(),
-      role,
-    };
-  }, [role]);
+  const [searchParams] = useSearchParams();
+  const userInfo = useMemo(() => services.getUserInfo(), []);
 
   useEffect(() => {
     const idParam = searchParams.get('id');
     const roleParam = Number(searchParams.get('role')) || UserRoleEnum.Student;
-    console.log(idParam, roleParam);
     if (!idParam) {
       toast.error('参数异常，请检查！', 3, 3000);
       reporter.classroomParamsIllegal({
@@ -32,7 +25,6 @@ const ClassRoomPage = () => {
       return;
     }
     setClassId(idParam);
-    setRole(roleParam);
     reporter.updateCommonParams({
       classid: idParam,
       userid: userInfo.userId,
@@ -44,41 +36,55 @@ const ClassRoomPage = () => {
     navigate('/');
   };
 
-  const reportLog = (msgid: number, args?: any) => {
-    reporter.report({ msgid, args });
+  const reportLog = (event_id: number, args?: any) => {
+    reporter.report({ event_id, args });
+  };
+
+  const getRole = (userId: string, teacherId: string, assistantId: string) => {
+    const isTeacher = teacherId === userId;
+    const isAssistant = assistantId === userId;
+    return isTeacher
+      ? UserRoleEnum.Teacher
+      : isAssistant
+      ? UserRoleEnum.Assistant
+      : UserRoleEnum.Student;
   };
 
   const fetchClassroomInfo = useCallback(async () => {
     const detail = await services.getRoomDetail(classId);
-    const isTeacher = detail.teacherId === userInfo.userId;
-    if (isTeacher) {
-      setRole(UserRoleEnum.Teacher);
-    }
+
+    const role = getRole(
+      userInfo.userId,
+      detail.teacherId,
+      detail.assistantId ?? ''
+    );
     reporter.updateCommonParams({
-      biz: isTeacher ? UserRoleEnum.Teacher : UserRoleEnum.Student,
+      role,
       classname: detail.title,
     });
     // 当前PC端仅支持老师、移动端仅支持学生，需要校验
     let msg = '';
-    if (!UA.isPC && isTeacher) {
+    if (!UA.isPC && role === UserRoleEnum.Teacher) {
       msg = '当前移动端仅支持学生，老师请使用PC端';
     }
+    if (!UA.isPC && role === UserRoleEnum.Assistant) {
+      msg = '当前移动端仅支持学生，助教请使用PC端';
+    }
     if (msg) {
-      // TOOD: 考虑身份异常跳回登录页
-      showMessage(msg, 0);
+      toast.error(msg, 0, 0);
+      onExit();
       throw new Error(msg);
     }
     return detail;
   }, [classId, userInfo]);
 
-  const fetchIMToken = async (imServer: string[]) => {
-    const res: any = await services.getToken(imServer);
-    return {
-      aliyunAccessToken:
-        res.aliyun_access_token || res.aliyunAccessToken || res.access_token,
-      rongCloudToken: res.rongCloudToken || res.rong_cloud_token,
-      rongCloudAppKey: CONFIG.imServer.rongCloud.appKey,
-    };
+  const fetchAssistantPermissions = useCallback(async () => {
+    return services.getAssistantPermissions(classId);
+  }, [classId]);
+
+  const fetchIMToken = async (imServer: string[], role?: string) => {
+    const res: any = await services.getToken(imServer, role);
+    return res;
   };
 
   const getWhiteboardAuthInfo = useCallback(() => {
@@ -134,7 +140,13 @@ const ClassRoomPage = () => {
   }, [classId]);
 
   const joinClass = useCallback(() => {
-    return services.joinClass(classId);
+    const role = Number(searchParams.get('role')) ?? UserRoleEnum.Student;
+    let identity: IdentityForServer | undefined;
+    if (role === UserRoleEnum.Assistant) {
+      identity = IdentityForServer.Assistant;
+    }
+    // 助教登录需要传入身份标识，可根据业务调整
+    return services.joinClass(classId, identity);
   }, [classId]);
 
   const leaveClass = useCallback(() => {
@@ -155,10 +167,11 @@ const ClassRoomPage = () => {
   return (
     <ClassRoom
       id={classId}
-      role={role}
       userInfo={userInfo}
+      whiteBoardHidden={searchParams.get('whiteBoardHidden') === 'true'}
       services={{
         fetchClassroomInfo,
+        fetchAssistantPermissions,
         fetchIMToken,
         queryDoc,
         getWhiteboardAuthInfo,
@@ -180,6 +193,7 @@ const ClassRoomPage = () => {
       }}
       onExit={onExit}
       report={reportLog}
+      reporter={reporter}
     />
   );
 };

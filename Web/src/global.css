@@ -10,6 +10,9 @@ body,
   height: 100%;
   margin: 0;
   background-color: #f4f4f6;
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10 and IE 11 */
+  user-select: none; /* Standard syntax */
 }
 
 /** 定制 antd mobile 主题 **/

@@ -1,28 +1,9 @@
-export enum InteractionMessageTypes {
-  PaaSLikeInfo = 1001, // 点赞数据
-  PaaSUserJoin = 1002, // 用户进入消息组
-  PaaSUserLeave = 1003, // 用户离开消息组
-  PaaSMuteGroup = 1004, // 禁言消息组
-  PaaSCancelMuteGroup = 1005, // 取消禁言消息组
-  PaaSMuteUser = 1006, // 禁言消息组某个用户
-  PaaSCancelMuteUser = 1007, // 取消禁言消息组某个用户
-}
-
 export enum InteractionEventNames {
   Message = 'message',
 }
 
 interface BasicMap<U> {
   [index: string]: U;
-}
-
-export interface IMessageOptions {
-  groupId?: string;
-  type: number;
-  skipAudit?: boolean;
-  skipMuteCheck?: boolean;
-  data?: BasicMap<any>;
-  receiverId?: string;
 }
 
 export interface IMuteGroupReqModel {
@@ -40,11 +21,6 @@ export interface IMMuteUserReqModel {
 export interface IGetMuteInfoReqModel {
   groupId: string; //
   userId: string;
-}
-
-export interface IGetMuteInfoRspModel {
-  selfMuted: boolean;
-  groupMuted: boolean;
 }
 
 export interface IListMessageReqModel {
@@ -74,4 +50,17 @@ export interface IUserModel {
   userNick?: string; // 用户昵称
   userAvatar?: string; // 用户头像
   userExtension?: string; // 用户扩展信息
+}
+
+export interface IMSendLikeReqModel {
+  groupId?: string; // 话题id, 聊天插件实例id
+  count?: number; // 点赞数
+  broadCastType?: number; // 系统消息扩散类型，0： 不扩散；1：扩散到指定人; 2:扩散到群组
+}
+
+// 扩散类型
+export enum BroadcastTypeEnum {
+  nobody = 0, // 不扩散
+  somebody = 1, // 扩散到指定人
+  all = 2, // 扩散到群组
 }

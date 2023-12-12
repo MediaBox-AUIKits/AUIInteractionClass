@@ -2,22 +2,31 @@ import axios from 'axios';
 import { serialize, parse } from 'cookie-es';
 import { v4 as uuidv4 } from 'uuid';
 import { ApiNames, RequestBaseUrl, getApiUrl } from './base';
-import { convertToCamel, convertToUnderline, getRandomAvatar } from '@/utils/common';
-import { IClassroomInfo, ISpectatorInfo, MeetingInfo } from '@/types';
+import {
+  convertToCamel,
+  convertToUnderline,
+  getRandomAvatar,
+} from '@/utils/common';
+import {
+  IClassroomInfo,
+  ISpectatorInfo,
+  MeetingInfo,
+  Permission,
+} from '@/types';
 
 async function postUseFerch(url: string, authToken: string, data: any = {}) {
   const response = await fetch(url, {
-    method: "POST", // *GET, POST, PUT, DELETE, etc.
-    mode: "cors", // no-cors, *cors, same-origin
-    cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
-    credentials: "same-origin", // include, *same-origin, omit
+    method: 'POST', // *GET, POST, PUT, DELETE, etc.
+    mode: 'cors', // no-cors, *cors, same-origin
+    cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+    credentials: 'same-origin', // include, *same-origin, omit
     headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${authToken}`,
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${authToken}`,
     },
     keepalive: true,
-    redirect: "follow", // manual, *follow, error
-    referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+    redirect: 'follow', // manual, *follow, error
+    referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
     body: JSON.stringify(data), // body data type must match "Content-Type" header
   });
   return response.json(); // parses JSON response into native JavaScript objects
@@ -56,12 +65,12 @@ class Services {
           }
           if (!res.data.success) {
             let message = res.data.errorMsg || 'The error message is empty';
-            if (res.data.data && res.data.data.reason) {
+            if (res.data.data?.reason) {
               // 部分接口错误信息放在这
               message = res.data.data.reason;
             }
             return this.handleError({
-              code: res.data.errorCode || -2,
+              code: res.data.errorCode ?? -2,
               message,
             });
           }
@@ -173,7 +182,7 @@ class Services {
   }
 
   // 这里的 token 是 Interaction SDK 所需要使用的，不是接口所使用的登录 token
-  public async getToken(im_server?: string[], userId?: string) {
+  public async getToken(im_server?: string[], role?: string, userId?: string) {
     let device_id = localStorage.getItem(AuiClassroomUuid) || uuidv4();
     localStorage.setItem(AuiClassroomUuid, device_id);
 
@@ -183,8 +192,13 @@ class Services {
         device_type: 'web',
         device_id,
         im_server,
+        role,
       });
-      return res;
+      return {
+        aliyunIMV2: convertToCamel(res).aliyunNewIm,
+        aliyunIMV1: convertToCamel(res).aliyunOldIm,
+        rongCloud: convertToCamel(res).rongCloud,
+      };
     } catch (error) {
       throw error;
     }
@@ -212,6 +226,7 @@ class Services {
         id: classId,
       });
       const detail: any = convertToCamel(res);
+      detail.assistantId = detail.assistantPermit?.userId;
       return detail;
     } catch (error) {
       throw error;
@@ -224,6 +239,46 @@ class Services {
       const res = await this.request.post(ApiNames.create, data);
       const detail: any = convertToCamel(res);
       return detail;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // 获取当前教室助教权限
+  public async getAssistantPermissions(
+    classId: string
+  ): Promise<Permission[] | undefined> {
+    try {
+      const res: any = await this.request.post(ApiNames.getAssistantPermit, {
+        class_id: classId,
+      });
+      return res?.permit ? JSON.parse(res.permit) : undefined;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // 设置当前教室助教权限
+  public async setAssistantPermissions(
+    classId: string,
+    config: string
+  ): Promise<void> {
+    try {
+      await this.request.post(ApiNames.setAssistantPermit, {
+        class_id: classId,
+        permit: config,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // 删除当前教室助教设置
+  public async deleteAssistantPermissions(classId: string): Promise<void> {
+    try {
+      await this.request.post(ApiNames.deleteAssistantPermit, {
+        class_id: classId,
+      });
     } catch (error) {
       throw error;
     }
@@ -374,12 +429,13 @@ class Services {
     });
   }
 
-  public joinClass(class_id: string) {
+  public joinClass(class_id: string, identity?: number) {
     return this.request.post(ApiNames.joinClass, {
       class_id,
       user_id: this.userId,
       user_name: this.userName,
       user_avatar: getRandomAvatar(this.userId),
+      identity,
     });
   }
 
@@ -414,7 +470,7 @@ class Services {
    *     page_num?: number;
    *     page_size?: number;
    *   }} options
-   * @return {*} 
+   * @return {*}
    * @memberof Services
    */
   public async listMembers(options: {

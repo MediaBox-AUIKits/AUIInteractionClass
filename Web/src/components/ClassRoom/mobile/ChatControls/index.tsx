@@ -10,7 +10,7 @@ import { Toast } from 'antd-mobile';
 import useClassroomStore from '../../store';
 import { ClassContext } from '../../ClassContext';
 import { CustomMessageTypes } from '../../types';
-import logger from '../../utils/Logger';
+import logger, { EMsgid } from '../../utils/Logger';
 import styles from './index.less';
 
 interface IChatControlsProps {
@@ -24,8 +24,9 @@ const ChatControls: React.FC<IChatControlsProps> = props => {
   const { allowChat, className, theme = 'dark' } = props;
   const operationRef = useRef<HTMLDivElement>(null);
   const { auiMessage } = useContext(ClassContext);
-  const { commentInput, groupMuted, selfMuted, joinedGroupId } =
-    useClassroomStore(state => state);
+  const { commentInput, groupMuted, selfMuted } = useClassroomStore(
+    state => state
+  );
   const [sending, setSending] = useState<boolean>(false);
 
   const commentPlaceholder = useMemo(() => {
@@ -51,6 +52,7 @@ const ChatControls: React.FC<IChatControlsProps> = props => {
     e.preventDefault();
 
     setSending(true);
+    logger.reportInvoke(EMsgid.SEND_MESSAGE);
     auiMessage
       .sendMessageToGroup({
         type: CustomMessageTypes.Comment,
@@ -60,13 +62,14 @@ const ChatControls: React.FC<IChatControlsProps> = props => {
       .then(() => {
         console.log('发送成功');
         updateCommentInput('');
+        logger.reportInvokeResult(EMsgid.SEND_MESSAGE_RESULT, true);
       })
       .catch((err: any) => {
         Toast.show({
           content: '消息发送失败',
           icon: 'fail',
         });
-        logger.sendMessageError(err);
+        logger.reportInvokeResult(EMsgid.SEND_MESSAGE_RESULT, false, '', err);
       })
       .finally(() => {
         setSending(false);

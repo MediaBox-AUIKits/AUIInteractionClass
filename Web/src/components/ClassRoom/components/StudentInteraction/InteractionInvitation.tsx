@@ -6,14 +6,17 @@ import { ClassContext } from '@/components/ClassRoom/ClassContext';
 import useClassroomStore from '@/components/ClassRoom/store';
 import { UA } from '@/utils/common';
 
-function InteractionInvitation() {
+interface IProps {
+  interactionInvitationSessionId?: string;
+  onReject: () => void;
+}
+
+function InteractionInvitation(props: IProps) {
+  const { interactionInvitationSessionId, onReject } = props;
   const { interactionManager, userInfo } = useContext(ClassContext);
-  const {
-    classroomInfo,
-    interactionInvitationSessionId,
-    setInteractionStarting,
-    setInteractionInvitationSessionId,
-  } = useClassroomStore(state => state);
+  const { classroomInfo, setInteractionStarting } = useClassroomStore(
+    state => state
+  );
 
   const [visible, setVisible] = useState(!!interactionInvitationSessionId);
 
@@ -35,12 +38,12 @@ function InteractionInvitation() {
       setVisible(false);
       return;
     }
-    (interactionManager as StudentInteractionManager).rejectInvitation({
+    (interactionManager as StudentInteractionManager)?.rejectInvitation({
       sessionId: interactionInvitationSessionId,
       studentId: userInfo?.userId,
       teacherId: classroomInfo.teacherId,
     });
-    setInteractionInvitationSessionId(undefined);
+    onReject?.();
     setVisible(false);
   }, [
     userInfo,

@@ -49,17 +49,40 @@
   color: @text-color-lighten;
 }
 
-.chat-item-anchor-tag {
+.chat-item-anchor-tag,
+.chat-item-anchor-tag__assistant {
   margin-right: 4px;
   padding: 2px 6px;
   font-size: 10px;
+  border-radius: 2px;
+}
+
+.chat-item-anchor-tag__assistant {
+  color: #6a3ac7;
+  background-color: #f3edf9;
+}
+
+.chat-item-anchor-tag {
   color: @primary-color;
   background-color: @primary-background-color;
-  border-radius: 2px;
 }
 
 .chat-item-content {
   word-break: break-word;
+
+  .chat-item-content__remove-button {
+    transition: all 0.1s linear;
+    opacity: 0;
+    height: fit-content;
+    padding: 0 10px;
+    color: #1597ff;
+  }
+  &:hover {
+    .chat-item-content__remove-button {
+      opacity: 1;
+      background: none;
+    }
+  }
 }
 
 .chat-opetations {

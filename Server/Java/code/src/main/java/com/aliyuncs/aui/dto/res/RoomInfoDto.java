@@ -1,5 +1,6 @@
 package com.aliyuncs.aui.dto.res;
 
+import com.aliyuncs.aui.dto.ClassMemberDto;
 import com.aliyuncs.aui.dto.LinkInfo;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -133,6 +134,9 @@ public class RoomInfoDto {
 
     @JsonProperty("metrics")
     private Metrics metrics;
+
+    @JsonProperty("assistantPermit")
+    private ClassMemberDto assistantClassMemberDto;
 
 
     @Data

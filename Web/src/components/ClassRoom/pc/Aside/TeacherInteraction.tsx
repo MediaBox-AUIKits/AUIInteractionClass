@@ -1,7 +1,7 @@
 import React, { useEffect, useCallback, useContext, useMemo } from 'react';
 import { ClassContext } from '@/components/ClassRoom/ClassContext';
 import useClassroomStore from '@/components/ClassRoom/store';
-import { AUIMessageEvents } from '@/BaseKits/AUIMessage';
+import { AUIMessageEvents } from '@/BaseKits/AUIMessage/types';
 import {
   CustomMessageTypes,
   MeetingInfo,
@@ -63,7 +63,7 @@ function TeacherInteraction() {
           });
           (
             interactionManager as TeacherInteractionManager
-          ).sendInteractionUpdated(val);
+          )?.sendInteractionUpdated(val);
         }
 
         // 连麦中，或者无连麦
@@ -74,7 +74,7 @@ function TeacherInteraction() {
               .forEach(({ userId: _userId }) => {
                 (
                   interactionManager as TeacherInteractionManager
-                ).endInteraction(_userId);
+                )?.endInteraction(_userId);
               });
           }
           await updateMixTranscoding(val);
@@ -89,7 +89,7 @@ function TeacherInteraction() {
               });
               (
                 interactionManager as TeacherInteractionManager
-              ).sendInteractionUpdated(val);
+              )?.sendInteractionUpdated(val);
             },
             // 启动连麦，混流早于全员信令通知（麦下学生稍晚一些收到通知，尽可能在切到摄像头混流时看到混流后的效果）；
             // 开始上课，也需要稍作等待才可以拉到 teacher_camera & teacher_shareScreen
@@ -106,7 +106,7 @@ function TeacherInteraction() {
       state => state.interactionAllowed,
       async (val, prevVal) => {
         if (val !== prevVal) {
-          (interactionManager as TeacherInteractionManager).interactionAllowed(
+          (interactionManager as TeacherInteractionManager)?.interactionAllowed(
             val
           );
           await updateMeetingInfo({
@@ -116,7 +116,7 @@ function TeacherInteraction() {
             applyingList.forEach(({ userId }) => {
               (
                 interactionManager as TeacherInteractionManager
-              ).rejectApplication(userId, {
+              )?.rejectApplication(userId, {
                 interactionAllowed: val,
               });
               updateApplyingList(userId);
@@ -133,7 +133,7 @@ function TeacherInteraction() {
       state => state.allMicMuted,
       async (val, prevVal) => {
         if (val !== prevVal) {
-          (interactionManager as TeacherInteractionManager).allMicMuted(val);
+          (interactionManager as TeacherInteractionManager)?.allMicMuted(val);
           await updateMeetingInfo({
             allMute: val,
           });
@@ -149,7 +149,7 @@ function TeacherInteraction() {
       try {
         (
           interactionManager as TeacherInteractionManager
-        ).handleInvitationAccepted(data);
+        )?.handleInvitationAccepted(data);
       } catch (error) {
         console.log(error);
         return;
@@ -165,24 +165,27 @@ function TeacherInteraction() {
   );
 
   // 学生举手通过并完成连麦
-  const handleApplicationSucceed = (data: any, senderInfo: any) => {
-    const userInfo: ISpectatorInfo = {
-      ...senderInfo,
-      ...data,
-    };
-    updateApplyingList(userInfo.userId);
-    updateConnectedSpectator(userInfo.userId, userInfo);
-    (interactionManager as TeacherInteractionManager).handleApplicationSucceed(
-      data
-    );
-  };
+  const handleApplicationSucceed = useCallback(
+    (data: any, senderInfo: any) => {
+      const userInfo: ISpectatorInfo = {
+        ...senderInfo,
+        ...data,
+      };
+      updateApplyingList(userInfo.userId);
+      updateConnectedSpectator(userInfo.userId, userInfo);
+      (
+        interactionManager as TeacherInteractionManager
+      )?.handleApplicationSucceed(data);
+    },
+    [interactionManager]
+  );
 
   // 处理学生的连麦申请
   const handleReceiveApplication = useCallback(
     (data: any, senderInfo: any) => {
       const isNewApplication = (
         interactionManager as TeacherInteractionManager
-      ).receiveApplication(data, {
+      )?.receiveApplication(data, {
         full: interactionFull,
         interactionAllowed,
       });
@@ -202,7 +205,7 @@ function TeacherInteraction() {
     (data: any) => {
       (
         interactionManager as TeacherInteractionManager
-      ).handleApplicationCanceled(data);
+      )?.handleApplicationCanceled(data);
       updateApplyingList(data.studentId);
     },
     [interactionManager]
@@ -213,7 +216,7 @@ function TeacherInteraction() {
     async (data: any) => {
       const { studentId, teacherId, sessionId } = data;
       updateConnectedSpectator(studentId);
-      (interactionManager as TeacherInteractionManager).allowEndInteraction({
+      (interactionManager as TeacherInteractionManager)?.allowEndInteraction({
         studentId,
         teacherId,
         sessionId,
@@ -251,7 +254,7 @@ function TeacherInteraction() {
           ) {
             (
               interactionManager as TeacherInteractionManager
-            ).handleInvitationRejected(data);
+            )?.handleInvitationRejected(data);
           }
           break;
         case CustomMessageTypes.InteractionApplication:
@@ -314,14 +317,14 @@ function TeacherInteraction() {
           if (senderId !== userInfo?.userId) {
             (
               interactionManager as TeacherInteractionManager
-            ).handleToggleCameraAnswered(data);
+            )?.handleToggleCameraAnswered(data);
           }
           break;
         case CustomMessageTypes.ToggleMicAnswered:
           if (senderId !== userInfo?.userId) {
             (
               interactionManager as TeacherInteractionManager
-            ).handleToggleMicAnswered(data);
+            )?.handleToggleMicAnswered(data);
           }
           break;
         default:

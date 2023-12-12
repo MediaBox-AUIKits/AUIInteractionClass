@@ -1,6 +1,7 @@
 import 'umi/typings';
 import * as IMLib from '@rongcloud/imlib-next';
 import type { AliyunInteraction } from './typings/AliyunInteraction';
+import { AliVCInteraction } from './typings/AliVCInteraction';
 import type WhiteBoardSDK, { WhiteBoardSDKInstance } from './typings/netease/WhiteBoardSDK';
 import type ToolCollection, { ToolCollectionInstance } from 'typings/netease/ToolCollection';
 import type { DrawPlugin } from 'typings/netease/DrawPlugin';
@@ -12,6 +13,7 @@ declare global {
     AliyunInteraction: AliyunInteraction;
     Aliplayer: any;
     AlivcLivePush: any;
+    AliVCInteraction: typeof AliVCInteraction;
   }
 
   const WhiteBoardSDK: WhiteBoardSDK;
@@ -34,7 +36,7 @@ declare global {
       logstore: string; // sls 的 logstore
     },
     imServer: {
-      aliyun: {
+      aliyunIMV1: {
         enable: boolean; // 是否开启阿里云互动消息服务
         primary?: boolean; // 是否是主消息服务
       },
@@ -42,6 +44,10 @@ declare global {
         enable: boolean; // 是否开启融云互动消息服务
         appKey: string; // 融云的AppKey，用于初始化
         primary?: boolean; // 是否是主消息服务
+      },
+      aliyunIMV2: {
+        enable: boolean,
+        primary?: boolean,
       }
     },
   };

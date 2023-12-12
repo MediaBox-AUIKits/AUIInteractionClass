@@ -7,7 +7,8 @@ public enum Identity {
 
     All(0),
     Student(1),
-    Teacher(2);
+    Assistant(2),
+    Teacher(3);
 
     private final int val;
 

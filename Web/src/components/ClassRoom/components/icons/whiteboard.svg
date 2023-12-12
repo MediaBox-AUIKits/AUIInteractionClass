@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1em" height="1em" viewBox="0 0 16 16" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g transform="translate(-1.000000, -1.000000)">
+            <rect x="0" y="0" width="18" height="18"></rect>
+            <g  transform="translate(1.125000, 1.125000)" fill="#2F3A4E" fill-rule="nonzero">
+                <polygon points="15.75 10.125 15.75 11.2508743 9.8499375 11.2505625 13.5 15.0132637 12.7853465 15.75 8.4375 11.2674375 8.4375 14.625 7.3125 14.625 7.3125 11.2674375 2.96465354 15.75 2.25 15.0132637 5.8995 11.2505625 0 11.2508743 0 10.125"></polygon>
+                <path d="M14.0625,1.125 L14.0625,9 L14.0625,9 L1.6875,9 L1.6875,1.125 C1.6875,0.503679656 2.19117966,1.14134695e-16 2.8125,0 L12.9375,0 C13.5588203,-1.21782134e-15 14.0625,0.503679656 14.0625,1.125 Z" ></path>
+            </g>
+        </g>
+    </g>
+</svg>

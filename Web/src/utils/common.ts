@@ -111,3 +111,21 @@ export const getEnumKey = (enumObj: Object, value: any) => {
   const keyIndex = Object.values(enumObj).indexOf(value);
   return Object.keys(enumObj)[keyIndex];
 };
+
+export function getIMServer() {
+  const imServer: string [] = [];
+  if (CONFIG.imServer?.aliyunIMV2?.enable) {
+    imServer.push('aliyun_new');
+  }
+  if (CONFIG.imServer?.aliyunIMV1?.enable) {
+    imServer.push('aliyun_old');
+  }
+  if (
+    CONFIG?.imServer?.rongCloud?.enable &&
+    CONFIG?.imServer?.rongCloud?.appKey
+  ) {
+    imServer.push('rong_cloud');
+  }
+  
+  return imServer;
+}

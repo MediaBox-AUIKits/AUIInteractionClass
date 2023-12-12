@@ -67,6 +67,18 @@ public class MeetingMemberInfo {
     private Boolean screenPublishing;
 
     /**
+     * 是否投屏
+     */
+    @JsonProperty("screen_share")
+    private Boolean screenShare;
+
+    /**
+     * 是否插播
+     */
+    @JsonProperty("mutil_media")
+    private Boolean mutilMedia;
+
+    /**
      * 老师指定的学生摄像头状态 true or false
      */
     @JsonProperty("controlled_camera_opened")

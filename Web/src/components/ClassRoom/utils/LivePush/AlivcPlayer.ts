@@ -84,12 +84,12 @@ class AlivcPlayer extends window.AlivcLivePush.AlivcLivePlayer {
     });
   }
 
-  stopPlay() {
+  stopPlay(elementOrId?: string | HTMLVideoElement) {
     if (this.argsCache) {
       playQueueIns.remove(this.argsCache);
     }
 
-    super.stopPlay();
+    super.stopPlay(elementOrId);
   }
 
   destroy() {

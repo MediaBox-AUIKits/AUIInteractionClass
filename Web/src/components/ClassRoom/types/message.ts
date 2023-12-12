@@ -1,6 +1,7 @@
 // 此处是自定义的 Interaction 消息类型，约定 type > 10000，你可以根据你业务需要进行修改
 export enum CustomMessageTypes {
   Comment = 10001, // 评论
+  RemoveComment = 11111, // 删除评论
   ClassStart = 10003, // 上课
   ClassStop = 10004, // 下课
   ClassInfo = 10005, // 课堂信息
@@ -9,6 +10,7 @@ export enum CustomMessageTypes {
   MemberJoined = 11001, // 用户加入
   MemberLeft = 11002, // 用户离开
   MemberKicked = 11003, // 用户被移除
+
   MicChanged = 20007, // 麦克风状态变化
   CameraChanged = 20008, // 摄像头状态变化
   ToggleMic = 20009, // 打开/关闭学生麦克风（仅老师）
@@ -16,6 +18,8 @@ export enum CustomMessageTypes {
   ToggleCamera = 20011, // 打开/关闭学生摄像头（仅老师）
   ToggleCameraAnswered = 20012, // 响应打开/关闭摄像头（仅学生）
   PublishInfoChanged = 21000, // 推流变化
+  WhiteBoardVisible = 21001, // 白板可见
+
   InteractionInvitation = 30001, // 老师邀请某个同学上麦
   CancelInteractionInvitation = 30002, // 老师取消邀请某个同学上麦
   AcceptedInteractionInvitation = 30003, // 学生已接受老师上麦邀请
@@ -33,6 +37,14 @@ export enum CustomMessageTypes {
   InteractionAllowed = 30040, // 允许连麦
   AllMicMuted = 30041, // 全员静音
   InteractionFull = 30042, // 连麦人数已满
+
+  RequestMuteUser = 400001, // TODO: 以后采用直接触发的形式操作禁言，则该IM自定义类型弃用，因此比其他自定义类型多1位
+  ResponseMuteUser = 400002, // TODO: 以后采用直接触发的形式操作禁言，则该IM自定义类型弃用，因此比其他自定义类型多1位
+  RequestMuteGroup = 400003, // TODO: 以后采用直接触发的形式操作禁言群组，则该IM自定义类型弃用，因此比其他自定义类型多1位
+  ResponseMuteGroup = 400004, // TODO: 以后采用直接触发的形式操作禁言群组，则该IM自定义类型弃用，因此比其他自定义类型多1位
+  SyncAssistantJoinClass = 40001, // 教室创建者（老师）同步最新的权限设置
+  SyncAssistantPermissions = 40002, // 教室创建者（老师）同步最新的权限设置
+  SyncDocsUpdated = 40003, // 管理员间同步课件有更新
 }
 
 // 扩散类型
