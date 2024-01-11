@@ -6,6 +6,7 @@ import com.aliyuncs.aui.dto.PullLiveInfo;
 import com.aliyuncs.aui.dto.PushLiveInfo;
 import com.aliyuncs.aui.dto.req.ImTokenRequestDto;
 import com.aliyuncs.aui.dto.res.ImTokenResponseDto;
+import com.aliyuncs.aui.dto.res.NewImTokenResponseDto;
 import com.aliyuncs.aui.dto.res.RoomInfoDto;
 
 /**
@@ -17,6 +18,12 @@ public interface ALiYunService {
     * 获取Im的Token。见文档：https://help.aliyun.com/document_detail/465127.html
     */
     ImTokenResponseDto getImToken(ImTokenRequestDto imTokenRequestDto);
+
+    /**
+     * 获取新IM的token
+     * @author chunlei.zcl
+     */
+    NewImTokenResponseDto getNewImToken(ImTokenRequestDto imTokenRequestDto);
 
     /**
     * 创建消息组。见文档：https://help.aliyun.com/document_detail/465128.html
@@ -77,4 +84,6 @@ public interface ALiYunService {
     * 调用SendMessageToGroup向消息组全员发送消息。见：https://help.aliyun.com/zh/live/developer-reference/api-send-a-message-to-all-members-of-the-message-group
     */
     boolean sendMessageToGroup(String groupId, Integer type, ClassMemberDto classMemberDto);
+
+    String createNewImMessageGroup(String groupId, String creatorId);
 }

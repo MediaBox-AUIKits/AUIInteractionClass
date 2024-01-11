@@ -34,4 +34,7 @@ public class ImTokenRequestDto {
     @JsonProperty("im_server")
     private List<String> imServer;
 
+    @ApiModelProperty(value = "角色，为admin时，表示该用户可以调用管控接口")
+    @JsonProperty("role")
+    private String role = "";
 }

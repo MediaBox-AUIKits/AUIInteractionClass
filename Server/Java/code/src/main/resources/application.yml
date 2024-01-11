@@ -33,6 +33,10 @@ biz:
     app_secret: "*********"
   live_im:
     app_id: TY3****
+  new_im:
+    appId: "*********"
+    appKey: "*********"
+    appSign: "*********"
   live_stream:
     push_url: push.*****.vip
     pull_url: pull.*****.vip

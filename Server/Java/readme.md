@@ -82,6 +82,11 @@ biz:
   # IM服务的应用Id    
   live_im:
     app_id: TY3****
+  # 新IM服务配置
+  new_im:
+    appId: "*********"
+    appKey: "*********"
+    appSign: "*********"
   # 直播推拉流配置
   live_stream:
     #推流域名

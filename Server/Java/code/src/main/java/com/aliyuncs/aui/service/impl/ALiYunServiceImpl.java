@@ -12,6 +12,7 @@ import com.aliyuncs.aui.dto.PushLiveInfo;
 import com.aliyuncs.aui.dto.enums.MediaStatus;
 import com.aliyuncs.aui.dto.req.ImTokenRequestDto;
 import com.aliyuncs.aui.dto.res.ImTokenResponseDto;
+import com.aliyuncs.aui.dto.res.NewImTokenResponseDto;
 import com.aliyuncs.aui.dto.res.RoomInfoDto;
 import com.aliyuncs.aui.service.ALiYunService;
 import com.aliyuncs.aui.service.RongCloudServer;
@@ -38,10 +39,7 @@ import javax.annotation.Resource;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 /**
  * 视频云服务实现类
@@ -80,6 +78,15 @@ public class ALiYunServiceImpl implements ALiYunService {
     private String liveMicAppKey;
     @Value("${biz.live_callback.auth_key}")
     private String liveCallbackAuthKey;
+
+    @Value("${biz.new_im.appId}")
+    private String appId;
+
+    @Value("${biz.new_im.appKey}")
+    private String appKey;
+
+    @Value("${biz.new_im.appSign}")
+    private String appSign;
 
     private IAcsClient client;
 
@@ -123,6 +130,35 @@ public class ALiYunServiceImpl implements ALiYunService {
     }
 
     @Override
+    public NewImTokenResponseDto getNewImToken(ImTokenRequestDto imTokenRequestDto) {
+
+        String role = imTokenRequestDto.getRole();
+        if (role == null) {
+            role = "";
+        }
+        String nonce = UUID.randomUUID().toString();
+        long timestamp = DateUtils.addHours(new Date(), 1).getTime() / 1000;
+        String signContent = String.format("%s%s%s%s%s%s", appId, appKey, imTokenRequestDto.getUserId(), nonce, timestamp, role);
+        String appToken = org.apache.commons.codec.digest.DigestUtils.sha256Hex(signContent);
+
+        NewImTokenResponseDto newImTokenResponseDto = NewImTokenResponseDto.builder()
+                .appId(appId)
+                .appSign(appSign)
+                .appToken(appToken)
+                .auth(NewImTokenResponseDto.Auth.builder()
+                        .userId(imTokenRequestDto.getUserId())
+                        .nonce(nonce)
+                        .timestamp(timestamp)
+                        .role(role)
+                        .build())
+                .build();
+
+        log.info("getNewImToken. userId:{}, newImTokenResponseDto:{}", imTokenRequestDto.getUserId(), JSONObject.toJSONString(newImTokenResponseDto));
+        return newImTokenResponseDto;
+    }
+
+
+    @Override
     public String createMessageGroup(String teacherId) {
         long start = System.currentTimeMillis();
         CreateMessageGroupRequest request = new CreateMessageGroupRequest();
@@ -141,6 +177,30 @@ public class ALiYunServiceImpl implements ALiYunService {
             log.error("createMessageGroup ClientException. ErrCode:{}, ErrMsg:{}, RequestId:{}", e.getErrCode(), e.getErrMsg(), e.getRequestId());
         } catch (Exception e) {
             log.error("createMessageGroup Exception. error:{}", e.getMessage());
+        }
+        return null;
+    }
+
+    public String createNewImMessageGroup(String groupId, String creatorId) {
+
+        long start = System.currentTimeMillis();
+        CreateLiveMessageGroupRequest request = new CreateLiveMessageGroupRequest();
+        request.setAppId(appId);
+        request.setGroupId(groupId);
+        request.setCreatorId(creatorId);
+
+        log.info("createNewImMessageGroup, request:{}", JSONObject.toJSONString(request));
+
+        try {
+            CreateLiveMessageGroupResponse acsResponse = client.getAcsResponse(request);
+            log.info("createNewImMessageGroup, response:{}, consume:{}", JSONObject.toJSONString(acsResponse), (System.currentTimeMillis() - start));
+            return acsResponse.getGroupId();
+        } catch (ServerException e) {
+            log.error("createNewImMessageGroup ServerException. ErrCode:{}, ErrMsg:{}, RequestId:{}", e.getErrCode(), e.getErrMsg(), e.getRequestId());
+        } catch (ClientException e) {
+            log.error("createNewImMessageGroup ClientException. ErrCode:{}, ErrMsg:{}, RequestId:{}", e.getErrCode(), e.getErrMsg(), e.getRequestId());
+        } catch (Exception e) {
+            log.error("createNewImMessageGroup Exception. error:{}", e.getMessage());
         }
         return null;
     }
