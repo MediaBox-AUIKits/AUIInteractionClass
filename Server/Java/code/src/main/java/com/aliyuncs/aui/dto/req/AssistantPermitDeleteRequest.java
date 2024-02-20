@@ -10,6 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.validation.constraints.NotBlank;
+import java.util.List;
 
 @Data
 @Builder
@@ -22,5 +23,9 @@ public class AssistantPermitDeleteRequest {
     @NotBlank(message="课堂id")
     @JsonProperty("class_id")
     private String classId;
+
+    @ApiModelProperty(value = "im群列表")
+    @JsonProperty("im_server")
+    private List<String> imServer;
 
 }

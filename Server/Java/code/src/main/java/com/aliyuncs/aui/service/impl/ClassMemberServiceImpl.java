@@ -1,5 +1,6 @@
 package com.aliyuncs.aui.service.impl;
 
+import com.aliyuncs.aui.common.Constants;
 import com.aliyuncs.aui.dao.ClassMemberDao;
 import com.aliyuncs.aui.dto.AssistantPermitDto;
 import com.aliyuncs.aui.dto.ClassMemberDto;
@@ -18,6 +19,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Service;
 
@@ -155,19 +157,27 @@ public class ClassMemberServiceImpl extends ServiceImpl<ClassMemberDao, ClassMem
     }
 
     @Override
-    public InvokeResult deleteAssistantClass(String classId) {
+    public InvokeResult deleteAssistantClass(AssistantPermitDeleteRequest assistantPermitDeleteRequest) {
 
-        String groupId = getGroupId(classId);
+        String groupId = getGroupId(assistantPermitDeleteRequest.getClassId());
         if (StringUtils.isEmpty(groupId)) {
-            log.warn("classId:{} is not found.", classId);
+            log.warn("classId:{} is not found.", assistantPermitDeleteRequest.getClassId());
             return InvokeResult.builder().success(false).reason("ClassNotFound").build();
         }
 
-        ClassMemberDto assistantClassMemberDto = getAssistantClassMemberDto(classId);
+        ClassMemberDto assistantClassMemberDto = getAssistantClassMemberDto(assistantPermitDeleteRequest.getClassId());
         if (assistantClassMemberDto != null) {
             if (assistantClassMemberDto.getStatus() == ClassMemberStatus.Normal.getVal()) {
-                boolean b = videoCloudService.sendMessageToGroup(groupId, MessageType.Exit.getVal(), assistantClassMemberDto);
-                log.info("leave assistant. classId:{}, userId:{}, sendMsg result:{}", assistantClassMemberDto.getClassId(), assistantClassMemberDto.getUserId(), b);
+                log.info("deleteAssistantClass imServer:{}, classId: {}", assistantPermitDeleteRequest.getImServer(), assistantClassMemberDto.getClassId());
+
+                if (CollectionUtils.isEmpty(assistantPermitDeleteRequest.getImServer()) || assistantPermitDeleteRequest.getImServer().contains(Constants.IM_OLD)) {
+                    boolean b = videoCloudService.sendMessageToGroup(groupId, MessageType.Exit.getVal(), assistantClassMemberDto);
+                    log.info("leave assistant. classId:{}, userId:{}, sendMsg result:{}", assistantClassMemberDto.getClassId(), assistantClassMemberDto.getUserId(), b);
+                }
+                if (CollectionUtils.isNotEmpty(assistantPermitDeleteRequest.getImServer()) && assistantPermitDeleteRequest.getImServer().contains(Constants.IM_NEW)) {
+                    boolean b = videoCloudService.sendMessageToNewGroup(groupId, MessageType.Exit.getVal(), assistantClassMemberDto);
+                    log.info("leave assistant. classId:{}, userId:{}, sendMsg result:{}", assistantClassMemberDto.getClassId(), assistantClassMemberDto.getUserId(), b);
+                }
             } else {
                 log.info("leave assistant. classId:{}, userId:{}, status:{}, so not sendMsg", assistantClassMemberDto.getClassId(), assistantClassMemberDto.getUserId(),
                         assistantClassMemberDto.getStatus());
@@ -203,9 +213,19 @@ public class ClassMemberServiceImpl extends ServiceImpl<ClassMemberDao, ClassMem
                 .eq(ClassMemberEntity::getClassId, leaveClassRequestDto.getClassId())
                 .eq(ClassMemberEntity::getUserId, leaveClassRequestDto.getUserId())
                 .update(classMemberEntity);
+
+        log.info("kickResult:{}, imServer:{}, classId: {}", kickResult, kickClassRequestDto.getImServer(), kickClassRequestDto.getClassId());
         if (kickResult) {
-            ClassMemberDto classMemberDto = getClassMemberDto(kickClassRequestDto.getClassId(), kickClassRequestDto.getUserId());
-            videoCloudService.sendMessageToGroup(groupId, MessageType.Kick.getVal(), classMemberDto);
+            if (CollectionUtils.isEmpty(kickClassRequestDto.getImServer()) || kickClassRequestDto.getImServer().contains(Constants.IM_OLD)) {
+                ClassMemberDto classMemberDto = getClassMemberDto(kickClassRequestDto.getClassId(), kickClassRequestDto.getUserId());
+                videoCloudService.sendMessageToGroup(groupId, MessageType.Kick.getVal(), classMemberDto);
+            }
+
+            if (CollectionUtils.isNotEmpty(kickClassRequestDto.getImServer()) && kickClassRequestDto.getImServer().contains(Constants.IM_NEW)) {
+                ClassMemberDto classMemberDto = getClassMemberDto(kickClassRequestDto.getClassId(), kickClassRequestDto.getUserId());
+                videoCloudService.sendMessageToNewGroup(groupId, MessageType.Kick.getVal(), classMemberDto);
+            }
+
         }
         return InvokeResult.builder().success(true).build();
     }

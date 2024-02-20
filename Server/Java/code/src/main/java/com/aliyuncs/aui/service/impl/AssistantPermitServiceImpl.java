@@ -81,7 +81,7 @@ public class AssistantPermitServiceImpl extends ServiceImpl<AssistantPermitDao, 
         queryWrapper.lambda().eq(AssistantPermitEntity::getClassId, assistantPermitDeleteRequest.getClassId());
         this.remove(queryWrapper);
 
-        classMemberService.deleteAssistantClass(assistantPermitDeleteRequest.getClassId());
+        classMemberService.deleteAssistantClass(assistantPermitDeleteRequest);
 
         return true;
     }

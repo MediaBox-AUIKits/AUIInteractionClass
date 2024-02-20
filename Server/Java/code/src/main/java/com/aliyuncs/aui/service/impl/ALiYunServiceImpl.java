@@ -228,6 +228,28 @@ public class ALiYunServiceImpl implements ALiYunService {
         return false;
     }
 
+    public boolean sendMessageToNewGroup(String groupId, Integer type, ClassMemberDto classMemberDto) {
+
+        SendLiveMessageGroupRequest request = new SendLiveMessageGroupRequest();
+        request.setAppId(appId);
+        request.setGroupId(groupId);
+        request.setSenderId(classMemberDto.getUserId());
+        request.setBody(JSONObject.toJSONString(classMemberDto));
+        request.setMsgType((long)type);
+        try {
+            SendLiveMessageGroupResponse acsResponse = client.getAcsResponse(request);
+            log.info("data:{}, sendMessageToNewGroup:{}", JSONObject.toJSONString(classMemberDto), JSONObject.toJSONString(acsResponse));
+            return true;
+        } catch (ServerException e) {
+            log.error("sendMessageToNewGroup ServerException. ErrCode:{}, ErrMsg:{}, RequestId:{}", e.getErrCode(), e.getErrMsg(), e.getRequestId());
+        } catch (ClientException e) {
+            log.error("sendMessageToNewGroup ClientException. ErrCode:{}, ErrMsg:{}, RequestId:{}", e.getErrCode(), e.getErrMsg(), e.getRequestId());
+        } catch (Exception e) {
+            log.error("sendMessageToNewGroup Exception. error:{}", e.getMessage());
+        }
+        return false;
+    }
+
     @Override
     public PushLiveInfo getPushLiveInfo(String streamName) {
 

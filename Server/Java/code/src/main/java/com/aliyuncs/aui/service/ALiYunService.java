@@ -85,5 +85,11 @@ public interface ALiYunService {
     */
     boolean sendMessageToGroup(String groupId, Integer type, ClassMemberDto classMemberDto);
 
+    /**
+     *
+     * 调用SendLiveMessageGroup向消息组全员发送消息。见：https://help.aliyun.com/zh/live/developer-reference/api-sendlivemessagegroup?spm=a2c4g.11186623.0.i15
+     */
+    public boolean sendMessageToNewGroup(String groupId, Integer type, ClassMemberDto classMemberDto);
+
     String createNewImMessageGroup(String groupId, String creatorId);
 }

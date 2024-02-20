@@ -30,6 +30,7 @@ public class CorsFilter implements Filter {
 
         response.setHeader("Access-Control-Allow-Origin", httpCorsHost);
         response.setHeader("Content-Type", "application/json;charset=utf-8");
+        response.setHeader("Access-Control-Allow-Headers", "authorization,content-type");
         response.setHeader("Access-Control-Allow-Credentials", "true");
         response.setHeader("Access-Control-Allow-Methods", "POST, GET, PATCH, DELETE, PUT");
 
