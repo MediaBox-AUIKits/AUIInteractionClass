@@ -17,6 +17,17 @@ export enum EMsgid {
   INIT_MESSAGE_LIST = 1011,
   INIT_MESSAGE_LIST_RESULT = 1012,
 
+  LEAVE_CLASSROOM = 1013,
+  LEAVE_CLASSROOM_RESULT = 1014,
+  UNINIT_IM = 1015,
+  UNINIT_IM_RESULT = 1016,
+  AUI_MESSAGE_LOGOUT = 1017,
+  AUI_MESSAGE_LOGOUT_RESULT = 1018,
+  AUI_MESSAGE_LEAVE_GROUP = 1019,
+  AUI_MESSAGE_LEAVE_GROUP_RESULT = 1020,
+  AUI_MESSAGE_UNINIT = 1019,
+  AUI_MESSAGE_UNINIT_RESULT = 1020,
+
   // 环境、媒体设备相关
   SYSTEM_REQUIREMENTS = 1101,
   MEDIA_DEVICE_PERMISSION = 1102,
@@ -47,10 +58,10 @@ export enum EMsgid {
   JOIN_WHITE_BOARD_ROOM_RESULT = 1304,
 
   // 消息相关
-  SEND_MESSAGE = 1401,
-  SEND_MESSAGE_RESULT = 1402,
-  REMOVE_MESSAGE = 1403,
-  REMOVE_MESSAGE_RESULT = 1404,
+  SEND_GROUP_MESSAGE = 1401,
+  SEND_GROUP_MESSAGE_RESULT = 1402,
+  REMOVE_GROUP_MESSAGE = 1403,
+  REMOVE_GROUP_MESSAGE_RESULT = 1404,
   MUTE_GROUP = 1405,
   MUTE_GROUP_RESULT = 1406,
   SEND_INTERACTION_IM = 1407,
@@ -64,7 +75,6 @@ export enum EMsgid {
   RECONNECT_EXHAUSTED = 1503,
 }
 
-type ReportFunction = (msgId: number, data?: any) => void;
 type ReportInfoFunction = (eventId: EMsgid, args?: Record<string, any>) => void;
 type ReportInvokeFunction = (eventId: EMsgid, args?: any) => void;
 type ReportInvokeResultFunction = (
@@ -75,22 +85,14 @@ type ReportInvokeResultFunction = (
 ) => void;
 
 class Logger {
-  report: ReportFunction;
   reportInfo: ReportInfoFunction;
   reportInvoke: ReportInvokeFunction;
   reportInvokeResult: ReportInvokeResultFunction;
 
   constructor() {
-    this.report = () => {};
     this.reportInfo = () => {};
     this.reportInvoke = () => {};
     this.reportInvokeResult = () => {};
-  }
-
-  setReport(func: ReportFunction) {
-    if (func) {
-      this.report = func;
-    }
   }
 
   setReporter(reporter: Reporter) {

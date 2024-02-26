@@ -18,8 +18,8 @@ export default (api: IApi) => {
       `<link rel="stylesheet" href="https://g.alicdn.com/apsara-media-box/imp-web-player/2.16.3/skins/default/aliplayer-min.css" />`,
       `<script charset="utf-8" type="text/javascript" src="https://g.alicdn.com/apsara-media-box/imp-web-player/2.16.3/aliplayer-min.js"></script>`,
       `<script charset="utf-8" type="text/javascript" src="https://g.alicdn.com/video-cloud-fe/aliyun-interaction-sdk/1.0.3/aliyun-interaction-sdk.web.min.js"></script>`,
-      `<script charset="utf-8" type="text/javascript" src="https://g.alicdn.com/apsara-media-box/imp-web-live-push/6.4.2/alivc-live-push.js"></script>`,
-      '<script charset="utf-8" type="text/javascript" src="https://g.alicdn.com/apsara-media-box/imp-interaction/1.0.0/imp-interaction.iife.js"></script>',
+      `<script charset="utf-8" type="text/javascript" src="https://g.alicdn.com/apsara-media-box/imp-web-live-push/6.4.6/alivc-live-push.js"></script>`,
+      '<script charset="utf-8" type="text/javascript" src="https://g.alicdn.com/apsara-media-box/imp-interaction/1.2.1/alivc-im.iife.js"></script>',
     ]);
 
     return $;

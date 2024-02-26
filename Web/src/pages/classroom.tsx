@@ -5,6 +5,7 @@ import services from '@/services';
 import ClassRoom from '@/components/ClassRoom';
 import { UA } from '@/utils/common';
 import reporter from '@/utils/Reporter';
+import { EMsgid } from '@/components/ClassRoom/utils/Logger';
 import toast from '@/utils/toast';
 
 const ClassRoomPage = () => {
@@ -30,14 +31,11 @@ const ClassRoomPage = () => {
       userid: userInfo.userId,
       username: userInfo.userName,
     });
+    reporter.updateEventEnum(EMsgid);
   }, []);
 
   const onExit = () => {
     navigate('/');
-  };
-
-  const reportLog = (event_id: number, args?: any) => {
-    reporter.report({ event_id, args });
   };
 
   const getRole = (userId: string, teacherId: string, assistantId: string) => {
@@ -192,7 +190,6 @@ const ClassRoomPage = () => {
         listMembers: services.listMembers.bind(services),
       }}
       onExit={onExit}
-      report={reportLog}
       reporter={reporter}
     />
   );

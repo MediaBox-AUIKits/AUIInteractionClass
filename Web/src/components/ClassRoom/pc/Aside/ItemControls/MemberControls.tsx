@@ -1,7 +1,7 @@
 import React, { useCallback, useContext, useMemo, useState } from 'react';
 import { Button, Dropdown, Popover } from 'antd';
-import type { MenuProps } from 'antd';
 import { MoreOutlined } from '@ant-design/icons';
+import KickMember from '../KickMember';
 import useClassroomStore from '@/components/ClassRoom/store';
 import {
   ClassroomFunction,
@@ -10,7 +10,7 @@ import {
 } from '@/components/ClassRoom/types';
 import { ClassContext } from '@/components/ClassRoom/ClassContext';
 import { ControlsContext } from '../MemberItem';
-import { MemberListContext } from '../index';
+import { AsideContext } from '../index';
 import {
   TeacherInteractionManager,
   InteractionInvitationEvent,
@@ -31,16 +31,9 @@ interface IMemberControlsProps {
 const MemberControls: React.FC<IMemberControlsProps> = props => {
   const { notOnline, inviting, isApplying, isConnected } = props;
   const { interactionManager } = useContext(ClassContext);
-  const { canManageInteraction, canKickMember } = useContext(MemberListContext);
-  const {
-    isTeacher,
-    isAssistant,
-    userId,
-    userName,
-    userNick,
-    kicking,
-    onKick,
-  } = useContext(ControlsContext);
+  const { canManageInteraction, canKickMember } = useContext(AsideContext);
+  const { isTeacher, isAssistant, userId, userName, userNick } =
+    useContext(ControlsContext);
   const {
     isAssistant: currentUserIsAssistant,
     isTeacher: currentUserIsTeacher,
@@ -55,6 +48,7 @@ const MemberControls: React.FC<IMemberControlsProps> = props => {
     updateInteractionInvitationUsers,
   } = useClassroomStore.getState();
   const [tipOpen, setTipOpen] = useState(false);
+  const [kicking, setKicking] = useState(false);
 
   const doInvite = useCallback(
     (studentId: string) => {
@@ -190,12 +184,6 @@ const MemberControls: React.FC<IMemberControlsProps> = props => {
     endInteraction,
   ]);
 
-  const handleMoreClick: MenuProps['onClick'] = ({ key }) => {
-    if (key === 'kick') {
-      onKick?.();
-    }
-  };
-
   const isSelfItem = useMemo(
     () =>
       isTeacher
@@ -251,21 +239,27 @@ const MemberControls: React.FC<IMemberControlsProps> = props => {
     return <div className={styles['member-controls']}></div>;
   }
 
+  // 大班课仅有移除成员功能
   if (mode === ClassroomModeEnum.Open) {
-    {
-      /* 不可移除管理员 */
-    }
+    // 不可移除管理员
     return canKickMember && !isAdminItem ? (
       <div className={styles['member-controls']}>
-        <Button
-          size="small"
-          type="primary"
-          className={styles['item-controls__btn']}
-          loading={kicking}
-          onClick={onKick}
+        <KickMember
+          userId={userId}
+          userName={userName ?? userNick ?? userId}
+          onStarted={() => setKicking(true)}
+          onEnded={() => setKicking(false)}
         >
-          移除
-        </Button>
+          {/* 移除教室 */}
+          <Button
+            size="small"
+            type="primary"
+            className={styles['item-controls__btn']}
+            loading={kicking}
+          >
+            移除
+          </Button>
+        </KickMember>
       </div>
     ) : null;
   }
@@ -278,12 +272,20 @@ const MemberControls: React.FC<IMemberControlsProps> = props => {
           menu={{
             items: [
               {
-                label: '移除教室',
+                label: (
+                  <KickMember
+                    userId={userId}
+                    userName={userName ?? userNick ?? userId}
+                    onStarted={() => setKicking(true)}
+                    onEnded={() => setKicking(false)}
+                  >
+                    移除教室
+                  </KickMember>
+                ),
                 key: 'kick',
                 disabled: kicking,
               },
             ],
-            onClick: handleMoreClick,
           }}
           arrow
           placement="bottomRight"

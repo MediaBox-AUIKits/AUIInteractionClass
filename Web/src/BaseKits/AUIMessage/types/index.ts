@@ -9,7 +9,10 @@ export enum AUIMessageEvents {
   onUnmuteGroup = 'onUnmuteGroup',
   onMuteUser = 'onMuteUser',
   onUnmuteUser = 'onUnmuteUser',
+  onMuteUserListChange = 'onMuteUserListChange',
   onMessageReceived = 'onMessageReceived',
+  onGroupMessageDeleted = 'onGroupMessageDeleted',
+  onGroupInfoChange = 'onGroupInfoChange',
 }
 
 export enum AUIMessageTypes {
@@ -20,6 +23,9 @@ export enum AUIMessageTypes {
   PaaSCancelMuteGroup = 1005, // 取消禁言消息组
   PaaSMuteUser = 1006, // 禁言消息组某个用户
   PaaSCancelMuteUser = 1007, // 取消禁言消息组某个用户
+  PaaSGroupInfoChange = 1008, // 消息组信息变更
+  PaaSDeleteGroupMessage = 1009, // 删除群消息
+  PaaSMuteUserListChange = 1010, // 消息组单人禁言变化
 }
 
 export interface AUIMessageUserInfo {
@@ -40,14 +46,14 @@ export interface AUIMessageConfig {
       timestamp: number;
       userId: string;
     };
-  },
+  };
   aliyunIMV1?: {
     accessToken: string;
     refreshToken: string;
-  },
+  };
   rongCloud?: {
     accessToken: string;
-  },
+  };
 }
 
 export enum AUIMessageInsType {
@@ -67,6 +73,7 @@ export interface IMessageOptions {
   skipAudit?: boolean;
   skipMuteCheck?: boolean;
   receiverId?: string;
+  noStorage?: boolean;
 }
 
 export interface AUIMessageServerProps {
@@ -86,9 +93,9 @@ export interface AUIMessageServerProps {
 }
 
 export interface AUIMessageGroupIdObject {
-  aliyunV2GroupId?: string,
-  aliyunV1GroupId?: string,
-  rongIMId?: string,
+  aliyunV2GroupId?: string;
+  aliyunV1GroupId?: string;
+  rongIMId?: string;
 }
 
 export interface IGetMuteInfoRspModel {
@@ -104,4 +111,15 @@ export interface IDeleteMessagesData {
 
 export interface IDeleteMessagesOptions extends IMessageOptions {
   data: IDeleteMessagesData;
+}
+
+export interface ImDeleteMessageReq {
+  /**
+   * @param group_id 群组id
+   */
+  groupId?: string;
+  /**
+   * @param msg_id 消息id
+   */
+  messageId: string;
 }

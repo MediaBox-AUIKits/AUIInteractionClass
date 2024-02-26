@@ -61,6 +61,9 @@ class Services {
             return this.handleError({
               code: -1,
               message: 'Data Exception',
+              extra: {
+                url: res.config.url,
+              },
             });
           }
           if (!res.data.success) {
@@ -72,6 +75,11 @@ class Services {
             return this.handleError({
               code: res.data.errorCode ?? -2,
               message,
+              extra: {
+                ...(res.data.data ?? {}),
+                url: res.config.url,
+                params: res.config.data,
+              },
             });
           }
           return res.data.data;
@@ -276,8 +284,13 @@ class Services {
   // 删除当前教室助教设置
   public async deleteAssistantPermissions(classId: string): Promise<void> {
     try {
+      const { aliyunIMV2 } = CONFIG.imServer ?? {};
       await this.request.post(ApiNames.deleteAssistantPermit, {
         class_id: classId,
+        im_server:
+          aliyunIMV2?.primary && aliyunIMV2?.enable
+            ? ['aliyun_new']
+            : ['aliyun_old'],
       });
     } catch (error) {
       throw error;
@@ -454,9 +467,14 @@ class Services {
   }
 
   public kickClass(class_id: string, user_id: string) {
+    const { aliyunIMV2 } = CONFIG.imServer ?? {};
     return this.request.post(ApiNames.kickClass, {
       class_id,
       user_id,
+      im_server:
+        aliyunIMV2?.primary && aliyunIMV2?.enable
+          ? ['aliyun_new']
+          : ['aliyun_old'],
     });
   }
 

@@ -8,6 +8,7 @@ import {
   IGetMuteInfoRspModel,
   IMSendLikeReqModel,
   BroadcastTypeEnum,
+  ImDeleteMessageReq,
 } from './types';
 import EventBus from './utils/EventBus';
 
@@ -162,12 +163,39 @@ class AliyunIMV1 extends EventBus {
     });
   }
 
+  queryMutedUserList(): Promise<string[]> {
+    return new Promise((resolve, reject) => {
+      this.engine
+        .listMuteUsers({
+          groupId: this.joinedGroupId,
+        })
+        .then(res => {
+          const { muteUserModelList = [] } = res;
+          const mutedUserList = muteUserModelList
+            .map(item => item.userId)
+            .filter(userId => !!userId) as string[];
+          resolve(mutedUserList);
+        })
+        .catch(err => {
+          reject(err);
+        });
+    });
+  }
+
   sendLike(data: IMSendLikeReqModel) {
     return this.engine.sendLike(data);
   }
 
+  modifyGroup() {
+    return Promise.resolve(false);
+  }
+
   getGroupStatistics(groupId: string) {
     return this.engine.getGroupStatistics({ groupId });
+  }
+
+  getGroupMeta() {
+    return Promise.resolve('');
   }
 
   sendMessageToGroup(options: IMessageOptions) {
@@ -209,6 +237,10 @@ class AliyunIMV1 extends EventBus {
       pageSize: 20,
     };
     return this.engine.listMessage(params);
+  }
+
+  deleteMessage(req: ImDeleteMessageReq) {
+    return Promise.resolve();
   }
 }
 

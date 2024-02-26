@@ -1,14 +1,9 @@
-import React, {
-  useState,
-  useEffect,
-  useMemo,
-  useCallback,
-  createContext,
-} from 'react';
+import React, { useState, useEffect, useMemo, createContext } from 'react';
 import classNames from 'classnames';
 import SelfPlayer from '../SelfPlayer';
-import ChatBox from '../ChatPanel';
+import ChatBox from './ChatPanel';
 import AsideTabs from './AsideTabs';
+import AsideAnnouncement from './AsideAnnouncement';
 import type { IAsideTabItem } from './AsideTabs';
 import MemberList from './MemberList';
 import InteractionMembers from './InteractionMembers';
@@ -17,7 +12,9 @@ import { ClassroomModeEnum, ClassroomFunction } from '../../types';
 import useClassroomStore from '../../store';
 import styles from './index.less';
 
-export const MemberListContext = createContext({
+export const AsideContext = createContext({
+  canRemoveMessage: false,
+  canMuteUser: false,
   canKickMember: false,
   canManageInteraction: false,
 });
@@ -46,55 +43,21 @@ const RoomAside: React.FC<IRoomAsideProps> = props => {
     isAdmin,
     classroomInfo: { mode },
     isTeacher,
-    applyingList,
   } = useClassroomStore(state => state);
 
   const [activeKey, setActiveKey] = useState<AsideTab>(AsideTab.chat);
-  const [applyingNumUpdated, setApplyingNumUpdated] = useState(false);
-  const [applyingListReaded, setApplyingListReaded] = useState(false);
 
-  useEffect(() => {
-    const sub = useClassroomStore.subscribe(
-      state => state.applyingList,
-      (list, preList) => {
-        const snapshot = list.map(({ userId }) => userId).join(',');
-        const prevSnapshot = preList.map(({ userId }) => userId).join(',');
-        console.log({
-          snapshot,
-          prevSnapshot,
-        });
-        setApplyingNumUpdated(
-          activeKey !== AsideTab.connected &&
-            snapshot !== prevSnapshot &&
-            list.length > 0
-        );
-        setApplyingListReaded(
-          activeKey === AsideTab.connected || snapshot === prevSnapshot
-        );
-      }
-    );
-    return sub;
-  }, [activeKey]);
-
-  const handleTabChange = useCallback(
-    (key: string) => {
-      if (
-        key === AsideTab.connected &&
-        applyingList.length > 0 &&
-        applyingNumUpdated
-      ) {
-        setApplyingListReaded(true);
-      }
-      setActiveKey(key as AsideTab);
-    },
-    [applyingList, applyingNumUpdated]
-  );
+  const handleTabChange = (key: string) => {
+    setActiveKey(key as AsideTab);
+  };
 
   const accessibleFunctions = useClassroomStore(
     state => state.accessibleFunctions
   );
   // 允许删除群消息
   const [canRemoveMessage, setCanRemoveMessage] = useState(false);
+  // 允许禁言单人
+  const [canMuteUser, setCanMuteUser] = useState(false);
   // 允许帮助管理连麦（邀请、应答申请、下麦、设备控制）
   const [canManageInteraction, setCanInteractionManagement] = useState(false);
   // 移出教室
@@ -106,6 +69,7 @@ const RoomAside: React.FC<IRoomAsideProps> = props => {
       setCanRemoveMessage(
         accessibleFunctions.includes(ClassroomFunction.RemoveGroupMessage)
       );
+      setCanMuteUser(accessibleFunctions.includes(ClassroomFunction.MuteUser));
       setCanInteractionManagement(
         accessibleFunctions.includes(ClassroomFunction.InteractionManagement)
       );
@@ -120,7 +84,7 @@ const RoomAside: React.FC<IRoomAsideProps> = props => {
       {
         key: AsideTab.chat,
         label: '成员讨论',
-        children: <ChatBox canRemoveMessage={canRemoveMessage} />,
+        children: <ChatBox />,
       },
     ];
     if (isAdmin) {
@@ -133,26 +97,12 @@ const RoomAside: React.FC<IRoomAsideProps> = props => {
         arr.push({
           key: AsideTab.connected,
           label: '连麦成员',
-          labelTag:
-            applyingNumUpdated && !applyingListReaded ? (
-              <div className={styles['aside__tabs__nav__item__tag']}>
-                {applyingList.length}
-              </div>
-            ) : null,
           children: <InteractionMembers />,
         });
       }
     }
     return arr;
-  }, [
-    isAdmin,
-    mode,
-    activeKey,
-    applyingList,
-    applyingNumUpdated,
-    applyingListReaded,
-    canRemoveMessage,
-  ]);
+  }, [isAdmin, mode, activeKey, canManageInteraction]);
 
   const renderPlayer = () => {
     if (playerType === AsidePlayerTypes.self) {
@@ -169,8 +119,11 @@ const RoomAside: React.FC<IRoomAsideProps> = props => {
   return (
     <aside className={classNames(styles.aside, className)}>
       {renderPlayer()}
-      <MemberListContext.Provider
+      <AsideAnnouncement className={styles['aside__announcement']} />
+      <AsideContext.Provider
         value={{
+          canRemoveMessage,
+          canMuteUser,
           canKickMember,
           canManageInteraction,
         }}
@@ -180,7 +133,7 @@ const RoomAside: React.FC<IRoomAsideProps> = props => {
           items={tabs}
           onChange={handleTabChange}
         />
-      </MemberListContext.Provider>
+      </AsideContext.Provider>
       {isTeacher ? <TeacherInteraction /> : null}
     </aside>
   );

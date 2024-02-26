@@ -46,6 +46,8 @@ export const FunctionMapByPermission: Record<Permission, ClassroomFunction[]> =
   {
     [Permission.SwitchClassStatus]: [ClassroomFunction.SwitchClassStatus],
     [Permission.MemberManagement]: [ClassroomFunction.KickMember],
+    [Permission.EditAnnouncement]: [ClassroomFunction.EditAnnouncement],
+    [Permission.AttendanceManagement]: [ClassroomFunction.AttendanceManagement],
     [Permission.DrawWhiteboard]: [ClassroomFunction.DrawWhiteboard],
     [Permission.Courceware]: [
       ClassroomFunction.UpdateCourceware,
@@ -53,6 +55,7 @@ export const FunctionMapByPermission: Record<Permission, ClassroomFunction[]> =
     ],
     [Permission.RemoveGroupMessage]: [ClassroomFunction.RemoveGroupMessage],
     [Permission.MuteGroup]: [ClassroomFunction.MuteGroup],
+    [Permission.MuteUser]: [ClassroomFunction.MuteUser],
     [Permission.InteractionManagement]: [
       ClassroomFunction.InteractionManagement,
       ClassroomFunction.MuteInteraction,
@@ -72,9 +75,12 @@ export const TeacherPermissions = [
   Permission.InteractionManagement,
   Permission.SwitchClassStatus,
   Permission.MemberManagement,
+  Permission.AttendanceManagement,
   Permission.Courceware,
+  Permission.EditAnnouncement,
   Permission.RemoveGroupMessage,
   Permission.MuteGroup,
+  Permission.MuteUser,
   Permission.ScreenShare,
   Permission.LocalMediaShare,
   Permission.JoinInteraction,

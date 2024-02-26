@@ -2,8 +2,12 @@ import 'umi/typings';
 import * as IMLib from '@rongcloud/imlib-next';
 import type { AliyunInteraction } from './typings/AliyunInteraction';
 import { AliVCInteraction } from './typings/AliVCInteraction';
-import type WhiteBoardSDK, { WhiteBoardSDKInstance } from './typings/netease/WhiteBoardSDK';
-import type ToolCollection, { ToolCollectionInstance } from 'typings/netease/ToolCollection';
+import type WhiteBoardSDK, {
+  WhiteBoardSDKInstance,
+} from './typings/netease/WhiteBoardSDK';
+import type ToolCollection, {
+  ToolCollectionInstance,
+} from 'typings/netease/ToolCollection';
 import type { DrawPlugin } from 'typings/netease/DrawPlugin';
 
 declare global {
@@ -28,27 +32,31 @@ declare global {
     appServer: {
       origin: string;
       apiPrefixPath: string;
-    },
+    };
     reporter: {
       enable: boolean; // 是否开启埋点
       host: string; // 所在地域的服务入口
       projectName: string; // sls 的工程名称
       logstore: string; // sls 的 logstore
-    },
+    };
     imServer: {
       aliyunIMV1: {
         enable: boolean; // 是否开启阿里云互动消息服务
         primary?: boolean; // 是否是主消息服务
-      },
+      };
       rongCloud: {
         enable: boolean; // 是否开启融云互动消息服务
         appKey: string; // 融云的AppKey，用于初始化
         primary?: boolean; // 是否是主消息服务
-      },
+      };
       aliyunIMV2: {
-        enable: boolean,
-        primary?: boolean,
-      }
-    },
+        enable: boolean;
+        primary?: boolean;
+      };
+    };
+    auiScene: {
+      scene: string;
+      platform: string;
+    };
   };
 }

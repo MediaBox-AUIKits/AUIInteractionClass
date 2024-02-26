@@ -25,6 +25,8 @@ interface IProps {
   wrapClassName?: string;
   canControl?: boolean;
   canTurnPage?: boolean;
+  canUpdateCourceware?: boolean;
+  setAsBroadcaster?: boolean;
   onDocsUpdated?: () => void;
 }
 
@@ -33,6 +35,8 @@ const NeteaseBoard: React.FC<IProps> = props => {
     wrapClassName,
     canControl = false,
     canTurnPage = false,
+    canUpdateCourceware = false,
+    setAsBroadcaster = false,
     onDocsUpdated,
   } = props;
   const { rendererStyle } = useContext(PCMainWrapContext);
@@ -311,8 +315,9 @@ const NeteaseBoard: React.FC<IProps> = props => {
   useEffect(() => {
     if (wbInited && wbIns) {
       wbIns.togglePageTurner(canTurnPage);
+      wbIns.toggleUploadCenter(canUpdateCourceware);
     }
-  }, [wbInited, wbIns, canTurnPage]);
+  }, [wbInited, wbIns, canUpdateCourceware, canTurnPage]);
 
   useEffect(() => {
     if (wbInited && wbIns) {
@@ -323,9 +328,10 @@ const NeteaseBoard: React.FC<IProps> = props => {
         wbIns.drawPlugin?.setSelfAsFollower();
         return;
       }
+      wbIns.setSelfAsBroadcaster(setAsBroadcaster);
       queryDoc();
     }
-  }, [wbInited, wbIns, canControl]);
+  }, [wbInited, wbIns, canControl, setAsBroadcaster]);
 
   useEffect(() => {
     if (wbInited && wbIns && canControl) {

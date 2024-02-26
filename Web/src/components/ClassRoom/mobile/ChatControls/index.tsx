@@ -52,24 +52,30 @@ const ChatControls: React.FC<IChatControlsProps> = props => {
     e.preventDefault();
 
     setSending(true);
-    logger.reportInvoke(EMsgid.SEND_MESSAGE);
+    logger.reportInvoke(EMsgid.SEND_GROUP_MESSAGE);
     auiMessage
       .sendMessageToGroup({
         type: CustomMessageTypes.Comment,
-        skipAudit: true,
+        skipAudit: true, // 跳过审核，业务方按需配置发送群消息是否走审核
+        noStorage: false, // 存储群消息，进教室才能拉取最近群消息（若该教室没人，2分钟后，群消息会被清空）
         data: { content: text },
       })
       .then(() => {
         console.log('发送成功');
         updateCommentInput('');
-        logger.reportInvokeResult(EMsgid.SEND_MESSAGE_RESULT, true);
+        logger.reportInvokeResult(EMsgid.SEND_GROUP_MESSAGE_RESULT, true);
       })
       .catch((err: any) => {
         Toast.show({
           content: '消息发送失败',
           icon: 'fail',
         });
-        logger.reportInvokeResult(EMsgid.SEND_MESSAGE_RESULT, false, '', err);
+        logger.reportInvokeResult(
+          EMsgid.SEND_GROUP_MESSAGE_RESULT,
+          false,
+          '',
+          err
+        );
       })
       .finally(() => {
         setSending(false);

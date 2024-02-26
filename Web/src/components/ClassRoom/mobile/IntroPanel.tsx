@@ -5,12 +5,12 @@ import styles from './IntroPanel.less';
 
 interface IIntroPanelProps {
   className: string;
-  hidden: boolean;
+  hidden?: boolean;
 }
 
 const IntroPanel: React.FC<IIntroPanelProps> = props => {
-  const { className, hidden } = props;
-  const { title, id, notice, createdAt } = useClassroomStore(
+  const { className, hidden = false } = props;
+  const { id, notice, createdAt } = useClassroomStore(
     state => state.classroomInfo
   );
 

@@ -1,7 +1,7 @@
 // 此处是自定义的 Interaction 消息类型，约定 type > 10000，你可以根据你业务需要进行修改
 export enum CustomMessageTypes {
   Comment = 10001, // 评论
-  RemoveComment = 11111, // 删除评论
+  RemoveComment = 11111, // 删除群消息 新AliyunIM不以群消息的方式hack删除群消息
   ClassStart = 10003, // 上课
   ClassStop = 10004, // 下课
   ClassInfo = 10005, // 课堂信息
@@ -38,13 +38,14 @@ export enum CustomMessageTypes {
   AllMicMuted = 30041, // 全员静音
   InteractionFull = 30042, // 连麦人数已满
 
-  RequestMuteUser = 400001, // TODO: 以后采用直接触发的形式操作禁言，则该IM自定义类型弃用，因此比其他自定义类型多1位
-  ResponseMuteUser = 400002, // TODO: 以后采用直接触发的形式操作禁言，则该IM自定义类型弃用，因此比其他自定义类型多1位
-  RequestMuteGroup = 400003, // TODO: 以后采用直接触发的形式操作禁言群组，则该IM自定义类型弃用，因此比其他自定义类型多1位
-  ResponseMuteGroup = 400004, // TODO: 以后采用直接触发的形式操作禁言群组，则该IM自定义类型弃用，因此比其他自定义类型多1位
-  SyncAssistantJoinClass = 40001, // 教室创建者（老师）同步最新的权限设置
+  RequestMuteUser = 400001, // 为了兼容aliyunIMV1不支持非创建者单人/群组禁言，因此采用老师端做中心代理的方式触发禁言（因此比其他自定义类型多1位，作为特殊标记）。Demo 将逐步下线aliyunIMV1的功能，若您也不需要使用其功能，您应当弃用该IM自定义类型
+  ResponseMuteUser = 400002, // 为了兼容aliyunIMV1不支持非创建者单人/群组禁言，因此采用老师端做中心代理的方式触发禁言（因此比其他自定义类型多1位，作为特殊标记）。Demo 将逐步下线aliyunIMV1的功能，若您也不需要使用其功能，您应当弃用该IM自定义类型
+  RequestMuteGroup = 400003, // 为了兼容aliyunIMV1不支持非创建者单人/群组禁言，因此采用老师端做中心代理的方式触发禁言群组（因此比其他自定义类型多1位，作为特殊标记）。Demo 将逐步下线aliyunIMV1的功能，若您也不需要使用其功能，您应当弃用该IM自定义类型
+  ResponseMuteGroup = 400004, // 为了兼容aliyunIMV1不支持非创建者单人/群组禁言，因此采用老师端做中心代理的方式触发禁言群组（因此比其他自定义类型多1位，作为特殊标记）。Demo 将逐步下线aliyunIMV1的功能，若您也不需要使用其功能，您应当弃用该IM自定义类型
+  SyncAssistantJoinClass = 40001, // 助教同步已加入教室
   SyncAssistantPermissions = 40002, // 教室创建者（老师）同步最新的权限设置
   SyncDocsUpdated = 40003, // 管理员间同步课件有更新
+  GroupMessageRemoved = 40004, // 群组消息被删除
 }
 
 // 扩散类型

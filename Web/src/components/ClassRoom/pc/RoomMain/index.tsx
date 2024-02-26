@@ -26,6 +26,8 @@ const RoomMain: React.FC<IProps> = props => {
       <NeteaseBoard
         canControl={isAdmin}
         canTurnPage
+        canUpdateCourceware
+        setAsBroadcaster
         onDocsUpdated={handleDocsUpdated}
       />
 

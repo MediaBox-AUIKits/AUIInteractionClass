@@ -15,6 +15,13 @@ interface IProps {
   onConfirm: (permissions: Permission[]) => void;
 }
 
+const ALL_PERM: Permission[] = AssistantPermissionList.reduce((arr, group) => {
+  group.options.forEach(({ key }) => {
+    arr.push(key);
+  });
+  return arr;
+}, [] as Permission[]);
+
 const AssistantPermissions: React.FC<IProps> = props => {
   const { visible, defaultPermissions, afterClose, onConfirm } = props;
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -22,7 +29,10 @@ const AssistantPermissions: React.FC<IProps> = props => {
     useState(defaultPermissions);
 
   useEffect(() => {
-    setSelectedPermissions(defaultPermissions);
+    setSelectedPermissions(
+      // 老数据清洗
+      defaultPermissions.filter(perm => ALL_PERM.includes(perm))
+    );
   }, [defaultPermissions]);
 
   const changed = useMemo(

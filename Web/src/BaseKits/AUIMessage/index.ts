@@ -13,6 +13,8 @@ import {
   IMessageOptions,
   IMSendLikeReqModel,
   IGetMuteInfoRspModel,
+  ImModifyGroupReq,
+  ImDeleteMessageReq,
 } from './types';
 import EventBus from './utils/EventBus';
 
@@ -27,7 +29,7 @@ class AUIMessage extends EventBus {
   private config?: AUIMessageConfig;
   private userInfo?: AUIMessageUserInfo;
   private sidSet = new Set<string>();
-  private groupMuted = false;
+  private groupMuted?: boolean;
   private _removeMessageType?: number;
   private removedMessageSidSet = new Set<string>();
 
@@ -114,14 +116,14 @@ class AUIMessage extends EventBus {
         this.emit(AUIMessageEvents.onLeaveGroup, eventData);
         break;
       case AUIMessageTypes.PaaSMuteGroup:
-        if (this.groupMuted) {
+        if (this.groupMuted === true) {
           return;
         }
         this.groupMuted = true;
         this.emit(AUIMessageEvents.onMuteGroup, eventData);
         break;
       case AUIMessageTypes.PaaSCancelMuteGroup:
-        if (!this.groupMuted) {
+        if (this.groupMuted === false) {
           return;
         }
         this.groupMuted = false;
@@ -132,6 +134,15 @@ class AUIMessage extends EventBus {
         break;
       case AUIMessageTypes.PaaSCancelMuteUser:
         this.emit(AUIMessageEvents.onUnmuteUser, eventData);
+        break;
+      case AUIMessageTypes.PaaSMuteUserListChange:
+        this.emit(AUIMessageEvents.onMuteUserListChange, eventData);
+        break;
+      case AUIMessageTypes.PaaSGroupInfoChange:
+        this.emit(AUIMessageEvents.onGroupInfoChange, eventData);
+        break;
+      case AUIMessageTypes.PaaSDeleteGroupMessage:
+        this.emit(AUIMessageEvents.onGroupMessageDeleted, eventData);
         break;
       default:
         this.emit(AUIMessageEvents.onMessageReceived, eventData);
@@ -278,55 +289,31 @@ class AUIMessage extends EventBus {
   }
 
   muteGroup() {
-    return new Promise<void>((resolve, reject) => {
-      const list = this.instances.map(ins => ins.muteGroup());
-      Promise.any(list)
-        .then(() => {
-          resolve();
-        })
-        .catch(err => {
-          reject(err);
-        });
-    });
+    if (!this.primaryIns) {
+      throw new Error('primary im server is empty');
+    }
+    return this.primaryIns.muteGroup();
   }
 
   cancelMuteGroup() {
-    return new Promise<void>((resolve, reject) => {
-      const list = this.instances.map(ins => ins.cancelMuteGroup());
-      Promise.any(list)
-        .then(() => {
-          resolve();
-        })
-        .catch(err => {
-          reject(err);
-        });
-    });
+    if (!this.primaryIns) {
+      throw new Error('primary im server is empty');
+    }
+    return this.primaryIns.cancelMuteGroup();
   }
 
   muteUser(userId: string) {
-    return new Promise<void>((resolve, reject) => {
-      const list = this.instances.map(ins => ins.muteUser(userId));
-      Promise.any(list)
-        .then(() => {
-          resolve();
-        })
-        .catch(err => {
-          reject(err);
-        });
-    });
+    if (!this.primaryIns) {
+      throw new Error('primary im server is empty');
+    }
+    return this.primaryIns.muteUser(userId);
   }
 
   cancelMuteUser(userId: string) {
-    return new Promise<void>((resolve, reject) => {
-      const list = this.instances.map(ins => ins.cancelMuteUser(userId));
-      Promise.any(list)
-        .then(() => {
-          resolve();
-        })
-        .catch(err => {
-          reject(err);
-        });
-    });
+    if (!this.primaryIns) {
+      throw new Error('primary im server is empty');
+    }
+    return this.primaryIns.cancelMuteUser(userId);
   }
 
   sendMessageToGroup(options: IMessageOptions) {
@@ -344,6 +331,16 @@ class AUIMessage extends EventBus {
         .catch(err => {
           reject(err);
         });
+    });
+  }
+
+  // 发送信令协商类的群组消息
+  sendGroupSignal(options: IMessageOptions) {
+    return this.sendMessageToGroup({
+      skipAudit: true, // 默认跳过审核
+      skipMuteCheck: true, // 默认跳过审核
+      noStorage: true, // 默认不存储
+      ...options,
     });
   }
 
@@ -388,6 +385,13 @@ class AUIMessage extends EventBus {
     return this.primaryIns.getGroupStatistics(groupId);
   }
 
+  getGroupMeta(): Promise<string> {
+    if (!this.primaryIns) {
+      throw new Error('primary im server is empty');
+    }
+    return this.primaryIns.getGroupMeta();
+  }
+
   listMessage(type: number) {
     if (!this.primaryIns) {
       throw new Error('primary im server is empty');
@@ -409,8 +413,15 @@ class AUIMessage extends EventBus {
     return this.primaryIns.queryMuteStatus();
   }
 
+  queryMutedUserList(): Promise<string[]> {
+    if (!this.primaryIns) {
+      throw new Error('primary im server is empty');
+    }
+    return this.primaryIns.queryMutedUserList();
+  }
+
   // 删除群聊天消息，mvp 版本用特定 type 代表删除信令
-  removeMessages(options: IMessageOptions) {
+  oldRemoveMessages(options: IMessageOptions) {
     return new Promise<void>((resolve, reject) => {
       const sid = uuidv4();
       options.data = {
@@ -426,6 +437,16 @@ class AUIMessage extends EventBus {
           reject(err);
         });
     });
+  }
+
+  removeMessage(params: ImDeleteMessageReq) {
+    if (!this.primaryIns) {
+      throw new Error('primary im server is empty');
+    }
+    if (params.messageId === undefined) {
+      throw new Error('need messageId');
+    }
+    return this.primaryIns.deleteMessage(params);
   }
 
   async updateRemovedMessageSidSet() {
@@ -480,6 +501,13 @@ class AUIMessage extends EventBus {
 
   set removeMessageType(type: number) {
     this._removeMessageType = type;
+  }
+
+  async modifyGroup(req: ImModifyGroupReq) {
+    if (!this.primaryIns) {
+      throw new Error('primary im server is empty');
+    }
+    return this.primaryIns.modifyGroup(req);
   }
 }
 

@@ -1,16 +1,19 @@
 import { Permission, UserRoleEnum, ClassroomModeEnum } from '@/types';
 import { AssistantPermissionGroup } from './types/login';
 import {
-  AudioWaveSvg,
-  InteractionSvg,
-  MediaSharePermSvg,
+  // AudioWaveSvg,
+  // InteractionSvg,
+  // MediaSharePermSvg,
+  CalendarFilledSvg,
+  EditSvg,
   MuteGroupSvg,
+  MuteFilledSvg,
   NextSvg,
-  NotifySvg,
+  // NotifySvg,
   RemoveSvg,
-  ShareScreenPermSvg,
+  // ShareScreenPermSvg,
   UserSvg,
-  WhiteboardSvg,
+  // WhiteboardSvg,
 } from '../ClassRoom/components/icons';
 
 export const RoleOptions = [
@@ -56,10 +59,20 @@ export const AssistantPermissionList: AssistantPermissionGroup[] = [
       //   key: Permission.SwitchClassStatus,
       // },
       {
+        label: '编辑公告',
+        icon: EditSvg,
+        key: Permission.EditAnnouncement,
+      },
+      {
         label: '成员管理',
         icon: UserSvg,
         key: Permission.MemberManagement,
       },
+      // {
+      //   label: '签到',
+      //   icon: CalendarFilledSvg,
+      //   key: Permission.AttendanceManagement,
+      // },
     ],
   },
   {
@@ -71,7 +84,7 @@ export const AssistantPermissionList: AssistantPermissionGroup[] = [
       //   key: Permission.DrawWhiteboard,
       // },
       {
-        label: '可见&白板翻页',
+        label: '课件&白板翻页',
         icon: NextSvg,
         key: Permission.Courceware,
       },
@@ -89,6 +102,11 @@ export const AssistantPermissionList: AssistantPermissionGroup[] = [
         label: '全员禁言',
         icon: MuteGroupSvg,
         key: Permission.MuteGroup,
+      },
+      {
+        label: '单人禁言',
+        icon: MuteFilledSvg,
+        key: Permission.MuteUser,
       },
       // {
       //   label: '连麦管理',

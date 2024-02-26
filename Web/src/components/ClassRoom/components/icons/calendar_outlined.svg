@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1em" height="1em" viewBox="0 0 16 16" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g transform="translate(-744.000000, -761.000000)">
+            <g transform="translate(732.000000, 745.000000)">
+                <g transform="translate(12.000000, 16.000000)">
+                    <path d="M13,2 L11,2 L11,1 L10,1 L10,2 L6,2 L6,1 L5,1 L5,2 L3,2 C2.45,2 2,2.45 2,3 L2,13 C2,13.55 2.45,14 3,14 L13,14 C13.55,14 14,13.55 14,13 L14,3 C14,2.45 13.55,2 13,2 Z M13,13 L3,13 L3,6 L13,6 L13,13 Z M13,5 L3,5 L3,3 L5,3 L5,4 L6,4 L6,3 L10,3 L10,4 L11,4 L11,3 L13,3 L13,5 Z" fill="currentColor" fill-rule="nonzero"></path>
+                    <polygon fill="currentColor" fill-rule="nonzero" points="7.49975 11.5 5.49975 9.5 6.20475 8.795 7.49975 10.085 10.29475 7.295 10.99975 8"></polygon>
+                    <rect x="0" y="0" width="16" height="16"></rect>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

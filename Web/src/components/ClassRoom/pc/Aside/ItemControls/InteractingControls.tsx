@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import { Button, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
+import KickMember from '../KickMember';
 import { MoreOutlined } from '@ant-design/icons';
 import {
   MicCloseSvg,
@@ -18,7 +19,7 @@ import {
 } from '@/components/ClassRoom/components/icons';
 import { ClassContext } from '@/components/ClassRoom/ClassContext';
 import { ControlsContext } from '../MemberItem';
-import { MemberListContext } from '../index';
+import { AsideContext } from '../index';
 import useClassroomStore from '@/components/ClassRoom/store';
 import {
   TeacherInteractionManager,
@@ -35,8 +36,8 @@ const InteractingControls: React.FC<ISpectatorInfo> = (
   props: ISpectatorInfo
 ) => {
   const { interactionManager } = useContext(ClassContext);
-  const { isTeacher, userId, onKick } = useContext(ControlsContext);
-  const { canKickMember } = useContext(MemberListContext);
+  const { isTeacher, userId, userName, userNick } = useContext(ControlsContext);
+  const { canKickMember } = useContext(AsideContext);
   const {
     camera: teacherCamera,
     microphone: teacherMicrophone,
@@ -159,21 +160,17 @@ const InteractingControls: React.FC<ISpectatorInfo> = (
 
   const handleMoreClick: MenuProps['onClick'] = useCallback(
     ({ key }: any) => {
-      console.log(key);
       if (key === 'endAllInteraction') {
         endAllInteraction();
       }
       if (key === 'endInteraction') {
         endInteraction();
       }
-      if (key === 'kick') {
-        onKick && onKick();
-      }
     },
-    [onKick, endAllInteraction, endInteraction]
+    [endAllInteraction, endInteraction]
   );
 
-  const moreActions: MenuProps['items'] = useMemo(() => {
+  const moreActions: any[] = useMemo(() => {
     if (isTeacher) {
       return [
         {
@@ -187,15 +184,19 @@ const InteractingControls: React.FC<ISpectatorInfo> = (
         label: '下麦',
         key: 'endInteraction',
       },
-    ];
+    ] as any[];
     if (canKickMember) {
       normalActions.push({
-        label: '移除教室',
+        label: (
+          <KickMember userId={userId} userName={userName ?? userNick ?? userId}>
+            移除教室
+          </KickMember>
+        ),
         key: 'kick',
       });
     }
     return normalActions;
-  }, [isTeacher, canKickMember]);
+  }, [userId, userName, userNick, isTeacher, canKickMember]);
 
   const renderMic = () => {
     if (micToggleState?.state === ToggleRemoteDeviceState.Waiting)

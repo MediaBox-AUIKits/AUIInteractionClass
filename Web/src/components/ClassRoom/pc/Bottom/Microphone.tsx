@@ -5,7 +5,7 @@ import livePush from '../../utils/LivePush';
 import { uniqueDevice } from '../../utils/common';
 import useClassroomStore from '../../store';
 import {
-  LeftOutlineSvg,
+  LeftOutlinedSvg,
   MicCloseSvg,
   MicDisableSvg,
   MicLoadingSvg,
@@ -169,7 +169,7 @@ export default function Mic(props: PermissionVerificationProps<IProps>) {
             })}
             onClick={() => setShowList(s => !s)}
           >
-            <LeftOutlineSvg />
+            <LeftOutlinedSvg />
           </div>
         </Dropdown>
       )}

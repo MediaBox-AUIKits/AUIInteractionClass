@@ -20,8 +20,11 @@
 }
 
 .h5main {
-  flex: auto;
   position: relative;
+  flex: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   height: 50%; // 得设置一个高度，不能有断层，否则后续子孙元素无法使用 scrool
   padding-bottom: constant(safe-area-inset-bottom); /* 兼容 iOS < 11.2 */
   padding-bottom: env(safe-area-inset-bottom); /* 兼容 iOS >= 11.2 */
@@ -126,16 +129,41 @@
   transform: translateX(100%);
 }
 
-.h5content {
+.h5content__chat,
+.h5content__intro {
+  flex: auto;
   position: relative;
   width: 100%;
-  height: calc(100% - (@tabs-height + @controls-height));
   padding: 0.24rem 0.32rem;
   background-color: #f4f4f6;
   overflow: auto;
 }
 
+.h5content__chat {
+  height: calc(100% - (@tabs-height + @controls-height));
+}
+
+.h5content__intro {
+  height: calc(100% - (@tabs-height));
+}
+
+.h5content__player {
+  flex-grow: 1;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+.h5announcement {
+  flex-shrink: 0;
+  flex-grow: 0;
+}
+
 .h5controls {
+  flex-shrink: 0;
+  flex-grow: 0;
   width: 100%;
   height: @controls-height;
   padding: 0.08rem 0.32rem;

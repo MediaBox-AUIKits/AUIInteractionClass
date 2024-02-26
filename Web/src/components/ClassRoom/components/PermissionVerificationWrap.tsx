@@ -1,4 +1,4 @@
-import React, { JSXElementConstructor, ReactElement, useContext } from 'react';
+import React, { JSXElementConstructor, ReactElement } from 'react';
 import { ClassroomFunction } from '../types';
 import useClassroomStore from '@/components/ClassRoom/store';
 import { HasNoPermission } from '@/components/ClassRoom/constants';

@@ -84,10 +84,17 @@ const Setting: React.FC<IProps> = props => {
       setGroupMuting(true);
 
       try {
-        if (isTeacher) {
+        if (
+          isTeacher ||
+          !CONFIG?.imServer?.aliyunIMV1?.enable ||
+          !CONFIG?.imServer?.aliyunIMV1?.primary
+        ) {
           await doMuteGroup(mute);
         } else {
-          // 由于旧阿里云IM无法支持非创建者群组禁言，因此使用IM请求创建者处理
+          /**
+           * NOTE: 由于旧阿里云IM无法支持非创建者群组禁言，因此使用IM请求创建者处理；
+           * aliyunIMV1(Deprecation) 不建议开启并设置为 primary
+           */
           await muteGroupProxy(mute);
         }
         logger.reportInvokeResult(EMsgid.MUTE_GROUP_RESULT, true, {

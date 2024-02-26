@@ -12,7 +12,7 @@ import {
   CommentMessage,
   UserRoleEnum,
   ClassroomStatusEnum,
-  GroupIdObject,
+  IClassroomInfo,
 } from './types';
 import { Permission } from '@/types';
 import { TeacherPermissions, JoinClassErrorMsg } from './constants';
@@ -46,14 +46,13 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
     userInfo,
     whiteBoardHidden, // 仅对非公开课模式的学生端生效
     onExit,
-    report,
     reporter,
   } = props;
 
   const commentListCache = useRef<CommentMessage[]>([]); // 解决消息列表闭包问题
   const {
     isTeacher,
-    classroomInfo: { assistantId },
+    classroomInfo: { assistantId, teacherId },
     setClassroomInfo,
     setRoleAssertion,
     setAccessibleFunctions,
@@ -63,6 +62,7 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
     setMessageList,
     setSelfMuted,
     setGroupMuted,
+    setGroupMeta,
     setCommentInput,
     setConnectedSpectators,
     setInteractionAllowed,
@@ -118,23 +118,40 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
       setMessageList(list);
       logger.reportInvokeResult(EMsgid.INIT_MESSAGE_LIST_RESULT, true);
     } catch (err) {
-      console.log('获取失败', err);
+      console.error(err);
       logger.reportInvokeResult(
         EMsgid.INIT_MESSAGE_LIST_RESULT,
         false,
         '',
         err
       );
-      throw err;
     }
   }, [userInfo]);
 
+  const initGroupMeta = async () => {
+    const data = await auiMessage.getGroupMeta();
+    if (data) setGroupMeta(JSON.parse(data));
+  };
+
+  // 初始化 IM 消息服务
   const initAUIMessage = useMemoizedFn(
-    async (groupIdObject: GroupIdObject, isAdmin = false) => {
-      const { aliyunV2GroupId, aliyunV1GroupId, rongIMId } = groupIdObject;
+    async (res: IClassroomInfo, isAdmin = false) => {
+      const aliyunV2GroupId = CONFIG.imServer.aliyunIMV2.enable
+        ? res.aliyunId
+        : undefined;
+      const aliyunV1GroupId = CONFIG.imServer.aliyunIMV1.enable
+        ? res.aliyunId
+        : undefined;
+      const rongIMId = CONFIG.imServer.rongCloud.enable
+        ? res.rongCloudId
+        : undefined;
 
       try {
-        logger.reportInvoke(EMsgid.INIT_IM);
+        logger.reportInvoke(EMsgid.INIT_IM, {
+          aliyunV2GroupId,
+          aliyunV1GroupId,
+          rongIMId,
+        });
 
         if (!aliyunV2GroupId && !rongIMId && !aliyunV1GroupId) {
           throw { code: -1, message: 'IM group id is empty' };
@@ -163,7 +180,7 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
         auiMessageInitStatus.current.initialized = true;
 
         try {
-          logger.reportInvoke(EMsgid.AUI_MESSAGE_LOGIN);
+          logger.reportInvoke(EMsgid.AUI_MESSAGE_LOGIN, {});
           await auiMessage.login({
             userId: userInfo.userId,
             userNick: userInfo.userName,
@@ -183,7 +200,11 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
 
         try {
           logger.reportInvoke(EMsgid.AUI_MESSAGE_JOIN_GROUP);
-          await auiMessage.joinGroup(groupIdObject);
+          await auiMessage.joinGroup({
+            aliyunV2GroupId,
+            aliyunV1GroupId,
+            rongIMId,
+          });
           logger.reportInvokeResult(EMsgid.AUI_MESSAGE_JOIN_GROUP_RESULT, true);
         } catch (error) {
           logger.reportInvokeResult(
@@ -209,6 +230,7 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
           })
           .catch(() => {});
         await initMessageList();
+        initGroupMeta();
         logger.reportInvokeResult(EMsgid.INIT_IM_RESULT, true);
       } catch (error) {
         logger.reportInvokeResult(EMsgid.INIT_IM_RESULT, false, '', error);
@@ -244,6 +266,53 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
     });
   }, [services]);
 
+  const initClassroom4teacher = useCallback(
+    async (res: IClassroomInfo) => {
+      setRole(UserRoleEnum.Teacher);
+      // 老师初始化后广播重置状态课堂
+      await resetInteractionInfo();
+      auiMessage.sendGroupSignal({
+        type: CustomMessageTypes.ClassReset,
+      });
+      setInteractionManager(
+        new TeacherInteractionManager({
+          message: auiMessage,
+        })
+      );
+      setCooperationManager(
+        new TeacherCooperationManager({
+          message: auiMessage,
+          defaultReceiverId: res.assistantId,
+        })
+      );
+    },
+    [resetInteractionInfo]
+  );
+
+  const initClassroom4assistant = useCallback(
+    async (res: IClassroomInfo) => {
+      setRole(UserRoleEnum.Assistant);
+      getInteractionInfo();
+      setCooperationManager(
+        new AssistantCooperationManager({
+          message: auiMessage,
+          defaultReceiverId: res.teacherId,
+        })
+      );
+    },
+    [getInteractionInfo]
+  );
+
+  const initClassroom4student = useCallback(async () => {
+    setRole(UserRoleEnum.Student);
+    getInteractionInfo();
+    setInteractionManager(
+      new StudentInteractionManager({
+        message: auiMessage,
+      })
+    );
+  }, [getInteractionInfo]);
+
   const initClassroom = useCallback(async () => {
     logger.reportInvoke(EMsgid.INIT_CLASSROOM);
 
@@ -253,65 +322,13 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
 
       const isTeacher = userInfo.userId === res.teacherId;
       const isAssistant = userInfo.userId === res.assistantId;
-      setRole(
-        isTeacher
-          ? UserRoleEnum.Teacher
-          : isAssistant
-          ? UserRoleEnum.Assistant
-          : UserRoleEnum.Student
-      );
+      const isStudent = !isTeacher && !isAssistant;
 
-      if (isTeacher) {
-        await resetInteractionInfo();
-      } else {
-        await getInteractionInfo();
-      }
+      await initAUIMessage(res, isTeacher || isAssistant);
 
-      // 初始化 IM 消息服务
-      const groupIdObject = {
-        aliyunV1GroupId: res.aliyunId,
-        rongIMId: res.rongCloudId,
-        aliyunV2GroupId: res.aliyunId,
-      };
-      if (!CONFIG.imServer.aliyunIMV2.enable) {
-        delete groupIdObject.aliyunV2GroupId;
-      }
-      if (!CONFIG.imServer.aliyunIMV1.enable) {
-        delete groupIdObject.aliyunV1GroupId;
-      }
-      if (!CONFIG.imServer.rongCloud.enable) {
-        delete groupIdObject.rongIMId;
-      }
-      await initAUIMessage(groupIdObject, isTeacher || isAssistant);
-
-      // 老师初始化后广播重置状态
-      if (isTeacher) {
-        auiMessage.sendMessageToGroup({
-          type: CustomMessageTypes.ClassReset,
-          skipAudit: true,
-          skipMuteCheck: true,
-        });
-      }
-      setInteractionManager(
-        isTeacher
-          ? new TeacherInteractionManager({
-              message: auiMessage,
-            })
-          : new StudentInteractionManager({
-              message: auiMessage,
-            })
-      );
-      setCooperationManager(
-        isTeacher
-          ? new TeacherCooperationManager({
-              message: auiMessage,
-              defaultReceiverId: res.assistantId,
-            })
-          : new AssistantCooperationManager({
-              message: auiMessage,
-              defaultReceiverId: res.teacherId,
-            })
-      );
+      if (isTeacher) await initClassroom4teacher(res);
+      if (isAssistant) await initClassroom4assistant(res);
+      if (isStudent) await initClassroom4student();
 
       logger.reportInvokeResult(EMsgid.INIT_CLASSROOM_RESULT, true);
     } catch (err) {
@@ -320,7 +337,13 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
       console.error('初始化课堂失败', err);
       logger.reportInvokeResult(EMsgid.INIT_CLASSROOM_RESULT, false, '', err);
     }
-  }, [services, auiMessage, getInteractionInfo]);
+  }, [
+    services,
+    auiMessage,
+    initClassroom4teacher,
+    initClassroom4assistant,
+    initClassroom4student,
+  ]);
 
   useEffect(() => {
     if (role === undefined) return;
@@ -331,30 +354,34 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
   const initAccessibleFunctions = useCallback(
     async (role: UserRoleEnum) => {
       const permissions: Permission[] = [];
-      if (role === UserRoleEnum.Teacher) {
-        // 同步助教权限
-        const assistantPermissions =
-          (await services.fetchAssistantPermissions()) ?? [];
-        (cooperationManager as TeacherCooperationManager)?.syncAsstPermissions(
-          assistantPermissions
-        );
-        setAsstPermAccessibleFunctions(assistantPermissions);
-        // 定义本身权限
-        permissions.push(...TeacherPermissions);
-      } else if (role === UserRoleEnum.Assistant) {
-        try {
+      try {
+        if (role === UserRoleEnum.Teacher) {
+          // 定义本身权限
+          permissions.push(...TeacherPermissions);
+          // 同步助教权限
           const assistantPermissions =
             (await services.fetchAssistantPermissions()) ?? [];
-          permissions.push(...assistantPermissions);
-        } catch (error) {
-          const msg = '助教权限获取异常，请刷新页面重试';
-          toast.error(msg, 0, 0);
+          (
+            cooperationManager as TeacherCooperationManager
+          )?.syncAsstPermissions(assistantPermissions);
+          setAsstPermAccessibleFunctions(assistantPermissions);
+        } else if (role === UserRoleEnum.Assistant) {
+          try {
+            const assistantPermissions =
+              (await services.fetchAssistantPermissions()) ?? [];
+            permissions.push(...assistantPermissions);
+          } catch (error) {
+            const msg = '助教权限获取异常，请刷新页面重试';
+            toast.error(msg, 0, 0);
+          }
+        } else {
+          permissions.push(...[Permission.JoinInteraction]);
         }
-      } else {
-        permissions.push(...[Permission.JoinInteraction]);
+      } catch (error) {
+        console.error('获取助教权限失败', error);
+      } finally {
+        setAccessibleFunctions(permissions);
       }
-
-      setAccessibleFunctions(permissions);
     },
     [services, cooperationManager]
   );
@@ -365,10 +392,8 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
 
       if (role === UserRoleEnum.Assistant) {
         // 助教进入课堂，通知其他成员（避免初开助教功能的教室没有助教信息，各角色端无法识别助教身份）
-        auiMessage.sendMessageToGroup({
+        auiMessage.sendGroupSignal({
           type: CustomMessageTypes.SyncAssistantJoinClass,
-          skipAudit: true,
-          skipMuteCheck: true,
           data: { assistantId: userInfo.userId },
         });
       }
@@ -396,6 +421,65 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
     }
   }, [services, onExit]);
 
+  const uninitAUIMessage = async () => {
+    const { initialized: auiMessageInitialized, loggedIn: auiMessageLoggedIn } =
+      auiMessageInitStatus.current;
+    logger.reportInvoke(EMsgid.UNINIT_IM, {
+      auiMessageInitialized,
+      auiMessageLoggedIn,
+    });
+
+    const { joinedGroupId } = useClassroomStore.getState();
+    auiMessage.removeAllEvent();
+    try {
+      if (joinedGroupId) {
+        logger.reportInvoke(EMsgid.AUI_MESSAGE_LEAVE_GROUP);
+        await auiMessage.leaveGroup();
+        logger.reportInvokeResult(EMsgid.AUI_MESSAGE_LEAVE_GROUP_RESULT, true);
+      }
+
+      if (auiMessageInitStatus.current.loggedIn) {
+        logger.reportInvoke(EMsgid.AUI_MESSAGE_LOGOUT);
+        await auiMessage.logout();
+        logger.reportInvokeResult(EMsgid.AUI_MESSAGE_LOGOUT_RESULT, true);
+      }
+
+      if (auiMessageInitialized) {
+        logger.reportInvoke(EMsgid.AUI_MESSAGE_UNINIT);
+        await auiMessage.unInit();
+        logger.reportInvokeResult(EMsgid.AUI_MESSAGE_UNINIT_RESULT, true);
+      }
+      logger.reportInvokeResult(EMsgid.UNINIT_IM_RESULT, true);
+    } catch (error) {
+      logger.reportInvokeResult(EMsgid.UNINIT_IM_RESULT, false, {
+        joinedGroupId,
+        auiMessageInitialized,
+        auiMessageLoggedIn,
+      });
+      throw error;
+    }
+  };
+
+  const leaveClass = useCallback(async () => {
+    logger.reportInvoke(EMsgid.LEAVE_CLASSROOM);
+    services.leaveClass();
+    try {
+      await uninitAUIMessage();
+      logger.reportInvokeResult(EMsgid.LEAVE_CLASSROOM_RESULT, true);
+    } catch (error) {
+      console.log(error);
+      logger.reportInvokeResult(
+        EMsgid.LEAVE_CLASSROOM_RESULT,
+        false,
+        '',
+        error
+      );
+    }
+
+    const { reset } = useClassroomStore.getState();
+    reset();
+  }, [services]);
+
   const { run: throttleUpdateMessageList } = useThrottleFn(
     (list: CommentMessage[]) => {
       setMessageList(list);
@@ -415,6 +499,21 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
     throttleUpdateMessageList(list);
   };
 
+  const notifyGroupMessageRemoved = useCallback(
+    (senderId: string, removedMsgCount = 1) => {
+      if (senderId !== userInfo?.userId && removedMsgCount) {
+        const admin =
+          teacherId === senderId
+            ? '老师'
+            : assistantId === senderId
+            ? '助教'
+            : '管理员';
+        toast.warning(`${admin}删除了${removedMsgCount}条消息`);
+      }
+    },
+    [userInfo, teacherId, assistantId]
+  );
+
   const removeMessageItems = useCallback(
     (data: IDeleteMessagesData, senderId: string) => {
       const { messageList } = useClassroomStore.getState();
@@ -431,12 +530,12 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
         commentListCache.current = list;
         throttleUpdateMessageList(list);
 
-        if (notify && userInfo.userId !== senderId) {
-          toast.warning(`管理员删除了${removedMessageSids.length}条消息`);
+        if (notify) {
+          notifyGroupMessageRemoved(senderId, removedMessageSids.length);
         }
       }
     },
-    [userInfo]
+    [userInfo, notifyGroupMessageRemoved]
   );
 
   const updateClassStatus = useCallback((status: ClassroomStatusEnum) => {
@@ -471,14 +570,24 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
 
   const handleAssistantJoinClass = useCallback(
     async (syncAssistantId: string) => {
-      if (assistantId || !syncAssistantId || !services) return;
+      if (!syncAssistantId || !services) return;
 
-      const res = await services?.fetchClassroomInfo();
-      if (res) {
-        setClassroomInfo(res);
-        if (isTeacher) {
-          if (res?.assistantId === syncAssistantId && cooperationManager)
-            cooperationManager.receiverId = res?.assistantId;
+      // 一旦助教加入教室，则设置为群组管理员
+      if (syncAssistantId && isTeacher) {
+        auiMessage.modifyGroup({
+          admins: [syncAssistantId],
+        });
+      }
+
+      // 如果老师进入教室时，助教还没有加入过，则需要重新拉取教师信息，设置协作者
+      if (!assistantId) {
+        const res = await services?.fetchClassroomInfo();
+        if (res) {
+          setClassroomInfo(res);
+          if (isTeacher) {
+            if (cooperationManager && res?.assistantId === syncAssistantId)
+              cooperationManager.receiverId = res?.assistantId;
+          }
         }
       }
     },
@@ -498,6 +607,10 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
       const classroomInfo = useClassroomStore.getState().classroomInfo;
 
       switch (type) {
+        /**
+         * NOTE: 删除群消息的旧版方案，发送 RemoveComment 类型的群消息作为删除信令；
+         * 新版则直接调用 deleteMessage 方法，监听 deletegroupmessage 事件，依赖启用 aliyunIMV2 并声明为 primary
+         */
         case CustomMessageTypes.RemoveComment:
           // 接收到删除评论消息
           if (data?.removeSids) {
@@ -582,11 +695,20 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
             handleAssistantJoinClass(data.assistantId);
           }
           break;
+        case CustomMessageTypes.GroupMessageRemoved:
+          notifyGroupMessageRemoved(senderId, data?.count);
+          break;
         default:
           break;
       }
     },
-    [userInfo, handleClassReset, handleAssistantJoinClass, removeMessageItems]
+    [
+      userInfo,
+      handleClassReset,
+      handleAssistantJoinClass,
+      removeMessageItems,
+      notifyGroupMessageRemoved,
+    ]
   );
 
   useEffect(() => {
@@ -600,17 +722,47 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
         handleReceivedMessage
       );
     };
-  }, [handleReceivedMessage]);
+  }, [auiMessage, handleReceivedMessage]);
 
-  const listenEvents = () => {
+  const handleGroupInfoChange = (data: any) => {
+    const { groupMeta: newGroupMeta } = data?.data?.info ?? {};
+    const meta = newGroupMeta ? JSON.parse(newGroupMeta) : {};
+    const { modifyUserId, content: newContent } = meta.announcement ?? {};
+    const {
+      groupMeta: { announcement: preAnnouncement },
+    } = useClassroomStore.getState();
+
+    if (
+      modifyUserId !== userInfo?.userId &&
+      preAnnouncement?.content !== newContent
+    ) {
+      toast('有新公告了');
+    }
+
+    setGroupMeta(meta);
+  };
+
+  const removeGroupMessage = useCallback(
+    (removeMessageId: string) => {
+      const list = (commentListCache.current = commentListCache.current.filter(
+        item => item.messageId && item.messageId !== removeMessageId
+      ));
+      throttleUpdateMessageList(list);
+    },
+    [throttleUpdateMessageList]
+  );
+
+  const listenAuiMessageEvents = useCallback(() => {
     auiMessage.addListener(AUIMessageEvents.onJoinGroup, (data: any) => {
       console.log('有人加入房间', data); // IM 消息组的加入
+      increaseMemberListFlag();
     });
     auiMessage.addListener(AUIMessageEvents.onLeaveGroup, (data: any) => {
       console.log('有人离开房间', data); // IM 消息组的离开
       const { senderId: userId } = data;
       updateConnectedSpectator(userId);
       updateApplyingList(userId);
+      increaseMemberListFlag();
     });
     auiMessage.addListener(AUIMessageEvents.onMuteGroup, () => {
       setGroupMuted(true);
@@ -622,56 +774,56 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
       toast('已解除全员禁言');
     });
     auiMessage.addListener(AUIMessageEvents.onMuteUser, (data: any) => {
-      if (data?.data?.userId === userInfo?.userId) {
+      if (
+        data?.data?.userId === userInfo?.userId || // rongCloud/im1
+        data?.data?.status?.muteUserList?.includes(userInfo?.userId) // im2
+      ) {
         setSelfMuted(true);
         setCommentInput('');
         toast('您已被禁言');
       }
     });
     auiMessage.addListener(AUIMessageEvents.onUnmuteUser, (data: any) => {
-      if (data?.data?.userId === userInfo?.userId) {
+      if (
+        data?.data?.userId === userInfo?.userId || // rongCloud/im1
+        (data.data?.status?.muteUserList && // im2
+          !data.data?.status?.muteUserList?.includes(userInfo?.userId))
+      ) {
         setSelfMuted(false);
         toast('您已被解除禁言');
       }
     });
-  };
+    auiMessage.addListener(AUIMessageEvents.onGroupInfoChange, (data: any) => {
+      handleGroupInfoChange(data);
+    });
+    auiMessage.addListener(
+      AUIMessageEvents.onGroupMessageDeleted,
+      (data: any) => {
+        const { messageId } = data?.data;
+        removeGroupMessage(messageId);
+      }
+    );
+  }, [auiMessage, removeGroupMessage]);
 
   useEffect(() => {
-    logger.setReporter(reporter); // 更新日志上报模块
-    // TODO: 日志完善后删除
-    logger.setReport(report); // 更新日志上报模块
-  }, [reporter, report]);
-
-  const leaveClass = useCallback(async () => {
-    const { joinedGroupId, reset } = useClassroomStore.getState();
-    auiMessage.removeAllEvent();
-    if (joinedGroupId) {
-      await auiMessage.leaveGroup();
-    }
-    try {
-      console.log(JSON.stringify(auiMessageInitStatus.current));
-      if (auiMessageInitStatus.current.loggedIn) await auiMessage.logout();
-      if (auiMessageInitStatus.current.initialized) await auiMessage.unInit();
-    } catch (error) {
-      console.log(error);
-    }
-
-    await services.leaveClass();
-
-    reset();
-  }, [services]);
+    listenAuiMessageEvents();
+    return () => {
+      auiMessage.removeAllEvent();
+    };
+  }, [auiMessage, listenAuiMessageEvents]);
 
   useEffect(() => {
-    listenEvents();
     joinClass();
-
     window.addEventListener('beforeunload', leaveClass);
-
     return () => {
       window.removeEventListener('beforeunload', leaveClass);
       leaveClass();
     };
   }, []);
+
+  useEffect(() => {
+    logger.setReporter(reporter); // 更新日志上报模块
+  }, [reporter]);
 
   return (
     <ClassContext.Provider

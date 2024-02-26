@@ -34,7 +34,6 @@ const ScreenShare: React.FC<PermissionVerificationProps> = props => {
   useEffect(() => {
     if (livePusher) {
       const bool = livePusher.checkScreenShareSupported();
-      console.log(bool);
       setScreenShareSupported(bool);
       logger.reportInfo(EMsgid.SCREEN_SHARE_SUPPORTED, { supported: bool });
     }
@@ -81,7 +80,8 @@ const ScreenShare: React.FC<PermissionVerificationProps> = props => {
         ?.startScreenShare(true)
         .then(() => {
           setDisplayEnable(true);
-
+          // 设定屏幕共享流建议的分辨率、码率；实际的流质量会受限于浏览器策略和网络状况
+          livePusher?.updateScreenVideoProfile(1920, 1080, 3000, 20);
           logger.reportInvokeResult(EMsgid.START_SCREEN_RESULT, true);
         })
         .catch((err: any) => {

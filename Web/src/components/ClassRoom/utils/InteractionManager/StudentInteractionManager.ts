@@ -126,8 +126,13 @@ export default class StudentInteractionManager extends InteractionManager {
       });
       this.removeSession(sessionId);
     });
+    stateMachine.on(InteractionApplicationEvent.Cancel, () => {
+      this.removeSession(sessionId);
+      this.setSessionIdExpired(sessionId);
+    });
     stateMachine.on(InteractionApplicationEvent.Rejected, () => {
       this.removeSession(sessionId);
+      this.setSessionIdExpired(sessionId);
     });
 
     stateMachine.transition(InteractionApplicationEvent.SubmitApplication);
@@ -160,10 +165,7 @@ export default class StudentInteractionManager extends InteractionManager {
     }
 
     const { stateMachine, sessionId } = session;
-    stateMachine.on(InteractionApplicationEvent.Cancel, () => {
-      this.removeSession(sessionId);
-      this.setSessionIdExpired(sessionId);
-    });
+
     stateMachine.transition(InteractionInvitationEvent.Cancel);
 
     this.sendIM(type, {
@@ -204,10 +206,7 @@ export default class StudentInteractionManager extends InteractionManager {
     }
 
     const { stateMachine } = session;
-    stateMachine.on(InteractionApplicationEvent.Rejected, () => {
-      this.removeSession(sessionId);
-      this.setSessionIdExpired(sessionId);
-    });
+
     stateMachine.transition(InteractionApplicationEvent.Rejected);
   }
 
@@ -273,6 +272,9 @@ export default class StudentInteractionManager extends InteractionManager {
     stateMachine.on(StudentEndInteractionEvent.Timeout, () => {
       this.removeSession(sessionId);
     });
+    stateMachine.on(StudentEndInteractionEvent.Allowed, () => {
+      this.removeSession(sessionId);
+    });
 
     stateMachine.transition(StudentEndInteractionEvent.Notice);
 
@@ -303,9 +305,6 @@ export default class StudentInteractionManager extends InteractionManager {
     }
 
     const { stateMachine } = session;
-    stateMachine.on(StudentEndInteractionEvent.Allowed, () => {
-      this.removeSession(sessionId);
-    });
     stateMachine.transition(StudentEndInteractionEvent.Allowed);
     return stateMachine;
   }

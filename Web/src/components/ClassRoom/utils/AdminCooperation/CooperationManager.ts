@@ -95,12 +95,10 @@ export default class CooperationManager {
       data
     );
 
-    logger.reportInvoke(EMsgid.SEND_COOPERATION_IM);
+    logger.reportInvoke(EMsgid.SEND_COOPERATION_IM, { type, data });
     try {
-      await this.message.sendMessageToGroupUser({
+      await this.message.sendGroupSignal({
         type,
-        skipAudit: true,
-        skipMuteCheck: true,
         receiverId,
         data,
       });

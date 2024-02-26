@@ -6,6 +6,7 @@ import {
   IMessageOptions,
   AUIMessageTypes,
   IGetMuteInfoRspModel,
+  ImDeleteMessageReq,
 } from './types';
 import EventBus from './utils/EventBus';
 
@@ -169,9 +170,13 @@ class RongIM extends EventBus {
     this.config = config;
   }
 
-  init() { return Promise.resolve() }
+  init() {
+    return Promise.resolve();
+  }
 
-  unInit() { return Promise.resolve() }
+  unInit() {
+    return Promise.resolve();
+  }
 
   login(userInfo: AUIMessageUserInfo) {
     return new Promise((resolve, reject) => {
@@ -248,8 +253,18 @@ class RongIM extends EventBus {
   }
 
   // 业务自行通过appserver实现
-  sendLike() { return Promise.resolve({}); }
-  getGroupStatistics() { return Promise.resolve(); }
+  sendLike() {
+    return Promise.resolve({});
+  }
+  getGroupStatistics() {
+    return Promise.resolve();
+  }
+  getGroupMeta() {
+    return Promise.resolve('');
+  }
+  modifyGroup() {
+    return Promise.resolve(false);
+  }
 
   // 目前融云未支持该功能，原因如下：
   // 1、未开通对应的服务
@@ -283,6 +298,10 @@ class RongIM extends EventBus {
 
   listRecentMessage() {
     return Promise.resolve({ groupId: this.joinedGroupId, messageList: [] });
+  }
+
+  deleteMessage(req: ImDeleteMessageReq) {
+    return Promise.resolve();
   }
 
   private doSendMessage(
@@ -386,6 +405,10 @@ class RongIM extends EventBus {
           reject(err);
         });
     });
+  }
+
+  queryMutedUserList(): Promise<string[]> {
+    return Promise.resolve([]);
   }
 
   muteGroup() {

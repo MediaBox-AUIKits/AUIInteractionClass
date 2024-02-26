@@ -137,9 +137,3 @@ export enum InteractionInvitationUpdateType {
   Add,
   Remove,
 }
-
-export interface GroupIdObject {
-  aliyunV2GroupId?: string;
-  aliyunV1GroupId?: string;
-  rongIMId?: string;
-}

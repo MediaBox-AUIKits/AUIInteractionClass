@@ -60,6 +60,17 @@ export interface CommentMessage {
   isAssistant?: boolean; // 是否是老师发的
 }
 
+export interface GroupAnnouncement {
+  content: string;
+  modifyTime: number;
+  modifyUserId: string;
+}
+
+export interface GroupMeta {
+  announcement?: GroupAnnouncement;
+  [index: string]: any;
+}
+
 export interface IBoard {
   server?: string; // 白板服务提供商
   mediaStream?: MediaStream; // 白板画面流
@@ -97,6 +108,7 @@ export interface IClassroomState {
   commentInput: string; // 输入框内容
   groupMuted: boolean; // 互动消息 组是否被禁言
   selfMuted: boolean; // 个人是否被禁言
+  groupMeta: GroupMeta; // 群组信息
 
   // 设备和推流相关
   supportWebRTC?: boolean;
@@ -136,6 +148,7 @@ export interface ClassroomActions {
   setJoinedGroupId: (id: string) => void;
   setGroupMuted: (bool: boolean) => void;
   setSelfMuted: (bool: boolean) => void;
+  setGroupMeta: (meta: GroupMeta) => void;
 
   setSupportWebRTC: (bool: boolean) => void;
   setMicrophoneEnable: (enable: boolean, fromInit?: boolean) => void;

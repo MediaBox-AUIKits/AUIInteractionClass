@@ -11,11 +11,16 @@
   height: @aside-player-height;
 }
 
+.aside__announcement {
+  flex-shrink: 0;
+}
+
 .aside__tabs {
   position: relative;
   flex: auto;
   width: 100%;
-  height: calc(100% - @aside-player-height);
+  height: 100%;
+  overflow: hidden;
 }
 
 .aside__tabs__nav {

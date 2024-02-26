@@ -1,5 +1,6 @@
 import SlsTracker from '@aliyun-sls/web-track-browser';
 import { SystemUtil, BrowserUtil, Guid } from 'useragent-utils';
+import { getEnumKey } from './common';
 
 export enum EMsgid {
   LOGIN = 100,
@@ -81,9 +82,10 @@ interface ICommonParams {
   classname?: string;
 
   /**
-   * 事件id
+   * 事件
    */
   event_id?: EMsgid;
+  event_name?: string;
 
   /**
    * event_id 对应的参数
@@ -100,6 +102,7 @@ interface ICommonParams {
 export class Reporter {
   private _commonParams: ICommonParams;
   private _track?: SlsTracker;
+  private _eventEnumObject?: object;
 
   constructor() {
     this._commonParams = this.initCommonParams();
@@ -160,16 +163,27 @@ export class Reporter {
     };
   }
 
+  public updateEventEnum(enumObject: object) {
+    this._eventEnumObject = enumObject;
+  }
+
   public report(
     params: Pick<ICommonParams, 'args' | 'event_id' | 'rslt' | 'err'>
   ) {
+    const { event_id } = params;
+    const event_name = event_id
+      ? getEnumKey(this._eventEnumObject ?? EMsgid, event_id) ??
+        getEnumKey(EMsgid, event_id) ??
+        undefined
+      : undefined;
     const reportData = {
       ...this._commonParams,
       ...params,
+      event_name,
       stm: Date.now(),
     };
     // TODO: DEL
-    // console.log(`#发送日志 ${reportData.event_id}`, reportData);
+    // console.log(`#发送日志 ${event_id} | ${event_name}`, reportData);
     this._track?.send(reportData);
   }
 
@@ -196,17 +210,16 @@ export class Reporter {
     args: any = '',
     error?: Error | AggregateError | unknown
   ) {
-    const err = success
-      ? undefined
-      : error instanceof AggregateError
-      ? error.errors
-          .map(errItem =>
-            errItem instanceof Error
-              ? errItem.message || errItem
-              : JSON.stringify(errItem)
-          )
-          .join('; ')
-      : error;
+    let err = error;
+    if (error instanceof AggregateError) {
+      err = error.errors
+        .map(errItem =>
+          errItem instanceof Error
+            ? errItem.message ?? errItem
+            : JSON.stringify(errItem)
+        )
+        .join('; ');
+    }
     this.report({
       event_id: eventId,
       rslt: success ? 0 : 1,

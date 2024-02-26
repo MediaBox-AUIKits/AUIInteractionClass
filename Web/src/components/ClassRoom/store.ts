@@ -19,6 +19,7 @@ import {
   IUserInfo,
   UserRoleEnum,
   ClassroomFunction,
+  GroupMeta,
 } from './types';
 import { Permission } from '@/types';
 import { MaxConnectedSpectatorNum, FunctionMapByPermission } from './constants';
@@ -90,6 +91,7 @@ export const defaultClassroomState: IClassroomState = {
   commentInput: '',
   groupMuted: false,
   selfMuted: false,
+  groupMeta: {},
 
   // pusher
   supportWebRTC: undefined,
@@ -150,7 +152,8 @@ const useClassroomStore = create(
         produce((state: IClassroomState) => {
           const functions: ClassroomFunction[] = [];
           permissions.forEach(permission => {
-            functions.push(...FunctionMapByPermission[permission]);
+            if (FunctionMapByPermission[permission])
+              functions.push(...(FunctionMapByPermission[permission] ?? []));
           });
           state.accessibleFunctions = functions;
         })
@@ -160,7 +163,8 @@ const useClassroomStore = create(
         produce((state: IClassroomState) => {
           const functions: ClassroomFunction[] = [];
           permissions.forEach(permission => {
-            functions.push(...FunctionMapByPermission[permission]);
+            if (FunctionMapByPermission[permission])
+              functions.push(...(FunctionMapByPermission[permission] ?? []));
           });
           state.asstAccessibleFunctions = functions;
         })
@@ -197,6 +201,13 @@ const useClassroomStore = create(
       set(
         produce((state: IClassroomState) => {
           state.selfMuted = bool;
+        })
+      ),
+
+    setGroupMeta: (meta: GroupMeta) =>
+      set(
+        produce((state: IClassroomState) => {
+          state.groupMeta = meta;
         })
       ),
 

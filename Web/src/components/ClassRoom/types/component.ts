@@ -65,6 +65,5 @@ export interface IClassRoomProps {
   whiteBoardHidden: boolean;
   services: IClassroomServices;
   reporter: Reporter;
-  report: (msgId: number, data?: any) => void;
   onExit: () => void;
 }

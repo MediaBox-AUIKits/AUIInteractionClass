@@ -2,8 +2,9 @@ export enum InteractionV2EventNames {
   RecvC2cMessage = 'recvc2cmessage',
   RecvGroupMessage = 'recvgroupmessage',
   MuteChange = 'mutechange',
-  Join = 'join',
-  Leave = 'leave',
+  Memberchange = 'memberchange',
+  GroupInfoChange = 'infochange',
+  DeleteGroupMessage = 'deletegroupmessage',
 }
 
 export interface ImGroupInfo {
@@ -54,7 +55,7 @@ export interface ImGroupStatistics {
    * @param msg_amount 消息数量
    */
   msgAmount: {
-      [key: string]: number;
+    [key: string]: number;
   };
 }
 
@@ -109,33 +110,59 @@ export interface ImMessage {
   messageId: string;
   /**
    *@param type 消息类型。系统消息小于10000
-    */
+   */
   type: number;
   /**
    *@param sender 发送者
-    */
+   */
   sender?: ImUser;
   /**
    **@param data 消息内容
-    */
+   */
   data: string;
   /**
    *@param seqnum 消息顺序号
-    */
+   */
   seqnum: number;
   /**
    *@param timestamp 消息发送时间
-    */
+   */
   timestamp: number;
   /**
    *@param level 消息分级
-    **/
+   **/
   level: ImMessageLevel;
+}
+
+export interface ImGroupInfoStatus {
+  /**
+   * @param group_id 群组id
+   */
+  groupId: string;
+  /**
+   * @param group_meta 群组扩展信息
+   */
+  groupMeta: string;
+  /**
+   * @param admin_list 管理员列表
+   */
+  adminList: string[];
+}
+
+export interface ImModifyGroupReq {
+  /**
+   * @param groupMeta 群信息扩展字段，不修改留空
+   */
+  groupMeta?: string;
+  /**
+   * @param admins 群管理员ID，不修改留空
+   */
+  admins?: string[];
 }
 
 enum ImMessageLevel {
   NORMAL = 0,
-  HIGH = 1
+  HIGH = 1,
 }
 
 export enum ImLogLevel {
@@ -143,7 +170,7 @@ export enum ImLogLevel {
   DBUG = 1,
   INFO = 2,
   WARN = 3,
-  ERROR = 4
+  ERROR = 4,
 }
 
 type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;

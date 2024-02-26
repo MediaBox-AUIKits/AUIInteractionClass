@@ -259,6 +259,33 @@ class NetEase {
     this.toolCollection?.setVisibility(this.toolVisibility);
   }
 
+  // 激活工具栏中的「上传文档」
+  public toggleUploadCenter(bool: boolean) {
+    if (bool) {
+      this.toolCollection?.addOrSetTool({
+        position: 'left',
+        insertAfterTool: 'pan',
+        item: {
+          tool: 'uploadCenter',
+          hint: '上传文档',
+        },
+      });
+    } else {
+      this.toolCollection?.removeTool({
+        name: 'uploadCenter',
+      });
+    }
+  }
+
+  // 设置/解除当前用户为主播https://doc.yunxin.163.com/whiteboard/api-refer/web/typedoc/Latest/zh/html/interfaces/DrawPlugin.DrawPlugin-1.html#setSelfAsBroadcaster
+  public setSelfAsBroadcaster(bool = true) {
+    if (bool) {
+      this.drawPlugin?.setSelfAsBroadcaster();
+    } else {
+      this.drawPlugin?.unsetSelfAsBroadcaster();
+    }
+  }
+
   private clearRejoinTimer() {
     if (this.rejoinTimer !== undefined) {
       clearTimeout(this.rejoinTimer);

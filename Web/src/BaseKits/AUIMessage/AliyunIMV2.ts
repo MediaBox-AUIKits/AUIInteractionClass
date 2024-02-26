@@ -6,9 +6,12 @@ import {
   ImMessage,
   InteractionV2EventNames,
   ImGroupMuteStatus,
-  // ImLogLevel,
+  ImGroupInfoStatus,
+  ImLogLevel,
   ImGroupInfo,
   IGetMuteInfoRspModel,
+  ImModifyGroupReq,
+  ImDeleteMessageReq,
 } from './types';
 import EventBus from './utils/EventBus';
 
@@ -21,6 +24,7 @@ class AliyunIMV2 extends EventBus {
   private joinedGroupId: string = '';
   private muteAllStatus?: boolean;
   private muteUserStatus?: boolean;
+  private muteUserList?: string[];
 
   constructor() {
     super();
@@ -31,22 +35,40 @@ class AliyunIMV2 extends EventBus {
     this.engine
       .getMessageManager()
       ?.on(InteractionV2EventNames.RecvC2cMessage, (eventData: ImMessage) => {
+        const msgData = JSON.parse(eventData.data) || {};
+        const sender = eventData.sender;
+        delete eventData.sender;
+        const userExtension = JSON.parse(sender?.userExtension || '{}');
+        delete sender?.userExtension;
+
         this.emit('event', {
           ...eventData,
-          data: JSON.parse(eventData.data),
-          senderId: eventData.sender?.userId,
-          senderInfo: eventData.sender,
+          data: JSON.parse(msgData.data || '{}'),
+          senderId: sender?.userId,
+          senderInfo: {
+            ...sender,
+            ...userExtension,
+          },
+          groupId: msgData.groupId,
         });
       });
 
     this.engine
       .getMessageManager()
       ?.on(InteractionV2EventNames.RecvGroupMessage, (eventData: ImMessage) => {
+        const sender = eventData.sender;
+        delete eventData.sender;
+        const userExtension = JSON.parse(sender?.userExtension || '{}');
+        delete sender?.userExtension;
+
         this.emit('event', {
           ...eventData,
-          data: JSON.parse(eventData.data),
-          senderId: eventData.sender?.userId,
-          senderInfo: eventData.sender,
+          data: JSON.parse(eventData.data || '{}'),
+          senderId: sender?.userId,
+          senderInfo: {
+            ...sender,
+            ...userExtension,
+          },
         });
       });
 
@@ -99,41 +121,95 @@ class AliyunIMV2 extends EventBus {
               },
             });
           }
+          const newMuteUserList = status.muteUserList;
+          if (
+            newMuteUserList.length !== this.muteUserList?.length ||
+            newMuteUserList.join(',') !== this.muteUserList?.join(',')
+          ) {
+            this.emit('event', {
+              type: AUIMessageTypes.PaaSMuteUserListChange,
+              data: {
+                muteUserList: status.muteUserList,
+              },
+              groupId,
+              senderId: 'send from V2 IM sdk',
+              messageId: '',
+              senderInfo: {
+                userId: 'send from V2 IM sdk',
+                userNick: '',
+                userAvatar: '',
+              },
+            });
+          }
         }
       );
 
     this.engine
       .getGroupManager()
       ?.on(
-        InteractionV2EventNames.Join,
-        (groupId: string, user: AUIMessageUserInfo) => {
+        InteractionV2EventNames.Memberchange,
+        (
+          groupId: string,
+          memberCount: number,
+          joinUsers: AUIMessageUserInfo[],
+          leaveUsers: AUIMessageUserInfo[]
+        ) => {
+          joinUsers.length > 0 &&
+            joinUsers.forEach(user => {
+              this.emit('event', {
+                type: AUIMessageTypes.PaaSUserJoin,
+                data: {
+                  user,
+                },
+                groupId,
+                senderId: user.userId,
+                messageId: '',
+                senderInfo: user,
+              });
+            });
+
+          leaveUsers.length > 0 &&
+            leaveUsers.forEach(user => {
+              this.emit('event', {
+                type: AUIMessageTypes.PaaSUserLeave,
+                data: {
+                  user,
+                },
+                groupId,
+                senderId: user.userId,
+                messageId: '',
+                senderInfo: user,
+              });
+            });
+        }
+      );
+
+    this.engine
+      .getGroupManager()
+      ?.on(
+        InteractionV2EventNames.GroupInfoChange,
+        (groupId: string, info: ImGroupInfoStatus) => {
           this.emit('event', {
-            type: AUIMessageTypes.PaaSUserJoin,
+            type: AUIMessageTypes.PaaSGroupInfoChange,
             data: {
-              user,
+              info,
             },
             groupId,
-            senderId: user.userId,
-            messageId: '',
-            senderInfo: user,
           });
         }
       );
 
     this.engine
-      .getGroupManager()
+      .getMessageManager()
       ?.on(
-        InteractionV2EventNames.Leave,
-        (groupId: string, user: AUIMessageUserInfo) => {
+        InteractionV2EventNames.DeleteGroupMessage,
+        (messageId: string, groupId: string) => {
           this.emit('event', {
-            type: AUIMessageTypes.PaaSUserLeave,
+            type: AUIMessageTypes.PaaSDeleteGroupMessage,
             data: {
-              user,
+              messageId,
             },
             groupId,
-            senderId: user.userId,
-            messageId: '',
-            senderInfo: user,
           });
         }
       );
@@ -149,7 +225,8 @@ class AliyunIMV2 extends EventBus {
         .init({
           appId: this.config?.aliyunIMV2?.appId as string,
           appSign: this.config?.aliyunIMV2?.appSign as string,
-          // logLevel: ImLogLevel.DBUG // 开启新版IM debug模式
+          extra: CONFIG?.auiScene,
+          logLevel: ImLogLevel.INFO, // 开启新版IM debug模式
         })
         .then(res => {
           // init后监听新IM事件
@@ -179,6 +256,10 @@ class AliyunIMV2 extends EventBus {
         .login({
           user: {
             userId: this.userInfo.userId,
+            userExtension: JSON.stringify({
+              userNick: this.userInfo.userNick,
+              userAvatar: this.userInfo.userAvatar,
+            }),
           },
           userAuth: {
             nonce: this.config?.aliyunIMV2?.auth.nonce as string,
@@ -212,6 +293,10 @@ class AliyunIMV2 extends EventBus {
         ?.joinGroup(groupId)
         .then(res => {
           this.joinedGroupId = groupId;
+          this.muteAllStatus = res.muteStatus.muteAll;
+          this.muteUserStatus = res.muteStatus.muteUserList.includes(
+            this.userInfo?.userId as string
+          );
           resolve(res);
         })
         .catch(err => {
@@ -281,9 +366,43 @@ class AliyunIMV2 extends EventBus {
     });
   }
 
+  queryMutedUserList(): Promise<string[]> {
+    return new Promise((resolve, reject) => {
+      this.engine
+        .getGroupManager()
+        ?.queryGroup(this.joinedGroupId)
+        .then((res: ImGroupInfo) => {
+          resolve(res.muteStatus.muteUserList);
+        })
+        .catch(err => {
+          reject(err);
+        });
+    });
+  }
+
   // 业务自行实现sendLike逻辑
   sendLike() {
     return Promise.resolve();
+  }
+
+  modifyGroup(req: ImModifyGroupReq): Promise<boolean> {
+    if (!this.joinedGroupId) {
+      return Promise.resolve(false);
+    }
+    return new Promise((resolve, reject) => {
+      this.engine
+        .getGroupManager()
+        ?.modifyGroup({
+          groupId: this.joinedGroupId,
+          ...req,
+        })
+        .then(res => {
+          resolve(true);
+        })
+        .catch(err => {
+          reject(err);
+        });
+    });
   }
 
   getGroupStatistics(groupId: string) {
@@ -293,8 +412,18 @@ class AliyunIMV2 extends EventBus {
       .then(res => res.statistics) as Promise<any>;
   }
 
+  getGroupMeta() {
+    return this.engine
+      .getGroupManager()
+      ?.queryGroup(this.joinedGroupId)
+      .then(res => res.groupMeta) as Promise<string>;
+  }
+
   sendMessageToGroup(options: IMessageOptions) {
     const params = {
+      skipAudit: false, // 关闭跳过审核
+      skipMuteCheck: false, // 关闭跳过禁言
+      noStorage: true, // 默认不存储该信息，listRecentMessage、listMessage 只会拉取存储的信息，比如群组消息是需要存储的
       ...options,
       groupId: options.groupId || this.joinedGroupId,
       data: JSON.stringify(options.data || {}),
@@ -306,7 +435,10 @@ class AliyunIMV2 extends EventBus {
     const params = {
       ...options,
       receiverId: options.receiverId as string,
-      data: JSON.stringify(options.data || {}),
+      data: JSON.stringify({
+        groupId: options.groupId,
+        data: JSON.stringify(options.data),
+      }),
     };
     return this.engine.getMessageManager()?.sendC2cMessage(params);
   }
@@ -330,7 +462,7 @@ class AliyunIMV2 extends EventBus {
       })
       .then(res => ({
         ...res,
-        messageList: res?.messageList
+        messageList: (res?.messageList ?? [])
           .filter((msg: ImMessage) => msg.type === type)
           .map((_msg: ImMessage) => ({
             ..._msg,
@@ -340,6 +472,13 @@ class AliyunIMV2 extends EventBus {
           .reverse()
           .slice(0, 20),
       }));
+  }
+
+  deleteMessage(req: ImDeleteMessageReq) {
+    return this.engine.getMessageManager()?.deleteMessage?.({
+      groupId: this.joinedGroupId,
+      ...(req ?? {}),
+    });
   }
 }
 

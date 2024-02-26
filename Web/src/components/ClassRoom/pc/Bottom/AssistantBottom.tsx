@@ -5,7 +5,9 @@ import React from 'react';
 import PermissionVerificationWrap from '@/components/ClassRoom/components/PermissionVerificationWrap';
 import Board from './Board';
 import Doc from './Doc';
+import Tools from './Tools';
 import Setting from './Setting';
+import InteractionApplication from './InteractionApplication';
 import { ClassroomFunction } from '../../types';
 import styles from './index.less';
 
@@ -37,6 +39,23 @@ const AssistantBottom: React.FC<IProps> = (props: IProps) => {
           }}
         >
           <Setting />
+        </PermissionVerificationWrap>
+
+        {/* 教学工具（有权限校验） */}
+        <PermissionVerificationWrap
+          functionsVerificationMap={{
+            canUpdateAnnouncement: ClassroomFunction.EditAnnouncement,
+            canManageAttendance: ClassroomFunction.AttendanceManagement,
+          }}
+        >
+          <Tools />
+        </PermissionVerificationWrap>
+
+        {/* 连麦申请（有权限校验） */}
+        <PermissionVerificationWrap
+          functionKey={ClassroomFunction.InteractionManagement}
+        >
+          <InteractionApplication />
         </PermissionVerificationWrap>
       </div>
     </div>

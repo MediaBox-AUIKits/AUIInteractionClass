@@ -30,6 +30,7 @@ const RoomMain: React.FC<IProps> = props => {
       <PermissionVerificationWrap
         functionsVerificationMap={{
           canTurnPage: ClassroomFunction.WhiteboardPageTurner,
+          canUpdateCourceware: ClassroomFunction.UpdateCourceware,
         }}
       >
         {whiteBoardActivated ? (

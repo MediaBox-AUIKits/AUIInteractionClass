@@ -12,11 +12,11 @@ const MaxBottomDistance = 60;
 
 interface IChatPanelProps {
   className: string;
-  hidden: boolean;
+  hidden?: boolean;
 }
 
 const ChatPanel: React.FC<IChatPanelProps> = props => {
-  const { className, hidden } = props;
+  const { className, hidden = false } = props;
   const messageList = useClassroomStore(state => state.messageList);
   const { assistantId } = useClassroomStore(state => state.classroomInfo);
   const autoScroll = useRef<boolean>(true);

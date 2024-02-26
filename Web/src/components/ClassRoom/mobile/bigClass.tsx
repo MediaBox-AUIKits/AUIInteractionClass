@@ -19,6 +19,7 @@ import H5Tabs, {
 import IntroPanel from './IntroPanel';
 import ChatPanel from './ChatPanel';
 import ChatControls from './ChatControls';
+import Announcement from './Announcement';
 import Icon from '@ant-design/icons';
 import { SwitchArrowsSvg } from '../components/icons';
 import { ClassroomStatusEnum, SourceType, CustomMessageTypes } from '../types';
@@ -214,6 +215,14 @@ function BigClass(props: BigClassProps) {
     }),
     [teacherLinkInfo, shadowLinkInfo, interacting]
   );
+  // TODO: 旁路OK之后再生效
+  // const liveUrlsForWebRTCSupported = useMemo(
+  //   () => ({
+  //     [SourceType.Material]: teacherLinkInfo?.cdnPullInfo ?? {},
+  //     [SourceType.Camera]: shadowLinkInfo?.cdnPullInfo ?? {},
+  //   }),
+  //   [teacherLinkInfo, shadowLinkInfo]
+  // );
 
   const liveUrlsForWebRTCNotSupported = useMemo(
     () => ({
@@ -320,32 +329,27 @@ function BigClass(props: BigClassProps) {
               onChange={tab => setTabKey(tab)}
             />
 
-            {subScreen}
-            <IntroPanel
-              className={styles.h5content}
-              hidden={tabKey !== IntroTabKey}
-            />
-
-            {tabs.includes(ChatTabKey) ? (
-              <ChatPanel
-                className={styles.h5content}
-                hidden={tabKey !== ChatTabKey}
-              />
+            <div className={styles.h5content__player}>{subScreen}</div>
+            {tabKey === ChatTabKey ? (
+              <ChatPanel className={styles.h5content__chat} />
             ) : null}
-            <></>
+            {tabKey === IntroTabKey ? (
+              <IntroPanel className={styles.h5content__intro} />
+            ) : null}
 
-            <ChatControls
-              className={styles.h5controls}
-              theme="light"
-              heartIconActive
-              allowChat={
-                tabKey === ChatTabKey &&
-                [
+            <Announcement className={styles.h5announcement} />
+
+            {tabKey === ChatTabKey ? (
+              <ChatControls
+                className={styles.h5controls}
+                theme="light"
+                heartIconActive
+                allowChat={[
                   ClassroomStatusEnum.not_start,
                   ClassroomStatusEnum.started,
-                ].includes(status)
-              }
-            />
+                ].includes(status)}
+              />
+            ) : null}
           </Fragment>
         ) : null}
       </div>

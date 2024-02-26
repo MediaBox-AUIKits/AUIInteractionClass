@@ -65,7 +65,17 @@ export default class TeacherInteractionManager extends InteractionManager {
       });
       this.removeSession(sessionId);
     });
+    stateMachine.on(InteractionInvitationEvent.Cancel, () => {
+      this.sendIM(type, {
+        sessionId,
+        studentId,
+      });
+      this.removeSession(sessionId);
+    });
     stateMachine.on(InteractionInvitationEvent.Rejected, () => {
+      this.removeSession(sessionId);
+    });
+    stateMachine.on(InteractionInvitationEvent.Accepted, () => {
       this.removeSession(sessionId);
     });
 
@@ -99,13 +109,6 @@ export default class TeacherInteractionManager extends InteractionManager {
     }
 
     const { stateMachine, sessionId } = session;
-    stateMachine.on(InteractionInvitationEvent.Cancel, () => {
-      this.sendIM(type, {
-        sessionId,
-        studentId,
-      });
-      this.removeSession(sessionId);
-    });
     stateMachine.transition(InteractionInvitationEvent.Cancel);
     return stateMachine;
   }
@@ -135,9 +138,6 @@ export default class TeacherInteractionManager extends InteractionManager {
     }
 
     const { stateMachine } = session;
-    stateMachine.on(InteractionInvitationEvent.Accepted, () => {
-      this.removeSession(sessionId);
-    });
     stateMachine.transition(InteractionInvitationEvent.Accepted);
   }
 
@@ -154,9 +154,6 @@ export default class TeacherInteractionManager extends InteractionManager {
     }
 
     const { stateMachine } = session;
-    stateMachine.on(InteractionInvitationEvent.Rejected, () => {
-      this.removeSession(sessionId);
-    });
     stateMachine.transition(InteractionInvitationEvent.Rejected, data);
   }
 
@@ -333,6 +330,9 @@ export default class TeacherInteractionManager extends InteractionManager {
     stateMachine.on(ToggleRemoteDeviceEvent.Timeout, () => {
       this.removeSession(sessionId);
     });
+    stateMachine.on(ToggleRemoteDeviceEvent.Answered, () => {
+      this.removeSession(sessionId);
+    });
 
     stateMachine.transition(ToggleRemoteDeviceEvent.Notice);
 
@@ -357,11 +357,7 @@ export default class TeacherInteractionManager extends InteractionManager {
         type: CustomMessageTypes.ToggleCamera,
       });
     }
-
     const { stateMachine } = session;
-    stateMachine.on(ToggleRemoteDeviceEvent.Answered, () => {
-      this.removeSession(sessionId);
-    });
     stateMachine.transition(ToggleRemoteDeviceEvent.Answered, failed);
   }
 
@@ -398,6 +394,9 @@ export default class TeacherInteractionManager extends InteractionManager {
     stateMachine.on(ToggleRemoteDeviceEvent.Timeout, () => {
       this.removeSession(sessionId);
     });
+    stateMachine.on(ToggleRemoteDeviceEvent.Answered, () => {
+      this.removeSession(sessionId);
+    });
 
     stateMachine.transition(ToggleRemoteDeviceEvent.Notice);
 
@@ -424,9 +423,6 @@ export default class TeacherInteractionManager extends InteractionManager {
     }
 
     const { stateMachine } = session;
-    stateMachine.on(ToggleRemoteDeviceEvent.Answered, () => {
-      this.removeSession(sessionId);
-    });
     stateMachine.transition(ToggleRemoteDeviceEvent.Answered, failed);
   }
 }

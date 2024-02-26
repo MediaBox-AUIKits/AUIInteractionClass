@@ -5,6 +5,7 @@ import H5Tabs, { ChatTabKey, IntroTabKey } from './H5Tabs';
 import IntroPanel from './IntroPanel';
 import ChatPanel from './ChatPanel';
 import ChatControls from './ChatControls';
+import Announcement from './Announcement';
 import { ClassroomStatusEnum, SourceType } from '../types';
 import useClassroomStore from '../store';
 import { supportSafeArea } from '../utils/common';
@@ -78,30 +79,27 @@ function PublicClass(props: PublicClassProps) {
               onChange={tab => setTabKey(tab)}
             />
 
-            <IntroPanel
-              className={styles.h5content}
-              hidden={tabKey !== IntroTabKey}
-            />
-
-            {tabs.includes(ChatTabKey) ? (
-              <ChatPanel
-                className={styles.h5content}
-                hidden={tabKey !== ChatTabKey}
-              />
+            {tabKey === IntroTabKey ? (
+              <IntroPanel className={styles.h5content__intro} />
             ) : null}
 
-            <ChatControls
-              className={styles.h5controls}
-              theme="light"
-              heartIconActive
-              allowChat={
-                tabKey === ChatTabKey &&
-                [
+            {tabKey === ChatTabKey ? (
+              <ChatPanel className={styles.h5content__chat} />
+            ) : null}
+
+            <Announcement className={styles.h5announcement} />
+
+            {tabKey === ChatTabKey ? (
+              <ChatControls
+                className={styles.h5controls}
+                theme="light"
+                heartIconActive
+                allowChat={[
                   ClassroomStatusEnum.not_start,
                   ClassroomStatusEnum.started,
-                ].includes(status)
-              }
-            />
+                ].includes(status)}
+              />
+            ) : null}
           </Fragment>
         ) : null}
       </div>

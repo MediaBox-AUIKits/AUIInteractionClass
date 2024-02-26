@@ -22,6 +22,9 @@ export default class TeacherCooperationManager extends CooperationManager {
     permissions: Permission[],
     receiverId = this.defaultReceiverId ?? ''
   ) {
+    // 未有助教，无需同步
+    if (!receiverId) return;
+
     const type = CustomMessageTypes.SyncAssistantPermissions;
     const sessionId = this.getSessionId(type);
     this.sendIM(type, receiverId, {

@@ -2,15 +2,18 @@ import React, { useCallback, useContext, useState } from 'react';
 import { Button } from 'antd';
 import useClassroomStore from '@/components/ClassRoom/store';
 import { ClassContext } from '@/components/ClassRoom/ClassContext';
-import { ControlsContext } from '../MemberItem';
 import { TeacherInteractionManager } from '@/components/ClassRoom/utils/InteractionManager';
 import toast from '@/utils/toast';
-import styles from './styles.less';
+import styles from './index.less';
 import classNames from 'classnames';
 
-const ApplyingControls: React.FC = () => {
+interface IProps {
+  userId: string;
+}
+
+const ApplyingControls: React.FC<IProps> = props => {
   const { interactionManager } = useContext(ClassContext);
-  const { userId } = useContext(ControlsContext);
+  const { userId } = props;
   const { interactionFull, updateApplyingList } = useClassroomStore.getState();
   const [buttonDisabled, setButtonDisabled] = useState(false);
 

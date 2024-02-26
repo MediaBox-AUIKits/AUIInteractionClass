@@ -5,7 +5,7 @@ import Member from './Member';
 import Self from './Self';
 import whiteBoardFactory from '../../utils/whiteboard';
 import { ISpectatorInfo } from '../../types';
-import { LeftOutlineSvg } from '../../components/icons';
+import { LeftOutlinedSvg } from '../../components/icons';
 import styles from './index.less';
 
 const SpearkerContentID = 'spearkerContent';
@@ -111,7 +111,7 @@ const SpeakerView: React.FC<ISpeakerViewProps> = props => {
             })}
             onClick={moveToLeft}
           >
-            <LeftOutlineSvg />
+            <LeftOutlinedSvg />
           </div>
           <div
             className={classNames(styles['spearker-view__right'], {
@@ -119,7 +119,7 @@ const SpeakerView: React.FC<ISpeakerViewProps> = props => {
             })}
             onClick={moveToRight}
           >
-            <LeftOutlineSvg />
+            <LeftOutlinedSvg />
           </div>
         </Fragment>
       ) : null}

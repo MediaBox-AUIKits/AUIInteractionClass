@@ -16,8 +16,11 @@ import { getLayoutArray } from '../..//utils/common';
 
 class AlivcPusher extends window.AlivcLivePush.AlivcLivePusher {
   shadowInstance?: any; // 用于大班课混流
+  shadowSubSpecUserId?: string; // shadow 单流订阅的用户
 
-  init(config: any = {}) {
+  init(config: any = {}, shadowSubSpecUserId?: string) {
+    this.shadowSubSpecUserId = shadowSubSpecUserId;
+
     return super.init({
       resolution: CameraResolution,
       fps: CameraFps,
@@ -25,8 +28,9 @@ class AlivcPusher extends window.AlivcLivePush.AlivcLivePusher {
       cameraCloseImagePath:
         'https://img.alicdn.com/imgextra/i1/O1CN01tyOtvh1s7oMRG716S_!!6000000005720-0-tps-960-540.jpg',
       connectRetryCount: 12, // 网络异常重试次数
-      logLevel: 1,
+      logLevel: 2,
       instanceId: 'reality', // 主实例
+      extraInfo: CONFIG?.auiScene && JSON.stringify(CONFIG?.auiScene),
       ...config,
     });
   }
@@ -49,6 +53,7 @@ class AlivcPusher extends window.AlivcLivePush.AlivcLivePusher {
       audio: false,
       video: false,
       screen: false,
+      extraInfo: CONFIG?.auiScene && JSON.stringify(CONFIG?.auiScene),
     });
   }
 
@@ -136,16 +141,19 @@ class AlivcPusher extends window.AlivcLivePush.AlivcLivePusher {
 
     // 更新混流布局
     const config = new window.AlivcLivePush.AlivcLiveTranscodingConfig();
+    // 指定旁路混流的分辨率
     config.width = StreamWidth;
     config.height = StreamHeight;
+    // 指定旁路混流的码率
+    config.bitrate = 3000;
     config.cropMode = 2;
     config.mixStreams = mixStreams;
 
+    // 若启用了 shadow，则由 shadow_shareScreen 流承载老师的「摄像头」+「白板/屏幕共享/本地插播」混流
     if (this.shadowInstance) {
-      return this.shadowInstance.setLiveMixTranscodingConfig(
-        config,
-        LiveTranscodingSourceType.LiveTranscodingShareScreen
-      );
+      return this.shadowInstance.setLiveMixTranscodingConfig(config, {
+        taskSourceType: LiveTranscodingSourceType.LiveTranscodingShareScreen,
+      });
     }
     return super.setLiveMixTranscodingConfig(config);
   }
@@ -154,7 +162,9 @@ class AlivcPusher extends window.AlivcLivePush.AlivcLivePusher {
     if (this.shadowInstance) {
       return this.shadowInstance.setLiveMixTranscodingConfig(
         {},
-        LiveTranscodingSourceType.LiveTranscodingShareScreen
+        {
+          taskSourceType: LiveTranscodingSourceType.LiveTranscodingShareScreen,
+        }
       );
     }
     return super.setLiveMixTranscodingConfig();
@@ -180,18 +190,39 @@ class AlivcPusher extends window.AlivcLivePush.AlivcLivePusher {
 
   resetInteractionMembersCameraLayout() {
     if (this.shadowInstance) {
-      return this.shadowInstance.setLiveMixTranscodingConfig();
+      return this.shadowInstance.setLiveMixTranscodingConfig(
+        {},
+        {
+          subSpecUserId: this.shadowSubSpecUserId,
+        }
+      );
     }
     return super.setLiveMixTranscodingConfig();
   }
 
   async startPush(url: string, shadowUrl?: string) {
     if (shadowUrl && this.shadowInstance) {
+      /**
+       * 先启动 shadow 推 camera 流（之前实例化 pusher 的时候配置了摄像头流有默认占位图）；
+       * 配置了旁路转推则会单路转推出 {主播userId}_shadow_camera 直播流
+       */
       await this.shadowInstance.startPush(shadowUrl);
-      this.shadowInstance.startCustomStream(
+      /**
+       * 再启动 shadow 推 shareScreen 流（暂无内容，先复制 shadow_camera 画面）；
+       * 配置了旁路转推则会单路转推出 {userId}_shadow_camera 直播流
+       */
+      await this.shadowInstance.startCustomStream(
         this.shadowInstance.rtcEngineProxy.client.publishStream.mediaStream
       );
+      // 把主播的 camera 流混到 shadow 的 camera 流上
+      await this.shadowInstance.setLiveMixTranscodingConfig(
+        {},
+        {
+          subSpecUserId: this.shadowSubSpecUserId,
+        }
+      );
     }
+    // 启动主播推流；配置了旁路转推则会单路转推出 {userId}_shareScreen/{userId}_camera 流
     await super.startPush(url);
   }
 

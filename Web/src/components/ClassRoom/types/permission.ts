@@ -1,16 +1,19 @@
 // 功能
 export enum ClassroomFunction {
-  // 课堂状态管理
+  // 课程管理
   SwitchClassStatus = 'SwitchClassStatus',
   // 成员管理
   KickMember = 'KickMember',
+  AttendanceManagement = 'AttendanceManagement',
   // 辅助教学
   DrawWhiteboard = 'DrawWhiteboard',
   WhiteboardPageTurner = 'WhiteboardPageTurner',
   UpdateCourceware = 'UpdateCourceware',
-  // 互动管理
+  // 互动消息管理
+  EditAnnouncement = 'EditAnnouncement',
   RemoveGroupMessage = 'RemoveGroupMessage',
   MuteGroup = 'MuteGroup',
+  MuteUser = 'MuteUser',
   // 连麦管理
   InteractionManagement = 'InteractionManagement',
   MuteInteraction = 'MuteInteraction',

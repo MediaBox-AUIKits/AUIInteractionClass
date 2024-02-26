@@ -26,6 +26,7 @@ import RoomInteractionList from '../InteractionList';
 import NeteaseBoard from '../../components/Whiteboard/NeteaseBoard';
 import PCMainWrap from '../../components/PCMainWrap';
 import NotStartedPlaceholder from './NotStartedPlaceholder';
+import { usePageVisibilityListener } from '@/utils/hooks';
 import styles from '../styles.less';
 
 const CameraTabKey = SourceType.Camera;
@@ -65,6 +66,16 @@ const StudentPage: React.FC = () => {
       check();
     }
   }, [supportWebRTC]);
+
+  // 学生端专注度检测
+  usePageVisibilityListener({
+    onVisible: () => {
+      console.log('页面可见，上报专注度事件建议在这里执行');
+    },
+    onHidden: () => {
+      console.log('页面不可见，上报专注度事件建议在这里执行');
+    },
+  });
 
   useEffect(() => {
     if (status === ClassroomStatusEnum.ended) {
@@ -273,6 +284,12 @@ const StudentPage: React.FC = () => {
     };
     // 使用 connectedSpectators.length 判断，减少不必要的更新
   }, [teacherLinkInfo, shadowLinkInfo, connectedSpectators.length]);
+  // const bigClassLiveUrlsForWebRTCSupported = useMemo(() => {
+  //   return {
+  //     [SourceType.Material]: teacherLinkInfo?.cdnPullInfo ?? {},
+  //     [SourceType.Camera]: shadowLinkInfo?.cdnPullInfo ?? {},
+  //   };
+  // }, [teacherLinkInfo, shadowLinkInfo]);
 
   const bigClassLiveUrlsForWebRTCNotSupported = useMemo(() => {
     return {

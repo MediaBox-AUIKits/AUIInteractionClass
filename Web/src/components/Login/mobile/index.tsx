@@ -61,6 +61,9 @@ const MobileLogin = (props: LoginProps) => {
         if (detail.teacherId === userName) {
           throw new Error('您是该课堂的老师，请在电脑端登录进入');
         }
+        if (detail.assistantId === userName) {
+          throw new Error('您是该课堂的助教，请在电脑端登录进入');
+        }
         reporter.updateCommonParams({
           classid: detail.id,
           classname: detail.title,

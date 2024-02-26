@@ -4,7 +4,7 @@ import classNames from 'classnames';
 import livePush from '../../utils/LivePush';
 import useClassroomStore from '../../store';
 import {
-  LeftOutlineSvg,
+  LeftOutlinedSvg,
   CameraCloseSvg,
   CameraDisableSvg,
   CameraLoadingSvg,
@@ -163,7 +163,7 @@ export default function Camera(props: PermissionVerificationProps<IProps>) {
             })}
             onClick={() => setShowList(s => !s)}
           >
-            <LeftOutlineSvg />
+            <LeftOutlinedSvg />
           </div>
         </Dropdown>
       )}

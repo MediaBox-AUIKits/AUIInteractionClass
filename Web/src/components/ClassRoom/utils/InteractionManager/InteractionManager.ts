@@ -63,8 +63,9 @@ export default class InteractionManager {
     const index = this.pendingSessionQueue.findIndex(
       ({ sessionId }) => sessionId === targetSessionId
     );
-    this.pendingSessionQueue.splice(index, 1);
-    console.log(this.pendingSessionQueue);
+    if (index > -1) {
+      this.pendingSessionQueue.splice(index, 1);
+    }
   }
 
   async sendIM(type: CustomMessageTypes, data: InteractionIMData) {
@@ -77,10 +78,8 @@ export default class InteractionManager {
 
     logger.reportInvoke(EMsgid.SEND_INTERACTION_IM);
     try {
-      await this.message.sendMessageToGroup({
+      await this.message.sendGroupSignal({
         type,
-        skipAudit: true,
-        skipMuteCheck: true,
         data,
       });
       logger.reportInvokeResult(EMsgid.SEND_INTERACTION_IM_RESULT, true);

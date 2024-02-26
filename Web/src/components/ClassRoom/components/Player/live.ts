@@ -84,6 +84,10 @@ const MAX_RETRY_COUNT = 5;
 // 重试时间间隔
 const RETRY_INTERVAL = 2000;
 
+(window as any).Aliplayer.__logCallback__ = function (event: any) {
+  if (CONFIG?.auiScene) event.extra = JSON.stringify(CONFIG?.auiScene);
+};
+
 export class LiveService {
   private playerMap: Map<number | string, any> = new Map();
   private currentInstanceId?: number | string;

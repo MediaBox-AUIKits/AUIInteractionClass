@@ -76,7 +76,7 @@ const MemberList: React.FC<IMemberListProps> = props => {
   const { run: throttleFetchList, cancel: cancelFetchList } = useThrottleFn(
     fetchList,
     {
-      wait: 2000,
+      wait: 3000,
     }
   );
 
@@ -84,7 +84,7 @@ const MemberList: React.FC<IMemberListProps> = props => {
     if (visibleLatest.current) {
       throttleFetchList(false);
     }
-  }, [memberListFlag]);
+  }, [memberListFlag, throttleFetchList]);
 
   useEffect(() => {
     if (visible && classId) {

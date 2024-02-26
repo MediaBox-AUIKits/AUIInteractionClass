@@ -2,8 +2,8 @@
  * 连麦成员管理
  */
 import React from 'react';
-import ApplyingList from './ApplyingList';
-import InteractingList from './InteractingList';
+import MemberItem from './MemberItem';
+import InteractingControls from './ItemControls/InteractingControls';
 import useClassroomStore from '../../store';
 import EmptyBlock from '../../components/EmptyBlock';
 import styles from './InteractionMembers.less';
@@ -23,13 +23,20 @@ const InteractionMembers: React.FC = () => {
 
   return (
     <div className={styles['interaction-members__wrap']}>
-      <ApplyingList />
       {showInteractingList ? (
-        <InteractingList
+        <div
           className={classNames({
             [styles['has-border-top']]: applyingList.length,
           })}
-        />
+        >
+          {connectedSpectators.map(item => (
+            <MemberItem
+              key={item.userId}
+              userInfo={item}
+              controls={<InteractingControls {...item} />}
+            />
+          ))}
+        </div>
       ) : null}
     </div>
   );

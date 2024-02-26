@@ -24,21 +24,28 @@ export default defineConfig({
       },
       // IM 服务配置
       imServer: {
-        // 请先开通阿里云互动消息服务，https://help.aliyun.com/zh/live/user-guide/interactive-messaging-overview?spm=a2c4g.11186623.0.0
+        // 对应 WebSDK = aliyun-interaction-sdk.web.min.js
         aliyunIMV1: {
-          enable: true, // 是否开启
-          primary: false, // 是否是首选
+          // NOTE: Deprecation，不建议开启
+          enable: false,
+          primary: false,
         },
         // 请先开通融云 IM 服务，https://www.rongcloud.cn/product/im?_sasdk=fMjQ4ODE3
         rongCloud: {
-          enable: true,
+          enable: false,
           primary: false,
           appKey: '', // 融云 SDK 的 AppKey，从控制台上获取
         },
+        // 对应 WebSDK = alivc-im.iife.js
+        // 请先开通阿里云直播互动消息服务 https://help.aliyun.com/zh/live/user-guide/live-interactive-messages-new
         aliyunIMV2: {
           enable: true,
-          primary: true,
-        }
+          primary: true, // NOTE: 建议启用 aliyunIMV2 并设置为 primary
+        },
+      },
+      auiScene: {
+        scene: 'AUIInteractionClass', // AUI 场景/平台声明
+        platform: 'web',
       },
     },
   },

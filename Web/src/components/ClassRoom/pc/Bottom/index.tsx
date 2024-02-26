@@ -20,7 +20,9 @@ import ScreenShare from './ScreenShare';
 import Board from './Board';
 import Doc from './Doc';
 import MultiMedia from './MultiMedia';
+import Tools from './Tools';
 import Setting from './Setting';
+import InteractionApplication from './InteractionApplication';
 import styles from './index.less';
 import toast from '@/utils/toast';
 
@@ -101,12 +103,9 @@ const RoomBottom: React.FC = () => {
     const options = {
       type,
       data,
-      // 需要跳过审核和禁言
-      skipMuteCheck: true,
-      skipAudit: true,
     };
     try {
-      await auiMessage.sendMessageToGroup(options);
+      await auiMessage.sendGroupSignal(options);
       throttleMeetingInfo(); // 更新设备信息
     } catch (error) {
       //
@@ -124,7 +123,7 @@ const RoomBottom: React.FC = () => {
     };
     logger.reportInfo(EMsgid.MEDIA_DEVICE_PERMISSION, result);
     // 初始化
-    await livePusher.init(result);
+    await livePusher.init(result, userInfo?.userId);
     setCameraDisabled(!result.video);
     setMicDisabled(!result.audio);
     // 有可能推流sdk初始化成功前就有白板mediaStream了，但是那会调用 startCustomStream 会无效，所以需要init 之后再操作一次
@@ -143,7 +142,7 @@ const RoomBottom: React.FC = () => {
         true
       );
     });
-  }, []);
+  }, [userInfo]);
 
   useEffect(() => {
     const networkrecoveryHandler = () => {
@@ -169,7 +168,7 @@ const RoomBottom: React.FC = () => {
       livePusher.network.off('networkrecovery', networkrecoveryHandler);
       livePush.destroyInstance('alivc');
     };
-  }, []);
+  }, [initLivePusher]);
 
   useEffect(() => {
     const off = useClassroomStore.subscribe(
@@ -355,10 +354,8 @@ const RoomBottom: React.FC = () => {
       const options = {
         type: CustomMessageTypes.ClassStart,
         data: {},
-        skipMuteCheck: true,
-        skipAudit: true,
       };
-      await auiMessage.sendMessageToGroup(options);
+      await auiMessage.sendGroupSignal(options);
 
       // 更新 meetingInfo
       await updateTeacherInteractionInfo();
@@ -396,10 +393,8 @@ const RoomBottom: React.FC = () => {
       const options = {
         type: CustomMessageTypes.ClassStop,
         data: {},
-        skipMuteCheck: true,
-        skipAudit: true,
       };
-      await auiMessage.sendMessageToGroup(options);
+      await auiMessage.sendGroupSignal(options);
       try {
         // 停止推流
         await livePusher.stopPush();
@@ -475,10 +470,8 @@ const RoomBottom: React.FC = () => {
           const { board } = useClassroomStore.getState();
           // 关闭屏幕分享时需要更新为白板流
           if (!display.enable && board.mediaStream) {
-            auiMessage.sendMessageToGroup({
+            auiMessage.sendGroupSignal({
               type: CustomMessageTypes.WhiteBoardVisible,
-              skipMuteCheck: true,
-              skipAudit: true,
             });
             console.log(
               '------ startCustomStream: board (screenShare stopped) -----'
@@ -533,10 +526,8 @@ const RoomBottom: React.FC = () => {
             console.log('------ startCustomStream: localMedia -----');
             livePusher.startCustomStream(localMedia.mediaStream);
           } else if (board.mediaStream && !display.enable) {
-            auiMessage.sendMessageToGroup({
+            auiMessage.sendGroupSignal({
               type: CustomMessageTypes.WhiteBoardVisible,
-              skipMuteCheck: true,
-              skipAudit: true,
             });
             console.log(
               '------ startCustomStream: board (localMedia stopped) -----'
@@ -570,7 +561,9 @@ const RoomBottom: React.FC = () => {
         <Board />
         <Doc />
         <MultiMedia />
+        <Tools canUpdateAnnouncement canManageAttendance />
         <Setting canMuteGroup canMuteInteraction canAllowInteraction />
+        <InteractionApplication />
       </div>
       <div className={styles['right-part']}>
         <PushButton />
