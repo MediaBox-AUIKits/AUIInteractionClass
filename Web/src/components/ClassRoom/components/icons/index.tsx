@@ -50,6 +50,7 @@ import { ReactComponent as Edit } from './edit.svg';
 import { ReactComponent as Tools } from './tools.svg';
 import { ReactComponent as MuteFilled } from './mute_filled.svg';
 import { ReactComponent as MuteOutlined } from './mute_outlined.svg';
+import { ReactComponent as UserOutlined } from './user_outlined.svg';
 
 export const CopySvg = Copy;
 export const ExitSvg = Exit;
@@ -98,3 +99,4 @@ export const EditSvg = Edit;
 export const ToolsSvg = Tools;
 export const MuteFilledSvg = MuteFilled;
 export const MuteOutlinedSvg = MuteOutlined;
+export const UserOutlinedSvg = UserOutlined;

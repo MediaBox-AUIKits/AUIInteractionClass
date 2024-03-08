@@ -89,13 +89,17 @@ export default function PushButton(props: PermissionVerificationProps) {
 
   // 需要有白板画面流，且不是已结束状态时才允许推流，并且还需要已加入消息群组
   const canPush = useMemo(() => {
+    // 至少需要有个可用的流
+    const { publishStream, publishSecondaryStream, publishAudioStream } =
+      livePusher?.rtcEngineProxy?.client ?? {};
     return (
       joinedGroupId &&
       hasBoardStream &&
       (status === ClassroomStatusEnum.not_start ||
-        status === ClassroomStatusEnum.started)
+        status === ClassroomStatusEnum.started) &&
+      (publishStream || publishSecondaryStream || publishAudioStream)
     );
-  }, [status, microphone, camera, hasBoardStream, joinedGroupId]);
+  }, [status, microphone, camera, hasBoardStream, joinedGroupId, livePusher]);
 
   const handleClick = () => {
     if (pusher.pushing) {

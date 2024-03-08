@@ -1,22 +1,28 @@
 import React, { useMemo, useState } from 'react';
 import { Popover } from 'antd';
 import Announcement from './Announcement';
+import CheckInManagement from './CheckInManagement';
 import { ToolsSvg } from '@/components/ClassRoom/components/icons';
 import styles from './index.less';
 import commonStyles from '../index.less';
 
 interface IProps {
   canUpdateAnnouncement?: boolean; // 公告管理
-  canManageAttendance?: boolean; // 签到管理 TODO: 下版本实现
+  canManageCheckIn?: boolean; // 签到管理
 }
 
 const Tools: React.FC<IProps> = props => {
-  const { canUpdateAnnouncement = false } = props;
+  const { canUpdateAnnouncement = false, canManageCheckIn = false } = props;
   const [tipOpen, setTipOpen] = useState(false);
 
   const showAnnouncementManagement = useMemo(
     () => canUpdateAnnouncement,
     [canUpdateAnnouncement]
+  );
+
+  const showCheckInManagement = useMemo(
+    () => canUpdateAnnouncement,
+    [canManageCheckIn]
   );
 
   const renderAnnoucementManagement = useMemo(
@@ -27,14 +33,27 @@ const Tools: React.FC<IProps> = props => {
     [showAnnouncementManagement]
   );
 
-  const toolsPanel = useMemo(
-    () => (
-      <div className={styles['tools-panel']}>{renderAnnoucementManagement}</div>
-    ),
-    [renderAnnoucementManagement]
+  const renderCheckInManagement = useMemo(
+    () =>
+      showCheckInManagement ? (
+        <CheckInManagement onClick={() => setTipOpen(false)} />
+      ) : null,
+    [showCheckInManagement]
   );
 
-  if (!showAnnouncementManagement) return null;
+  const toolsPanel = useMemo(
+    () => (
+      <>
+        <div className={styles['tools-panel']}>
+          {renderAnnoucementManagement}
+        </div>
+        <div className={styles['tools-panel']}>{renderCheckInManagement}</div>
+      </>
+    ),
+    [renderAnnoucementManagement, renderCheckInManagement]
+  );
+
+  if (!showAnnouncementManagement && !showCheckInManagement) return null;
 
   return (
     <Popover content={toolsPanel} open={tipOpen} onOpenChange={setTipOpen}>

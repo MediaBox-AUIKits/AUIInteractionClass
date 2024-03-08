@@ -187,13 +187,13 @@ class NetEase {
           tool: 'prevAnim',
           hint: '上一步',
         });
-        toolCollection.addOrSetContainer({
+        toolCollection?.addOrSetContainer({
           position: 'bottomRight',
           items,
         });
       } else if (this.hasTransDoc && !drawPlugin.hasTransDoc()) {
         this.hasTransDoc = false;
-        toolCollection.addOrSetContainer({
+        toolCollection?.addOrSetContainer({
           position: 'bottomRight',
           items,
         });

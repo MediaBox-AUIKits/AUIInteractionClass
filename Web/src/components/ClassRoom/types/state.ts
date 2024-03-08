@@ -4,6 +4,8 @@ import {
   IUserInfo,
   InteractionInvitationUpdateType,
   UserRoleEnum,
+  StudentCheckInRecord,
+  CheckInInfo,
 } from './classroom';
 import { IMemberInfo } from './member';
 import { ClassroomFunction } from './permission';
@@ -91,6 +93,9 @@ export interface IClassroomState {
   classroomInfo: IClassroomInfo;
   memberListFlag: number; // 用于触发重新获取成员列表
   memberList: IMemberInfo[];
+  // 签到相关
+  runningCheckIn?: CheckInInfo; // 正在进行的签到
+  checkInRecords?: StudentCheckInRecord[]; // 当前（若签到正在进行中）或上一场的签到记录
 
   // 角色相关
   isTeacher: boolean; // 老师
@@ -119,6 +124,7 @@ export interface IClassroomState {
   board: IBoard;
   localMedia: ILocalMedia;
   docsUpdateFlag: number;
+  cameraIsSubScreen: boolean; // 摄像头画面为次画面（居于右上角）
 
   // 连麦相关
   connectedSpectators: ISpectatorInfo[]; // 连麦观众数组
@@ -143,6 +149,8 @@ export interface ClassroomActions {
   setAsstPermAccessibleFunctions: (permissions: Permission[]) => void;
   increaseMemberListFlag: () => void;
   setMemberList: (memberList: IMemberInfo[]) => void;
+  setRunningCheckIn: (info?: CheckInInfo) => void;
+  setCheckInRecords: (checkInRecords: StudentCheckInRecord[]) => void;
   setCommentInput: (text: string) => void;
   setMessageList: (list: CommentMessage[]) => void;
   setJoinedGroupId: (id: string) => void;
@@ -175,6 +183,7 @@ export interface ClassroomActions {
   setLocalMediaStream: (stream?: MediaStream) => void;
   setLocalMediaSources: (sources: ILocalMediaSource[]) => void;
   setDocsUpdateFlag: () => void;
+  setCameraIsSubScreen: (bool: boolean) => void;
 
   updateInteractionInvitationUsers: (
     type: InteractionInvitationUpdateType,

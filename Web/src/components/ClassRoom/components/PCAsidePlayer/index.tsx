@@ -1,6 +1,7 @@
-import React, { Fragment } from 'react';
+import React, { useContext, Fragment } from 'react';
 import { ClassroomStatusEnum } from '../../types';
 import useClassroomStore from '../../store';
+import { ClassContext } from '../../ClassContext';
 import {
   MicCloseSvg,
   MicNormalSvg,
@@ -16,15 +17,11 @@ interface IAsidePlayerProps {
 }
 
 const AsidePlayer: React.FC<IAsidePlayerProps> = props => {
-  const {
-    children,
-    micOpened,
-    switcherVisible,
-    onSwitchView = () => {},
-  } = props;
+  const { children, micOpened, switcherVisible = false, onSwitchView } = props;
   const controlsVisible = useClassroomStore(
     state => state.classroomInfo.status === ClassroomStatusEnum.started
   );
+  const { switchScreen } = useContext(ClassContext);
 
   return (
     <div className={styles['audience-aside-player']}>
@@ -37,8 +34,8 @@ const AsidePlayer: React.FC<IAsidePlayerProps> = props => {
           <div className={styles['audience-aside-player__bottom']}>
             {switcherVisible ? (
               <div
-                className={styles['audience-aside-player__bottom__action']}
-                onClick={onSwitchView}
+                className={styles['audience-aside-player__bottom__item']}
+                onClick={onSwitchView ?? switchScreen}
               >
                 <ViewSwitchSvg />
               </div>

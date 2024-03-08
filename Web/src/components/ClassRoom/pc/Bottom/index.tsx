@@ -491,12 +491,14 @@ const RoomBottom: React.FC = () => {
       async (board, prevBoard) => {
         const {
           classroomInfo: { id },
+          display: { enable: displayEnable },
+          localMedia: { mediaStream: localMediaStream },
         } = useClassroomStore.getState();
         // 退出教室页，不再响应
         if (!id) return;
 
         if (board !== prevBoard) {
-          if (board.mediaStream) {
+          if (board.mediaStream && !displayEnable && !localMediaStream) {
             console.log('------ startCustomStream: board (board changed)-----');
             livePusher.startCustomStream(board.mediaStream);
           } else {
@@ -561,7 +563,7 @@ const RoomBottom: React.FC = () => {
         <Board />
         <Doc />
         <MultiMedia />
-        <Tools canUpdateAnnouncement canManageAttendance />
+        <Tools canUpdateAnnouncement canManageCheckIn />
         <Setting canMuteGroup canMuteInteraction canAllowInteraction />
         <InteractionApplication />
       </div>

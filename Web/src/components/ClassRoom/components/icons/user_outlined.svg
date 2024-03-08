@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1em" height="1em" viewBox="0 0 16 16" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g transform="translate(-401.000000, -16.000000)">
+            <g transform="translate(385.000000, 8.000000)">
+                <g transform="translate(16.000000, 8.000000)">
+                    <path d="M8,4 C6.62,4 5.5,5.12 5.5,6.5 C5.5,7.88 6.62,9 8,9 C9.38,9 10.5,7.88 10.5,6.5 C10.5,5.12 9.38,4 8,4 Z M8,8 C7.175,8 6.5,7.325 6.5,6.5 C6.5,5.675 7.175,5 8,5 C8.825,5 9.5,5.675 9.5,6.5 C9.5,7.325 8.825,8 8,8 Z" fill="currentColor" fill-rule="nonzero"></path>
+                    <rect x="0" y="0" width="16" height="16"></rect>
+                    <path d="M8,1 C4.14,1 1,4.14 1,8 C1,11.86 4.14,15 8,15 C11.86,15 15,11.86 15,8 C15,4.14 11.86,1 8,1 Z M5,13.19 L5,12.5 C5,11.675 5.675,11 6.5,11 L9.5,11 C10.325,11 11,11.675 11,12.5 L11,13.19 C10.115,13.705 9.095,14 8,14 C6.905,14 5.885,13.7 5,13.19 Z M11.995,12.465 C11.975,11.105 10.865,10 9.5,10 L6.5,10 C5.135,10 4.025,11.1 4.005,12.465 C2.78,11.365 2,9.775 2,8 C2,4.69 4.69,2 8,2 C11.31,2 14,4.69 14,8 C14,9.775 13.225,11.365 11.995,12.465 Z" fill="currentColor" fill-rule="nonzero"></path>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

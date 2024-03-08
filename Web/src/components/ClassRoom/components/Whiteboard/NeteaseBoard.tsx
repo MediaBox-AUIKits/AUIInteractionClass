@@ -1,14 +1,7 @@
 /**
  * 基于网易白板实现白板组件
  */
-import React, {
-  useState,
-  useEffect,
-  useMemo,
-  useRef,
-  useContext,
-  useCallback,
-} from 'react';
+import React, { useState, useEffect, useMemo, useRef, useContext } from 'react';
 import toast from '@/utils/toast';
 import classNames from 'classnames';
 import Mousetrap from 'mousetrap';
@@ -27,7 +20,6 @@ interface IProps {
   canTurnPage?: boolean;
   canUpdateCourceware?: boolean;
   setAsBroadcaster?: boolean;
-  onDocsUpdated?: () => void;
 }
 
 const NeteaseBoard: React.FC<IProps> = props => {
@@ -37,10 +29,9 @@ const NeteaseBoard: React.FC<IProps> = props => {
     canTurnPage = false,
     canUpdateCourceware = false,
     setAsBroadcaster = false,
-    onDocsUpdated,
   } = props;
   const { rendererStyle } = useContext(PCMainWrapContext);
-  const { services, userInfo } = useContext(ClassContext);
+  const { services, userInfo, cooperationManager } = useContext(ClassContext);
   const wbIns = useMemo(() => {
     return whiteBoardFactory.getInstance('netease');
   }, []);
@@ -177,51 +168,45 @@ const NeteaseBoard: React.FC<IProps> = props => {
     if (docsUpdateFlag > 0) queryDoc();
   }, [docsUpdateFlag]);
 
-  const handleDocAdd = useCallback(
-    async (newDocs: any[], allDocs: any[]) => {
-      console.log('add allDocs->', allDocs);
-      const arr: any[] = [];
-      newDocs.forEach(item => {
-        const target = wbDocsCache.current.find(el => el.docId === item.docId);
-        if (target) {
-          return;
-        }
-        item.sdkVersion = NeteaseSDKVersion;
-        arr.push({
-          docId: item.docId,
-          serverType: 0, // 0 代表网易云信的白板
-          data: JSON.stringify(item),
-        });
+  const handleDocAdd = async (newDocs: any[], allDocs: any[]) => {
+    console.log('add allDocs->', allDocs);
+    const arr: any[] = [];
+    newDocs.forEach(item => {
+      const target = wbDocsCache.current.find(el => el.docId === item.docId);
+      if (target) {
+        return;
+      }
+      item.sdkVersion = NeteaseSDKVersion;
+      arr.push({
+        docId: item.docId,
+        serverType: 0, // 0 代表网易云信的白板
+        data: JSON.stringify(item),
       });
-      if (arr.length) {
-        try {
-          await services?.addDocs(arr);
-          onDocsUpdated?.();
-        } catch (err) {
-          console.log('增加文档失败', err);
-        }
+    });
+    if (arr.length) {
+      try {
+        await services?.addDocs(arr);
+        cooperationManager?.syncDocsUpdated();
+      } catch (err) {
+        console.log('增加文档失败', err);
       }
-      wbDocsCache.current = allDocs;
-    },
-    [onDocsUpdated]
-  );
+    }
+    wbDocsCache.current = allDocs;
+  };
 
-  const handleDocDelete = useCallback(
-    async (docList: any[], allDocs: any[]) => {
-      console.log('delete allDocs->', allDocs);
-      const arr = docList.map(item => item.docId);
-      if (arr.length) {
-        try {
-          await services?.deleteDocs(arr.join(','));
-          onDocsUpdated?.();
-        } catch (err) {
-          console.log('删除文档失败！', err);
-        }
+  const handleDocDelete = async (docList: any[], allDocs: any[]) => {
+    console.log('delete allDocs->', allDocs);
+    const arr = docList.map(item => item.docId);
+    if (arr.length) {
+      try {
+        await services?.deleteDocs(arr.join(','));
+        cooperationManager?.syncDocsUpdated();
+      } catch (err) {
+        console.log('删除文档失败！', err);
       }
-      wbDocsCache.current = allDocs;
-    },
-    [onDocsUpdated]
-  );
+    }
+    wbDocsCache.current = allDocs;
+  };
 
   const checkMediaStream = () => {
     const stream = wbIns?.getStream({
@@ -260,14 +245,14 @@ const NeteaseBoard: React.FC<IProps> = props => {
       .then(() => {
         const joinInfo = { channel: wbInfo.boardId };
         logger.reportInvoke(EMsgid.JOIN_WHITE_BOARD_ROOM, joinInfo);
+        const container = document.getElementById('whiteboardWrap');
+        if (!container) return; // 可能存在挂载后迅速被销毁，因此不抛出错误
         wbIns
           .joinRoom({
             // 服务端创建网易白板房间时，channelName 使用的是课堂id，boardId 也是课堂 id
             // 前端加入的 channel 对应的是创建接口的 channelName，若不是，那么加入的就不是同一个房间
             ...joinInfo,
-            toolContainer: document.getElementById(
-              'whiteboardWrap'
-            ) as HTMLElement,
+            toolContainer: container as HTMLElement,
             ondisconnected: err => {
               console.error('白板断联!', err);
             },
@@ -343,7 +328,7 @@ const NeteaseBoard: React.FC<IProps> = props => {
         wbIns.toolCollection?.off('docDelete', handleDocDelete);
       };
     }
-  }, [wbInited, wbIns, canControl, handleDocAdd, handleDocDelete]);
+  }, [wbInited, wbIns, canControl, handleDocDelete]);
 
   return (
     <div

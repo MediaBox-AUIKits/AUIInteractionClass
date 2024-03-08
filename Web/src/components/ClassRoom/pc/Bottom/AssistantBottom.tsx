@@ -45,7 +45,7 @@ const AssistantBottom: React.FC<IProps> = (props: IProps) => {
         <PermissionVerificationWrap
           functionsVerificationMap={{
             canUpdateAnnouncement: ClassroomFunction.EditAnnouncement,
-            canManageAttendance: ClassroomFunction.AttendanceManagement,
+            canManageCheckIn: ClassroomFunction.CheckInManagement,
           }}
         >
           <Tools />

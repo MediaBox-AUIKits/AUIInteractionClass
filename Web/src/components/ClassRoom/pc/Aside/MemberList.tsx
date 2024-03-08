@@ -56,7 +56,6 @@ const MemberList: React.FC<IMemberListProps> = props => {
         class_id: id,
         page_num: pageNumLatest.current,
         page_size: MemberPageSize, // 一页几个
-        identity: 0, // 所以角色
         status: 0, // 所有状态
       })
       .then(res => {

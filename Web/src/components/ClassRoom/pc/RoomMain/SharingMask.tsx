@@ -2,8 +2,14 @@ import React from 'react';
 import useClassroomStore from '../../store';
 import { ScreenShareSvg } from '../../components/icons';
 import styles from './styles.less';
+import classNames from 'classnames';
 
-const SharingMask: React.FC = () => {
+interface ISharingMaskProps {
+  minify?: boolean; // 屏幕共享作为次画面
+  style?: React.CSSProperties;
+}
+
+const SharingMask: React.FC<ISharingMaskProps> = props => {
   const { enable } = useClassroomStore(state => state.display);
 
   if (!enable) {
@@ -11,7 +17,12 @@ const SharingMask: React.FC = () => {
   }
 
   return (
-    <div className={styles['sharing-mask']}>
+    <div
+      className={classNames(styles['sharing-mask'], {
+        [styles.minify]: props.minify ?? false,
+      })}
+      style={props.style ?? {}}
+    >
       <ScreenShareSvg />
       <span>屏幕共享中...</span>
     </div>

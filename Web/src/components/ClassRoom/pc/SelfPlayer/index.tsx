@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useContext, useMemo, useEffect } from 'react';
 import classNames from 'classnames';
 import { useDebounceFn } from 'ahooks';
 import livePush from '../../utils/LivePush';
+import { ClassContext } from '../../ClassContext';
 import useClassroomStore from '../../store';
 import { PreviewPlayerId } from '../../constants';
 import {
@@ -12,15 +13,18 @@ import {
   CameraCloseSvg,
   CameraNormalSvg,
   CameraCloseSolidSvg,
+  ViewSwitchSvg,
 } from '../../components/icons';
 import styles from './index.less';
 
 interface ISelfPlayerProps {
   className?: string;
+  switcherVisible?: boolean;
+  onSwitchView?: () => void;
 }
 
 const SelfPlayer: React.FC<ISelfPlayerProps> = props => {
-  const { className } = props;
+  const { className, switcherVisible = true, onSwitchView } = props;
   const { cameraEnable, cameraDisabled, micDisbaled, micEnable } =
     useClassroomStore(state => ({
       cameraEnable: state.camera.enable,
@@ -28,6 +32,7 @@ const SelfPlayer: React.FC<ISelfPlayerProps> = props => {
       micDisbaled: state.microphone.deviceCount <= 0,
       micEnable: state.microphone.enable,
     }));
+  const { switchScreen } = useContext(ClassContext);
 
   const { run: toggleMic } = useDebounceFn(
     () => {
@@ -72,16 +77,15 @@ const SelfPlayer: React.FC<ISelfPlayerProps> = props => {
     return svg;
   };
 
-  // 用于测试时观看主流、辅流，正式上线时删除
-  const [isSub, setIsSub] = useState(false);
   const livePusher = useMemo(() => {
     return livePush.getInstance('alivc')!;
   }, []);
-  const toggleStream = () => {
-    const bool = !isSub;
-    livePusher.startPreview(PreviewPlayerId, bool);
-    setIsSub(bool);
-  };
+
+  useEffect(() => {
+    if (cameraEnable) {
+      livePusher.startPreview(PreviewPlayerId);
+    }
+  }, [cameraEnable]);
 
   return (
     <div className={classNames(styles['self-player'], className)}>
@@ -97,14 +101,18 @@ const SelfPlayer: React.FC<ISelfPlayerProps> = props => {
         </div>
       )}
 
-      <span
-        className={styles['self-player__role']}
-        onDoubleClick={toggleStream}
-      >
-        老师(我)
-      </span>
+      <span className={styles['self-player__role']}>老师(我)</span>
 
       <div className={styles['self-player__actions']}>
+        {switcherVisible ? (
+          <div
+            className={styles['self-player__action']}
+            onClick={onSwitchView ?? switchScreen}
+          >
+            <ViewSwitchSvg />
+          </div>
+        ) : null}
+
         <div className={styles['self-player__actions__right']}>
           <span
             className={classNames(styles['self-player__action'], {

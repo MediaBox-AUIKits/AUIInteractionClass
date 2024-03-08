@@ -4,7 +4,7 @@ export enum ClassroomFunction {
   SwitchClassStatus = 'SwitchClassStatus',
   // 成员管理
   KickMember = 'KickMember',
-  AttendanceManagement = 'AttendanceManagement',
+  CheckInManagement = 'CheckInManagement',
   // 辅助教学
   DrawWhiteboard = 'DrawWhiteboard',
   WhiteboardPageTurner = 'WhiteboardPageTurner',

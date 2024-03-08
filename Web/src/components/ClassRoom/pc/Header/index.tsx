@@ -4,10 +4,13 @@ import React, {
   useMemo,
   Fragment,
   useContext,
+  useCallback,
 } from 'react';
 import toast from '@/utils/toast';
+import CheckInTask from '../../components/CheckInManagement/CheckInTask';
+import PermissionVerificationWrap from '@/components/ClassRoom/components/PermissionVerificationWrap';
 import useClassroomStore from '../../store';
-import { ClassroomStatusEnum } from '../../types';
+import { ClassroomFunction, ClassroomStatusEnum } from '../../types';
 import { getTimeFormat, isValidDate } from '../../utils/common';
 import copyText from '../../utils/copyText';
 import {
@@ -95,6 +98,7 @@ const RoomHeader: React.FC = () => {
   const {
     classroomInfo: { id },
     isTeacher,
+    isAssistant,
   } = useClassroomStore(state => state);
   const { exit } = useContext(ClassContext);
 
@@ -121,15 +125,40 @@ const RoomHeader: React.FC = () => {
     );
   };
 
+  const renderCheckInTask = useCallback(() => {
+    if (isTeacher) {
+      return (
+        <CheckInTask>
+          <div className={styles['pc-header-divider']} />
+        </CheckInTask>
+      );
+    }
+    if (isAssistant) {
+      return (
+        <PermissionVerificationWrap
+          functionKey={ClassroomFunction.CheckInManagement}
+        >
+          <CheckInTask>
+            <div className={styles['pc-header-divider']} />
+          </CheckInTask>
+        </PermissionVerificationWrap>
+      );
+    }
+  }, [isTeacher, isAssistant]);
+
   return (
     <div className={styles['pc-header']}>
       {id ? (
         <Fragment>
-          <div className={styles['pc-id-block']}>
-            <span>教室号: {id}</span>
-            <CopySvg onClick={copy} />
+          <div className={styles['pc-header-left']}>
+            <div className={styles['pc-id-block']}>
+              <span>教室号: {id}</span>
+              <CopySvg onClick={copy} />
+            </div>
+            <div className={styles['pc-header-divider']} />
+            <RoomStatus />
+            {renderCheckInTask()}
           </div>
-          <RoomStatus />
 
           {renderRight()}
         </Fragment>

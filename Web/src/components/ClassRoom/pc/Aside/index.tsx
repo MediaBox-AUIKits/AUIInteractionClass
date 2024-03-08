@@ -42,6 +42,7 @@ const RoomAside: React.FC<IRoomAsideProps> = props => {
   const {
     isAdmin,
     classroomInfo: { mode },
+    localMedia,
     isTeacher,
   } = useClassroomStore(state => state);
 
@@ -106,7 +107,12 @@ const RoomAside: React.FC<IRoomAsideProps> = props => {
 
   const renderPlayer = () => {
     if (playerType === AsidePlayerTypes.self) {
-      return <SelfPlayer className={styles['aside__player']} />;
+      return (
+        <SelfPlayer
+          className={styles['aside__sub-screen']}
+          switcherVisible={!localMedia.mediaStream} // 本地插播中不可切换画面，否则会引起推流断流
+        />
+      );
     }
 
     if (playerType === AsidePlayerTypes.custom) {

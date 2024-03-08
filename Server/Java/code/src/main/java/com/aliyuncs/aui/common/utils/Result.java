@@ -31,6 +31,10 @@ public class Result {
 		return error(404, "未查询到");
 	}
 
+	public static Result notFound(String msg) {
+		return error(404, msg);
+	}
+
 	public static Result invalidParam() {
 		return error(401, "参数错误");
 	}

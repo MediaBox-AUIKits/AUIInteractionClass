@@ -16,6 +16,8 @@ import AssistantBottom from './Bottom/AssistantBottom';
 import H5Player from '../mobile/H5Player';
 import AsidePlayer from '../components/PCAsidePlayer';
 import RoomInteractionList from './InteractionList';
+import PCAsideScreenWrapper from '../components/PCAsideScreenWrapper';
+import NeteaseBoard from '../components/Whiteboard/NeteaseBoard';
 import AssistantCooperation from '../components/AssistantCooperation';
 import { ClassContext } from '../ClassContext';
 import { AUIMessageEvents } from '@/BaseKits/AUIMessage/types';
@@ -24,12 +26,14 @@ import styles from './styles.less';
 
 const AssistantPage: React.FC = () => {
   const {
+    isAdmin,
     classroomInfo: {
       teacherId,
       mode,
       linkInfo: teacherLinkInfo,
       shadowLinkInfo, // 不支持 WebRTC 的设备上，只展示一个画面，画面是混流后的布局，数据来源是 shadowLinkInfo
     },
+    cameraIsSubScreen,
     connectedSpectators,
     interacting,
     supportWebRTC,
@@ -64,9 +68,9 @@ const AssistantPage: React.FC = () => {
   const [whiteBoardActivated, setWhiteBoardActivated] = useState(true);
   const [micOpened, setMicOpened] = useState<boolean>(false);
   const [hasCamera, setHasCamera] = useState<boolean>(false);
-  const [hasMainScreenSource, setHasMainScreenSource] =
-    useState<boolean>(false);
-  const [hasSubScreenSource, setHasSubScreenSource] = useState<boolean>(false);
+  const [hasMutilMedia, setHasMutilMedia] = useState<boolean>(false);
+  const [hasMaterialSource, setHasMaterialSource] = useState<boolean>(false); // 白板、屏幕共享或本地插播媒体流
+  const [hasCameraSource, setHasCameraSource] = useState<boolean>(false); // 摄像头流
 
   useEffect(() => {
     const teacherPubStatus = teacherInteractionInfo ?? {
@@ -81,8 +85,9 @@ const AssistantPage: React.FC = () => {
     const hasCamera = !!teacherPubStatus.isVideoPublishing;
     const hasMaterial = !!teacherPubStatus.isScreenPublishing;
     setHasCamera(hasCamera);
-    setHasSubScreenSource(hasCamera);
-    setHasMainScreenSource(hasMaterial);
+    setHasCameraSource(hasCamera);
+    setHasMutilMedia(teacherPubStatus.mutilMedia ?? false);
+    setHasMaterialSource(hasMaterial);
     setWhiteBoardActivated(
       !teacherPubStatus.mutilMedia && !teacherPubStatus.screenShare
     );
@@ -233,45 +238,50 @@ const AssistantPage: React.FC = () => {
     [teacherLinkInfo]
   );
 
-  const asidePlayer = useMemo(
-    () => (
-      <AsidePlayer micOpened={micOpened} switcherVisible={false}>
-        {interacting && teacherInteractionInfo ? (
-          <video
-            id="interaction-camera"
-            ref={teacherInteractingCamera}
-            className={styles['amaui-classroom__aside__interacting-video']}
-          ></video>
-        ) : (
-          <H5Player
-            id="asidePlayer"
-            device="pc"
-            cdnUrlMap={
-              mode === ClassroomModeEnum.Big
-                ? bigClassLiveUrlsForWebRTCSupported
-                : openClassLiveUrls
-            }
-            sourceType={SourceType.Camera}
-            rtsFirst
-            mute={!hasCamera}
-            noSource={!hasSubScreenSource}
-            statusTextVisible={false}
-            controlBarVisibility="never"
-          />
-        )}
-      </AsidePlayer>
-    ),
+  const teacherCamera = useMemo(
+    () =>
+      interacting && teacherInteractionInfo ? (
+        <video
+          id="interaction-camera"
+          ref={teacherInteractingCamera}
+          className={styles['amaui-classroom__aside__interacting-video']}
+        ></video>
+      ) : (
+        <H5Player
+          id="asidePlayer"
+          device="pc"
+          cdnUrlMap={
+            mode === ClassroomModeEnum.Big
+              ? bigClassLiveUrlsForWebRTCSupported
+              : openClassLiveUrls
+          }
+          sourceType={SourceType.Camera}
+          rtsFirst
+          mute={!hasCamera}
+          noSource={!hasCameraSource}
+          statusTextVisible={false}
+          controlBarVisibility="never"
+        />
+      ),
     [
       mode,
-      micOpened,
       interacting,
-      hasSubScreenSource,
+      hasCameraSource,
       bigClassLiveUrlsForWebRTCSupported,
       openClassLiveUrls,
     ]
   );
 
-  const renderPurePlayerContent = () => {
+  const asidePlayer = useMemo(
+    () => (
+      <AsidePlayer micOpened={micOpened} switcherVisible={!hasMutilMedia}>
+        {teacherCamera}
+      </AsidePlayer>
+    ),
+    [teacherCamera, micOpened, hasMutilMedia]
+  );
+
+  const teacherMaterial = useMemo(() => {
     if (interacting) {
       return (
         <video
@@ -294,10 +304,54 @@ const AssistantPage: React.FC = () => {
         }
         rtsFirst
         mute={hasCamera}
-        noSource={!hasMainScreenSource}
+        noSource={!hasMaterialSource}
+        controlBarVisibility="never"
       />
     );
-  };
+  }, [
+    interacting,
+    mode,
+    hasCamera,
+    hasMaterialSource,
+    bigClassLiveUrlsForWebRTCSupported,
+    openClassLiveUrls,
+  ]);
+
+  const asideWhiteboardOrStream = useMemo(
+    () => (
+      <PCAsideScreenWrapper switcherVisible={!hasMutilMedia}>
+        {whiteBoardActivated ? (
+          // 白板为次画面，隐藏控件
+          <NeteaseBoard
+            wrapClassName="amaui-classroom__aside__sub_screen"
+            canControl={false}
+            canTurnPage={false}
+            canUpdateCourceware={false}
+            setAsBroadcaster
+          />
+        ) : (
+          teacherMaterial
+        )}
+      </PCAsideScreenWrapper>
+    ),
+    [hasMutilMedia, whiteBoardActivated, teacherMaterial]
+  );
+
+  const mainContent = useMemo(() => {
+    if (!cameraIsSubScreen) return teacherCamera;
+    if (whiteBoardActivated) return <NeteaseBoard canControl={isAdmin} />;
+    return (
+      <div className={styles['amaui-classroom__main__content__player']}>
+        {teacherMaterial}
+      </div>
+    );
+  }, [
+    isAdmin,
+    cameraIsSubScreen,
+    whiteBoardActivated,
+    teacherCamera,
+    teacherMaterial,
+  ]);
 
   return (
     <>
@@ -311,16 +365,16 @@ const AssistantPage: React.FC = () => {
             wrapClassName="amaui-classroom__main__content"
             whiteBoardActivated={whiteBoardActivated}
           >
-            <div className={styles['amaui-classroom__main__content__player']}>
-              {renderPurePlayerContent()}
-            </div>
+            {mainContent}
           </AssistantRoomMain>
         </div>
 
         <RoomAside
           className="amaui-classroom__aside"
           playerType={AsidePlayerTypes.custom}
-          customPlayer={asidePlayer}
+          customPlayer={
+            cameraIsSubScreen ? asidePlayer : asideWhiteboardOrStream
+          }
         />
       </div>
       <AssistantBottom whiteBoardActivated={whiteBoardActivated} />

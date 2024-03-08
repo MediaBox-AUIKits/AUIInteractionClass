@@ -58,3 +58,36 @@ CREATE TABLE `class_kick_member` (
   `updated_at` datetime NOT NULL COMMENT '更新时间',
    KEY idx_class_user_id(`class_id`, `user_id`)
 ) ENGINE=InnoDB;
+
+
+CREATE TABLE `assistant_permit` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT COMMENT 'id',
+  `class_id` varchar(256) NOT NULL COMMENT '课堂id',
+  `permit` text NOT NULL COMMENT '权限信息',
+  `created_at` datetime DEFAULT NULL COMMENT '创建时间',
+  `updated_at` datetime DEFAULT NULL COMMENT '更新时间',
+   UNIQUE KEY udx_class_id(`class_id`)
+) ENGINE=InnoDB;
+
+CREATE TABLE `class_check_in` (
+  `id` char(32) PRIMARY KEY COMMENT 'id',
+  `class_id` varchar(256) NOT NULL COMMENT '课堂id',
+  `title` varchar(256) COMMENT '签到标题',
+  `creator` varchar(256) COMMENT '创建者',
+  `start_time` datetime NOT NULL COMMENT '签到开始时间',
+  `duration` int NOT NULL COMMENT '签到时长， 单位：秒',
+  `created_at` datetime DEFAULT NULL COMMENT '创建时间',
+  `updated_at` datetime DEFAULT NULL COMMENT '更新时间',
+   KEY idx_class_id_start_time(`class_id`, `start_time`)
+) ENGINE=InnoDB;
+
+
+CREATE TABLE `class_check_in_record` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT COMMENT 'id',
+  `check_in_id` char(32) NOT NULL COMMENT '签到id',
+  `user_id` varchar(256) COMMENT '签到者',
+  `created_at` datetime DEFAULT NULL COMMENT '创建时间',
+  `updated_at` datetime DEFAULT NULL COMMENT '更新时间',
+   UNIQUE KEY udx_check_in_id_user_id(`check_in_id`, `user_id`),
+   KEY idx_check_in_id_created_at(`check_in_id`, `created_at`)
+) ENGINE=InnoDB;

@@ -1,0 +1,55 @@
+.check-in-task {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  padding: 6px 16px;
+  background-color: #ffffff;
+  border: 1px solid #e6e7ec;
+  border-radius: 16px;
+  color: #333;
+}
+
+.check-in-task__users,
+.check-in-task__countdown {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  font-size: 12px;
+  line-height: 20px;
+
+  svg {
+    font-size: 16px;
+    margin-right: 5px;
+  }
+}
+.check-in-task__users {
+  padding-right: 8px;
+  cursor: pointer;
+
+  &:hover {
+    color: #1597ff;
+
+    .check-in-task__users__sum,
+    svg {
+      color: #1597ff;
+    }
+  }
+}
+.check-in-task__users__sum {
+  color: #888;
+}
+.check-in-task__countdown {
+  border-left: 1px solid #f1f1f1;
+  padding-left: 8px;
+
+  svg {
+    font-size: 15px;
+  }
+}
+
+.check-in-task__icon-close {
+  font-size: 10px;
+  padding: 4px 2px;
+  cursor: pointer;
+}

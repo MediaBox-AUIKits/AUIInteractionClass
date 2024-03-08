@@ -10,6 +10,7 @@ export enum CustomMessageTypes {
   MemberJoined = 11001, // 用户加入
   MemberLeft = 11002, // 用户离开
   MemberKicked = 11003, // 用户被移除
+  CheckInStarted = 11004, // 开始签到
 
   MicChanged = 20007, // 麦克风状态变化
   CameraChanged = 20008, // 摄像头状态变化
@@ -19,6 +20,7 @@ export enum CustomMessageTypes {
   ToggleCameraAnswered = 20012, // 响应打开/关闭摄像头（仅学生）
   PublishInfoChanged = 21000, // 推流变化
   WhiteBoardVisible = 21001, // 白板可见
+  SwitchScreen = 21002, // 主次画面切换
 
   InteractionInvitation = 30001, // 老师邀请某个同学上麦
   CancelInteractionInvitation = 30002, // 老师取消邀请某个同学上麦

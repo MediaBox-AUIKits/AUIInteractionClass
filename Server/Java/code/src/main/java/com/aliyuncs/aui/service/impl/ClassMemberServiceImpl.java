@@ -240,11 +240,12 @@ public class ClassMemberServiceImpl extends ServiceImpl<ClassMemberDao, ClassMem
         }
 
         QueryWrapper<ClassMemberEntity> queryWrapper = new QueryWrapper<>();
-        LambdaQueryWrapper<ClassMemberEntity> wrapper = queryWrapper.lambda().
-                eq(ClassMemberEntity::getClassId, classMemberListRequestDto.getClassId())
-                .orderByDesc(ClassMemberEntity::getIdentity)
-                .orderByAsc(ClassMemberEntity::getStatus)
-                .orderByDesc(ClassMemberEntity::getCreatedAt);
+        LambdaQueryWrapper<ClassMemberEntity> wrapper = queryWrapper.lambda()
+                .eq(ClassMemberEntity::getClassId, classMemberListRequestDto.getClassId());
+        if (classMemberListRequestDto.getIdentity() != null && classMemberListRequestDto.getIdentity() != 0) {
+            wrapper.eq(ClassMemberEntity::getIdentity, classMemberListRequestDto.getIdentity());
+        }
+        wrapper.orderByDesc(ClassMemberEntity::getIdentity).orderByAsc(ClassMemberEntity::getStatus).orderByDesc(ClassMemberEntity::getCreatedAt);
 
         Page<ClassMemberEntity> page = new Page<>(classMemberListRequestDto.getPageNum(), classMemberListRequestDto.getPageSize());
 

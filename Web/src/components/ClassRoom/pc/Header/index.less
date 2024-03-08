@@ -7,7 +7,23 @@
   position: relative;
   width: 100%;
   height: @pc-header-height;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   box-shadow: inset 0 -1px 0 0 @divider-color;
+}
+
+.pc-header-divider {
+  height: 24px;
+  width: 1px;
+  margin: 0 24px;
+  background-color: @divider-color;
+}
+
+.pc-header-left {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
 }
 
 .pc-id-block {
@@ -16,17 +32,7 @@
   align-items: center;
   vertical-align: middle;
   height: 100%;
-  padding: 0 24px 0 16px;
-
-  &::after {
-    display: block;
-    position: absolute;
-    content: ' ';
-    right: 0;
-    height: 24px;
-    width: 1px;
-    background-color: @divider-color;
-  }
+  padding-left: 16px;
 
   svg {
     margin-left: 12px;
@@ -45,7 +51,6 @@
   align-items: center;
   vertical-align: middle;
   height: 100%;
-  padding: 0 24px;
   color: @text-color-lighten;
 }
 

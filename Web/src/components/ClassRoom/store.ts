@@ -20,6 +20,8 @@ import {
   UserRoleEnum,
   ClassroomFunction,
   GroupMeta,
+  CheckInInfo,
+  StudentCheckInRecord,
 } from './types';
 import { Permission } from '@/types';
 import { MaxConnectedSpectatorNum, FunctionMapByPermission } from './constants';
@@ -76,6 +78,9 @@ export const defaultClassroomState: IClassroomState = {
   classroomInfo: Object.assign({}, defaultClassroomInfo),
   memberListFlag: 0,
   memberList: [],
+  // checkIn
+  runningCheckIn: undefined,
+  checkInRecords: [],
 
   // role
   isTeacher: false,
@@ -105,6 +110,8 @@ export const defaultClassroomState: IClassroomState = {
     sources: [],
   },
   docsUpdateFlag: 0,
+  cameraIsSubScreen: true,
+
   // 连麦相关
   connectedSpectators: [], // 连麦用户列表
   interactionAllowed: true, // 允许连麦
@@ -367,6 +374,12 @@ const useClassroomStore = create(
           state.docsUpdateFlag += 1;
         })
       ),
+    setCameraIsSubScreen: (bool: boolean) =>
+      set(
+        produce<IClassroomState>(state => {
+          state.cameraIsSubScreen = bool;
+        })
+      ),
     // 更新邀请中的用户id
     updateInteractionInvitationUsers: (
       type: InteractionInvitationUpdateType,
@@ -507,6 +520,20 @@ const useClassroomStore = create(
       set(
         produce<IClassroomState>(state => {
           state.memberListFlag += 1;
+        })
+      ),
+
+    setCheckInRecords: (checkInRecords: StudentCheckInRecord[]) =>
+      set(
+        produce<IClassroomState>(state => {
+          state.checkInRecords = checkInRecords;
+        })
+      ),
+
+    setRunningCheckIn: (info?: CheckInInfo) =>
+      set(
+        produce<IClassroomState>(state => {
+          state.runningCheckIn = info;
         })
       ),
 

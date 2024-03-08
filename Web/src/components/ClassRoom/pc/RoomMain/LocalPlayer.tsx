@@ -10,7 +10,8 @@ import styles from './styles.less';
 const LocalPlayerID = 'local-media-player';
 
 const LocalPlayer: React.FC = () => {
-  const { rendererStyle } = useContext(PCMainWrapContext);
+  const { rendererStyle = { width: '100%', height: '100%' } } =
+    useContext(PCMainWrapContext);
   const { sources } = useClassroomStore(state => state.localMedia);
   const { setLocalMedia, setLocalMediaStream } = useClassroomStore.getState();
   const player = useRef<any>();

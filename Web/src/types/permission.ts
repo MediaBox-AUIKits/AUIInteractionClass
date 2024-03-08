@@ -1,7 +1,7 @@
 // 权限
 export enum Permission {
   SwitchClassStatus = 'SwitchClassStatus',
-  AttendanceManagement = 'AttendanceManagement',
+  CheckInManagement = 'CheckInManagement',
   MemberManagement = 'MemberManagement',
   DrawWhiteboard = 'DrawWhiteboard', // 暂未支持（云信白板暂未支持）
   Courceware = 'Courceware',

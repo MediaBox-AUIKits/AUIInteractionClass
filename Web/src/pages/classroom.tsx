@@ -158,6 +158,17 @@ const ClassRoomPage = () => {
     [classId]
   );
 
+  const setCheckIn = useCallback(
+    (duration: number) => {
+      return services.setCheckIn({
+        class_id: classId,
+        user_id: userInfo.userId,
+        duration,
+      });
+    },
+    [classId, userInfo]
+  );
+
   if (!classId) {
     return;
   }
@@ -188,6 +199,13 @@ const ClassRoomPage = () => {
         leaveClass,
         kickClass,
         listMembers: services.listMembers.bind(services),
+        setCheckIn,
+        getRunningCheckIn: services.getRunningCheckIn.bind(services),
+        getAllCheckIns: services.getAllCheckIns.bind(services),
+        checkIn: services.checkIn.bind(services),
+        getCheckInRecords: services.getCheckInRecords.bind(services),
+        getCheckInRecordByUserId:
+          services.getCheckInRecordByUserId.bind(services),
       }}
       onExit={onExit}
       reporter={reporter}

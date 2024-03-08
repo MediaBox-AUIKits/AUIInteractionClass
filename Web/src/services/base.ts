@@ -33,6 +33,12 @@ export enum ApiNames {
   getAssistantPermit = '/v1/class/getAssistantPermit',
   setAssistantPermit = '/v1/class/setAssistantPermit',
   deleteAssistantPermit = '/v1/class/deleteAssistantPermit',
+  setCheckIn = '/class/setCheckIn',
+  getRunningCheckIn = '/class/getRunningCheckIn',
+  getAllCheckIns = '/class/getAllCheckIns',
+  checkIn = '/class/checkIn',
+  getCheckInRecords = '/class/getCheckInRecords',
+  getCheckInRecordByUserId = '/class/getCheckInRecordByUserId',
 }
 
 export function getApiUrl(name: ApiNames) {

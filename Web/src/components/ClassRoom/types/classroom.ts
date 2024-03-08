@@ -78,6 +78,22 @@ export interface IAssistantInfo extends IMemberInfo {
   classId: string;
 }
 
+// 签到信息
+export interface CheckInInfo {
+  id: string; // 签到id
+  startTime: string; // 开始时间
+  duration: number; // 秒
+  nowTime: string; // 当前服务端时间
+}
+
+// 签到记录
+export interface StudentCheckInRecord {
+  userId: string; // 已签到的学生 userId
+  time: string; // 签到时间
+  checkInId: string; // 签到id
+  classId: string; // 教室id
+}
+
 export interface IClassroomInfo {
   id: string; // 教室 id
   chatId?: string; // 上一版的群组ID字段名

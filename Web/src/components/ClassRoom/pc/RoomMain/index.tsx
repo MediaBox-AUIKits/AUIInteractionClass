@@ -1,11 +1,11 @@
-import React, { useCallback, useContext } from 'react';
+import React from 'react';
 import classNames from 'classnames';
 import useClassroomStore from '../../store';
 import NeteaseBoard from '../../components/Whiteboard/NeteaseBoard';
 import PCMainWrap from '../../components/PCMainWrap';
 import SharingMask from './SharingMask';
 import LocalPlayer from './LocalPlayer';
-import { ClassContext } from '../../ClassContext';
+import SelfPlayer from '../SelfPlayer';
 import styles from './styles.less';
 
 interface IProps {
@@ -14,26 +14,24 @@ interface IProps {
 
 const RoomMain: React.FC<IProps> = props => {
   const { wrapClassName } = props;
-  const { cooperationManager } = useContext(ClassContext);
-  const { isAdmin } = useClassroomStore(state => state);
-
-  const handleDocsUpdated = useCallback(() => {
-    cooperationManager?.syncDocsUpdated();
-  }, [cooperationManager]);
+  const { isAdmin, cameraIsSubScreen } = useClassroomStore(state => state);
 
   return (
     <PCMainWrap className={classNames(wrapClassName, styles['room-main'])}>
-      <NeteaseBoard
-        canControl={isAdmin}
-        canTurnPage
-        canUpdateCourceware
-        setAsBroadcaster
-        onDocsUpdated={handleDocsUpdated}
-      />
-
-      <LocalPlayer />
-
-      <SharingMask />
+      {cameraIsSubScreen ? (
+        <>
+          <NeteaseBoard
+            canControl={isAdmin}
+            canTurnPage
+            canUpdateCourceware
+            setAsBroadcaster
+          />
+          <LocalPlayer />
+          <SharingMask />
+        </>
+      ) : (
+        <SelfPlayer switcherVisible={false} />
+      )}
     </PCMainWrap>
   );
 };

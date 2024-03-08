@@ -68,11 +68,11 @@ export const AssistantPermissionList: AssistantPermissionGroup[] = [
         icon: UserSvg,
         key: Permission.MemberManagement,
       },
-      // {
-      //   label: '签到',
-      //   icon: CalendarFilledSvg,
-      //   key: Permission.AttendanceManagement,
-      // },
+      {
+        label: '签到',
+        icon: CalendarFilledSvg,
+        key: Permission.CheckInManagement,
+      },
     ],
   },
   {

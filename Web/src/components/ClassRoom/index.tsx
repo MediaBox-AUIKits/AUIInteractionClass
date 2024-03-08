@@ -71,6 +71,7 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
     setAllMicMuted,
     updateConnectedSpectator,
     updateApplyingList,
+    setCameraIsSubScreen,
   } = useClassroomStore.getState();
   const { auiMessage } = useContext(ClassContext);
   const [role, setRole] = useState<UserRoleEnum>();
@@ -698,6 +699,11 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
         case CustomMessageTypes.GroupMessageRemoved:
           notifyGroupMessageRemoved(senderId, data?.count);
           break;
+        case CustomMessageTypes.SwitchScreen:
+          if (data?.cameraIsSubScreen !== undefined) {
+            setCameraIsSubScreen(data?.cameraIsSubScreen);
+          }
+          break;
         default:
           break;
       }
@@ -825,6 +831,19 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
     logger.setReporter(reporter); // 更新日志上报模块
   }, [reporter]);
 
+  const onSwitchScreen = () => {
+    const { cameraIsSubScreen, isAdmin } = useClassroomStore.getState();
+    setCameraIsSubScreen(!cameraIsSubScreen);
+    if (isAdmin) {
+      auiMessage.sendGroupSignal({
+        type: CustomMessageTypes.SwitchScreen,
+        data: {
+          cameraIsSubScreen: !cameraIsSubScreen,
+        },
+      });
+    }
+  };
+
   return (
     <ClassContext.Provider
       value={{
@@ -835,6 +854,7 @@ const ClassRoom: React.FC<IClassRoomProps> = props => {
         interactionManager,
         cooperationManager,
         exit: onExit,
+        switchScreen: onSwitchScreen,
       }}
     >
       {UA.isPC ? <PCClassRoom initing={initing} /> : <MobileClassRoom />}

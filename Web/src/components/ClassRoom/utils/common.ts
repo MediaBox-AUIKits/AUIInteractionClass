@@ -50,6 +50,10 @@ export const getTimeFormat = (current: Date, start: Date) => {
   return `${hour}:${minute}:${second}`;
 };
 
+const padZore = (str: string | number) => {
+  return `0${str}`.slice(-2);
+};
+
 /**
  * 简单实现格式化日期，若需要使用更复杂的功能，建议使用如 momentjs 等库
  * @param {Date} date
@@ -59,11 +63,6 @@ export function formatDate(date: Date): string {
   if (!(date instanceof Date && !isNaN(date as any))) {
     return '';
   }
-
-  const padZore = (str: string | number) => {
-    return `0${str}`.slice(-2);
-  };
-
   return `${date.getFullYear()}-${padZore(date.getMonth() + 1)}-${padZore(
     date.getDate()
   )} ${padZore(date.getHours())}:${padZore(date.getMinutes())}`;
@@ -84,6 +83,23 @@ export function formatTime(date: Date): string {
     date.getSeconds()
   )}.${date.getMilliseconds()}`;
 }
+
+const SECS_PER_HOUR = 3600;
+const SECS_PER_MIN = 60;
+// 秒换算为时/分/秒
+export const getDisplayBySeconds = (
+  seconds: number
+): { hour: string; min: string; sec: string } => {
+  let [hour, min, sec] = [0, 0, 0];
+  hour = Math.floor(seconds / SECS_PER_HOUR);
+  min = Math.floor((seconds - hour * SECS_PER_HOUR) / SECS_PER_MIN);
+  sec = seconds - hour * SECS_PER_HOUR - min * SECS_PER_MIN;
+  return {
+    hour: padZore(hour),
+    min: padZore(min),
+    sec: padZore(sec),
+  };
+};
 
 /**
  * 简单滚动到底部的实现
@@ -273,7 +289,7 @@ export function getLayoutArray(
 export function createRandomNumberUid(prefix: number): number {
   const now = Date.now();
   // 000 - 999 随机取一个
-  const random = (`${Math.floor(Math.random() * 1000)}`).padStart(3, '0');
+  const random = `${Math.floor(Math.random() * 1000)}`.padStart(3, '0');
   const str = `${prefix}${random}${now}`;
   const uid = Number(str);
   if (isNaN(uid)) {

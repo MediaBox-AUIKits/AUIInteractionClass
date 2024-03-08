@@ -1,4 +1,10 @@
-import { IClassroomInfo, IUserInfo, MeetingInfo } from './index';
+import {
+  IClassroomInfo,
+  IUserInfo,
+  MeetingInfo,
+  StudentCheckInRecord,
+  CheckInInfo,
+} from './index';
 import { Permission } from '@/types';
 import { Reporter } from '@/utils/Reporter';
 import { AUIMessageConfig } from '@/BaseKits/AUIMessage/types';
@@ -55,6 +61,15 @@ export interface IClassroomServices {
   leaveClass: () => Promise<any>;
   kickClass: (userId: string) => Promise<any>;
   listMembers: (options: any) => Promise<any>;
+  setCheckIn: (duration: number) => Promise<CheckInInfo>;
+  getRunningCheckIn: (class_id: string) => Promise<CheckInInfo>;
+  getAllCheckIns: (class_id: string) => Promise<CheckInInfo[]>;
+  checkIn: (check_in_id: string, user_id: string) => Promise<void>;
+  getCheckInRecords: (check_in_id: string) => Promise<StudentCheckInRecord[]>;
+  getCheckInRecordByUserId: (
+    check_in_id: string,
+    user_id: string
+  ) => Promise<StudentCheckInRecord>;
 }
 
 export interface IClassRoomProps {

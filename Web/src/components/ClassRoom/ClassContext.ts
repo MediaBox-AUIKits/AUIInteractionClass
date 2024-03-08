@@ -20,10 +20,12 @@ type ClassContextType = {
   cooperationManager?: TeacherCooperationManager | AssistantCooperationManager;
   userInfo?: IUserInfo;
   exit: () => void;
+  switchScreen: () => void;
 };
 
 export const ClassContext = React.createContext<ClassContextType>({
   whiteBoardHidden: false,
   auiMessage: new AUIMessage(CONFIG.imServer),
   exit: () => {},
+  switchScreen: () => {},
 });

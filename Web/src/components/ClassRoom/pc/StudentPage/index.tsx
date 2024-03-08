@@ -23,14 +23,26 @@ import StudentBottom from '../Bottom/StudentBottom';
 import H5Player from '../../mobile/H5Player';
 import AsidePlayer from '../../components/PCAsidePlayer';
 import RoomInteractionList from '../InteractionList';
+import PCAsideScreenWrapper from '../../components/PCAsideScreenWrapper';
 import NeteaseBoard from '../../components/Whiteboard/NeteaseBoard';
 import PCMainWrap from '../../components/PCMainWrap';
 import NotStartedPlaceholder from './NotStartedPlaceholder';
+import StudentCheckIn from '../../components/CheckInManagement/StudentCheckIn';
 import { usePageVisibilityListener } from '@/utils/hooks';
 import styles from '../styles.less';
 
-const CameraTabKey = SourceType.Camera;
-const MaterialTabKey = SourceType.Material;
+/**
+ * 大班课，直播流的内容：
+ *
+ * 在 classroomInfo.linkInfo 中
+ * - StreamName 后缀为 `${teacherId}_camera`：教师摄像头流，单路流；
+ * - StreamName 后缀为 `${teacherId}_shareScreen`：教师白板/本地视频插播/屏幕共享流，单路流；
+ * 在 classroomInfo.shadowLinkInfo 中
+ * - StreamName 后缀为 `${teacherId}_shadow_camera`：
+ *   - 未连麦：默认展位图；
+ *   - 连麦：连麦成员的摄像头流混流；
+ * - StreamName 后缀为 `${teacherId}_shadow_shareScreen`：主次画面混流，即教师摄像头流+白板/本地视频插播/屏幕共享流的合流画面；
+ */
 
 const StudentPage: React.FC = () => {
   const {
@@ -41,6 +53,7 @@ const StudentPage: React.FC = () => {
       linkInfo: teacherLinkInfo,
       shadowLinkInfo, // 不支持 WebRTC 的设备上，只展示一个画面，画面是混流后的布局，数据来源是 shadowLinkInfo
     },
+    cameraIsSubScreen,
     connectedSpectators,
     interacting,
     supportWebRTC,
@@ -48,13 +61,11 @@ const StudentPage: React.FC = () => {
   } = useClassroomStore(state => state);
 
   const { whiteBoardHidden, auiMessage, userInfo } = useContext(ClassContext);
-
-  const [mainScreenKey, setMainScreenKey] = useState(MaterialTabKey);
-  const [subScreenKey, setSubScreenKey] = useState(CameraTabKey);
   const [rtsFallback, setRtsFallback] = useState(false);
-  const multiScreen = useMemo(
-    () => supportWebRTC && !rtsFallback,
-    [supportWebRTC, rtsFallback]
+  // 分主次画面显示（主次画面，老师摄像头 + 老师白板/屏幕共享/本地插播）：非大班课，且支持 WebRTC，且未发生 rts 降级
+  const splitScreen = useMemo(
+    () => supportWebRTC && !rtsFallback && mode !== ClassroomModeEnum.Open,
+    [supportWebRTC, rtsFallback, mode]
   );
 
   useEffect(() => {
@@ -77,14 +88,6 @@ const StudentPage: React.FC = () => {
     },
   });
 
-  useEffect(() => {
-    if (status === ClassroomStatusEnum.ended) {
-      // 结束后将主播放器内容重置为 Material
-      setMainScreenKey(MaterialTabKey);
-      setSubScreenKey(CameraTabKey);
-    }
-  }, [status]);
-
   const asidePlayerType = useMemo(() => {
     if (mode === ClassroomModeEnum.Big) {
       return AsidePlayerTypes.custom;
@@ -96,16 +99,6 @@ const StudentPage: React.FC = () => {
     setRtsFallback(true);
   };
 
-  const toggleView = () => {
-    // 切换主播放器、侧边栏播放器加载的流
-    setMainScreenKey(
-      mainScreenKey === MaterialTabKey ? CameraTabKey : MaterialTabKey
-    );
-    setSubScreenKey(
-      subScreenKey === MaterialTabKey ? CameraTabKey : MaterialTabKey
-    );
-  };
-
   const teacherInteractionInfo = useMemo(
     () => connectedSpectators.find(({ userId }) => userId === teacherId),
     [connectedSpectators, teacherId]
@@ -113,13 +106,11 @@ const StudentPage: React.FC = () => {
 
   const [micOpened, setMicOpened] = useState<boolean>(false);
   const [hasCamera, setHasCamera] = useState<boolean>(false);
+  const [hasMaterial, setHasMaterial] = useState<boolean>(false);
+  // 白板启用
   const [whiteBoardActivated, setWhiteBoardActivated] = useState(
     !whiteBoardHidden
   );
-
-  const [hasMainScreenSource, setHasMainScreenSource] =
-    useState<boolean>(false);
-  const [hasSubScreenSource, setHasSubScreenSource] = useState<boolean>(false);
 
   useEffect(() => {
     const teacherPubStatus = teacherInteractionInfo ?? {
@@ -134,112 +125,38 @@ const StudentPage: React.FC = () => {
     const hasCamera = !!teacherPubStatus.isVideoPublishing;
     const hasMaterial = !!teacherPubStatus.isScreenPublishing;
     setHasCamera(hasCamera);
+    setHasMaterial(hasMaterial);
     if (!whiteBoardHidden) {
+      // 若当前老师正在本地插播/屏幕共享，则不展示白板
       setWhiteBoardActivated(
         !teacherPubStatus.mutilMedia && !teacherPubStatus.screenShare
       );
     }
-
-    setHasMainScreenSource(
-      mainScreenKey === MaterialTabKey ? hasMaterial : hasCamera
-    );
-    setHasSubScreenSource(
-      subScreenKey === MaterialTabKey ? hasMaterial : hasCamera
-    );
-  }, [teacherInteractionInfo, mainScreenKey, subScreenKey, whiteBoardHidden]);
+  }, [teacherInteractionInfo, whiteBoardHidden]);
 
   const player = useMemo(() => {
     return livePush.createPlayerInstance();
   }, []);
 
+  // 连麦时，老师主流（摄像头）的挂载节点
   const teacherInteractingCamera = useRef<HTMLVideoElement | null>(null);
+  // 连麦时，老师辅流（白板/屏幕共享/本地插播）的挂载节点
   const teacherInteractingScreen = useRef<HTMLVideoElement | null>(null);
-  const [teacherInteractingCameraPulling, setTeacherInteractingCameraPulling] =
-    useState(false); // 播放器for老师摄像头是否正在连麦拉流
-  const [teacherInteractingScreenPulling, setTeacherInteractingScreenPulling] =
-    useState(false); // 播放器for老师本地流/屏幕流是否正在连麦拉流
-
-  useEffect(() => {
-    if (
-      player &&
-      teacherInteractionInfo?.rtcPullUrl &&
-      !teacherInteractingCameraPulling &&
-      teacherInteractingCamera.current
-    ) {
-      const startPlay = async () => {
-        try {
-          await player.startPlay(
-            teacherInteractionInfo?.rtcPullUrl as string,
-            teacherInteractingCamera.current!
-          );
-          setTeacherInteractingCameraPulling(true);
-        } catch (error) {
-          console.log(error);
-        }
-      };
-      startPlay();
-    }
-  }, [
-    player,
-    teacherInteractingCameraPulling,
-    teacherInteractionInfo,
-    teacherInteractingCamera.current,
-  ]);
-
-  useEffect(() => {
-    if (
-      player &&
-      teacherInteractionInfo?.rtcPullUrl &&
-      !teacherInteractingScreenPulling &&
-      teacherInteractingScreen.current
-    ) {
-      const startPlay = async () => {
-        try {
-          await player.startPlay(
-            teacherInteractionInfo?.rtcPullUrl as string,
-            '',
-            teacherInteractingScreen.current!
-          );
-          setTeacherInteractingScreenPulling(true);
-        } catch (error) {
-          console.log(error);
-        }
-      };
-      startPlay();
-      return;
-    }
-    if (whiteBoardActivated && teacherInteractingScreenPulling) {
-      setTeacherInteractingScreenPulling(false);
-    }
-  }, [
-    player,
-    teacherInteractingScreenPulling,
-    teacherInteractionInfo,
-    whiteBoardActivated,
-    teacherInteractingScreen.current,
-  ]);
-
-  useEffect(() => {
-    const sub = useClassroomStore.subscribe(
-      state => state.interacting,
-      (val, prevVal) => {
-        if (!val && prevVal) {
-          setTeacherInteractingCameraPulling(false);
-          setTeacherInteractingScreenPulling(false);
-          setRtsFallback(false);
-        }
-      }
-    );
-    return sub;
-  }, []);
+  // 连麦时，正在拉取老师主流
+  const teacherInteractingCameraPullingRef = useRef(false);
+  // 连麦时，正在拉取老师辅流
+  const teacherInteractingScreenPullingRef = useRef(false);
+  // 连麦时，老师主流已拉取
+  const [teacherInteractingCameraPulled, setTeacherInteractingCameraPulling] =
+    useState(false);
+  // 连麦时，老师辅流已拉取
+  const [teacherInteractingScreenPulled, setTeacherInteractingScreenPulling] =
+    useState(false);
 
   useEffect(() => {
     return () => {
       if (player) {
-        if (teacherInteractingCamera.current)
-          player.stopPlay(teacherInteractingCamera.current);
-        if (teacherInteractingScreen.current)
-          player.stopPlay(teacherInteractingScreen.current);
+        player.stopPlay();
       }
     };
   }, [player]);
@@ -261,6 +178,7 @@ const StudentPage: React.FC = () => {
   );
 
   useEffect(() => {
+    // 隐藏白板，则不需要监听相关消息
     if (whiteBoardHidden) return;
 
     auiMessage.addListener(
@@ -303,60 +221,246 @@ const StudentPage: React.FC = () => {
     [teacherLinkInfo]
   );
 
-  const asidePlayer = useMemo(() => {
-    // 非公开课需要展示侧边栏
-    if (mode !== ClassroomModeEnum.Open) {
-      if (!multiScreen) {
-        return undefined;
-      }
+  const pullTeacherInteractingCamera = useCallback(async () => {
+    if (
+      player &&
+      teacherInteractionInfo?.rtcPullUrl &&
+      teacherInteractingCamera.current &&
+      !teacherInteractingCameraPulled &&
+      !teacherInteractingCameraPullingRef.current
+    ) {
+      teacherInteractingCameraPullingRef.current = true;
+      try {
+        await player.startPlay(
+          teacherInteractionInfo?.rtcPullUrl as string,
+          teacherInteractingCamera.current!
+        );
+      } catch (error) {
+        console.log(error);
+      } finally {
+        setTeacherInteractingCameraPulling(true);
 
+        teacherInteractingCameraPullingRef.current = false;
+      }
+    }
+  }, [player, teacherInteractionInfo, teacherInteractingCameraPulled]);
+
+  // 若连麦中，主流并未被拉取
+  useEffect(() => {
+    if (interacting) {
+      pullTeacherInteractingCamera();
+    }
+  }, [interacting, pullTeacherInteractingCamera]);
+
+  const pullTeacherInteractingScreen = useCallback(async () => {
+    if (
+      player &&
+      teacherInteractionInfo?.rtcPullUrl &&
+      teacherInteractingScreen.current &&
+      !teacherInteractingScreenPulled &&
+      !teacherInteractingScreenPullingRef.current
+    ) {
+      teacherInteractingScreenPullingRef.current = true;
+      try {
+        await player.startPlay(
+          teacherInteractionInfo?.rtcPullUrl as string,
+          '',
+          teacherInteractingScreen.current!
+        );
+        setTeacherInteractingScreenPulling(true);
+      } catch (error) {
+        console.log(error);
+      }
+      teacherInteractingScreenPullingRef.current = false;
+    }
+  }, [player, teacherInteractionInfo, teacherInteractingScreenPulled]);
+
+  // 白板激活，则不拉取连麦辅流
+  useEffect(() => {
+    if (whiteBoardActivated && teacherInteractingScreenPulled) {
+      setTeacherInteractingScreenPulling(false);
+    }
+  }, [whiteBoardActivated, teacherInteractingScreenPulled]);
+
+  // 若连麦中，白板不激活，且主次画面显示，辅流并未被拉取
+  useEffect(() => {
+    if (
+      interacting &&
+      !whiteBoardActivated &&
+      splitScreen &&
+      !teacherInteractingScreenPulled
+    ) {
+      pullTeacherInteractingScreen();
+    }
+  }, [
+    interacting,
+    whiteBoardActivated,
+    splitScreen,
+    teacherInteractingScreenPulled,
+    pullTeacherInteractingScreen,
+  ]);
+
+  useEffect(() => {
+    const sub = useClassroomStore.subscribe(
+      state => state.interacting,
+      (val, prevVal) => {
+        if (!val && prevVal) {
+          // 结束连麦，重置连麦拉流状态、RTS 降级标识（可连麦则一定支持 rts 拉流）
+          setTeacherInteractingCameraPulling(false);
+          setTeacherInteractingScreenPulling(false);
+          setRtsFallback(false);
+        }
+      }
+    );
+    return sub;
+  }, []);
+
+  // 主次画面切换，会导致连麦播放器 Player 失去挂载节点，因此需要重新播放
+  useEffect(() => {
+    const sub = useClassroomStore.subscribe(
+      state => state.cameraIsSubScreen,
+      (val, prevVal) => {
+        if (val !== prevVal) {
+          if (teacherInteractingCameraPulled) {
+            setTeacherInteractingCameraPulling(false);
+          }
+          if (teacherInteractingScreenPulled) {
+            setTeacherInteractingScreenPulling(false);
+          }
+          player.stopPlay();
+        }
+      }
+    );
+    return sub;
+  }, [teacherInteractingCameraPulled, teacherInteractingScreenPulled, player]);
+
+  const teacherCameraStream = useMemo(() => {
+    // 连麦时，需要主流（摄像头）挂载节点
+    if (interacting && teacherInteractionInfo) {
       return (
-        <AsidePlayer
-          micOpened={micOpened}
-          switcherVisible={whiteBoardHidden && !interacting}
-          onSwitchView={toggleView}
-        >
-          {interacting && teacherInteractionInfo ? (
-            <video
-              id="interaction-camera"
-              ref={teacherInteractingCamera}
-              className={styles['amaui-classroom__aside__interacting-video']}
-            ></video>
-          ) : (
-            <H5Player
-              id="asidePlayer"
-              device="pc"
-              cdnUrlMap={bigClassLiveUrlsForWebRTCSupported}
-              sourceType={
-                subScreenKey === MaterialTabKey
-                  ? SourceType.Material
-                  : SourceType.Camera
-              }
-              rtsFirst
-              noSource={!hasSubScreenSource}
-              mute={subScreenKey !== CameraTabKey && hasCamera}
-              statusTextVisible={false}
-              controlBarVisibility="never"
-            />
-          )}
-        </AsidePlayer>
+        <video
+          id="interaction-camera"
+          ref={teacherInteractingCamera}
+          className={styles['amaui-classroom__aside__interacting-video']}
+        />
       );
     }
-    return undefined;
+    // 非连麦时，拉取老师摄像头直播流（rts 优先）
+    return (
+      <H5Player
+        id="asidePlayer"
+        device="pc"
+        cdnUrlMap={bigClassLiveUrlsForWebRTCSupported}
+        sourceType={SourceType.Camera}
+        rtsFirst
+        noSource={!hasCamera}
+        mute={!hasCamera}
+        statusTextVisible={false}
+        controlBarVisibility="never"
+      />
+    );
   }, [
-    mode,
-    multiScreen,
-    subScreenKey,
-    micOpened,
     interacting,
-    whiteBoardHidden,
-    hasSubScreenSource,
+    teacherInteractionInfo,
+    hasCamera,
     bigClassLiveUrlsForWebRTCSupported,
   ]);
 
-  // 渲染公开课模式的内容
-  const renderOpenModeContent = () => {
+  const teacherMaterialStream = useMemo(() => {
+    // 连麦时，需要辅流（白板/屏幕共享/本地插播）挂载节点
+    if (interacting && teacherInteractionInfo) {
+      return (
+        <video
+          ref={teacherInteractingScreen}
+          id="interaction-shareScreen"
+          muted
+          className={styles['amaui-classroom__aside__interacting-video']}
+        />
+      );
+    }
+    // 分主次画面显示，拉取老师白板/屏幕共享/本地插播流（rts 优先）
+    if (splitScreen) {
+      return (
+        <H5Player
+          id="mainPlayer"
+          device="pc"
+          mute={hasCamera}
+          noSource={!hasMaterial}
+          cdnUrlMap={bigClassLiveUrlsForWebRTCSupported}
+          rtsFirst
+          sourceType={SourceType.Material}
+          onRtsFallback={handleRtsFallback}
+        />
+      );
+    }
+    // 只有一个画面时，展示教师摄像头流+白板/本地视频插播/屏幕共享流的合流画面
     return (
+      <H5Player
+        id="mainPlayer"
+        device="pc"
+        sourceType={SourceType.Material}
+        noSource={!hasCamera || !hasMaterial}
+        cdnUrlMap={bigClassLiveUrlsForWebRTCNotSupported}
+        rtsFirst={false}
+      />
+    );
+  }, [
+    interacting,
+    teacherInteractionInfo,
+    splitScreen,
+    hasCamera,
+    hasMaterial,
+    bigClassLiveUrlsForWebRTCSupported,
+    bigClassLiveUrlsForWebRTCNotSupported,
+  ]);
+
+  const asideScreen = useMemo(() => {
+    // 若无分屏，则无侧边栏的次画面
+    if (!splitScreen) {
+      return undefined;
+    }
+
+    // 摄像头为次画面，则展示老师摄像头
+    if (cameraIsSubScreen) {
+      return (
+        <AsidePlayer micOpened={micOpened} switcherVisible>
+          {teacherCameraStream}
+        </AsidePlayer>
+      );
+    }
+
+    // 若白板激活，展示白板
+    if (whiteBoardActivated)
+      return (
+        <PCAsideScreenWrapper switcherVisible>
+          {/* 学生无白板权限，隐藏控件 */}
+          <NeteaseBoard
+            wrapClassName="amaui-classroom__aside__sub_screen"
+            canControl={false}
+            canTurnPage={false}
+            canUpdateCourceware={false}
+          />
+        </PCAsideScreenWrapper>
+      );
+
+    // 若白板未激活，则拉取辅流（白板/屏幕共享/本地插播）
+    return (
+      <AsidePlayer micOpened={micOpened} switcherVisible>
+        {teacherMaterialStream}
+      </AsidePlayer>
+    );
+  }, [
+    splitScreen,
+    micOpened,
+    whiteBoardActivated,
+    cameraIsSubScreen,
+    teacherCameraStream,
+    teacherMaterialStream,
+  ]);
+
+  // 渲染公开课模式的内容
+  const openModeScreen = useMemo(
+    () => (
       <H5Player
         id="mainPlayer"
         device="pc"
@@ -364,63 +468,31 @@ const StudentPage: React.FC = () => {
         cdnUrlMap={openClassLiveUrls}
         sourceType={SourceType.Camera}
       />
-    );
-  };
-
-  const renderPurePlayerContent = () => {
-    if (interacting) {
-      return (
-        <video
-          ref={teacherInteractingScreen}
-          id="interaction-shareScreen"
-          muted
-          className={styles['amaui-classroom__aside__interacting-video']}
-        ></video>
-      );
-    }
-    if (multiScreen) {
-      return (
-        <H5Player
-          id="mainPlayer"
-          device="pc"
-          mute={mainScreenKey !== CameraTabKey && hasCamera}
-          noSource={!hasMainScreenSource}
-          cdnUrlMap={bigClassLiveUrlsForWebRTCSupported}
-          rtsFirst
-          sourceType={
-            mainScreenKey === MaterialTabKey
-              ? SourceType.Material
-              : SourceType.Camera
-          }
-          onRtsFallback={handleRtsFallback}
-        />
-      );
-    }
-    return (
-      <H5Player
-        id="mainPlayer"
-        device="pc"
-        sourceType={SourceType.Material}
-        noSource={!hasMainScreenSource || !hasSubScreenSource}
-        cdnUrlMap={bigClassLiveUrlsForWebRTCNotSupported}
-        rtsFirst={false}
-      />
-    );
-  };
+    ),
+    [teacherInteractionInfo, openClassLiveUrls]
+  );
 
   // 渲染非公开课模式，目前即大班课的内容
-  const renderOtherModeContent = () => (
-    <>
-      {/* 非指定不集成白板且支持 RTS 时，初始化白板 */}
-      {!whiteBoardHidden && multiScreen ? <NeteaseBoard /> : null}
-      {/* 当前白板不激活，或 RTS 降级时，渲染播放器 */}
-      {!whiteBoardActivated || !multiScreen ? (
+  const otherModeMainScreen = useMemo(() => {
+    // 摄像头为主画面
+    if (!cameraIsSubScreen) return teacherCameraStream;
+    // 白板激活，且分屏显示时，初始化白板
+    if (splitScreen && whiteBoardActivated) return <NeteaseBoard />;
+    // 当前白板不激活，或不分屏，渲染播放器
+    if (!whiteBoardActivated || !splitScreen) {
+      return (
         <div className={styles['amaui-classroom__main__content__player']}>
-          {renderPurePlayerContent()}
+          {teacherMaterialStream}
         </div>
-      ) : null}
-    </>
-  );
+      );
+    }
+  }, [
+    cameraIsSubScreen,
+    splitScreen,
+    whiteBoardActivated,
+    teacherCameraStream,
+    teacherMaterialStream,
+  ]);
 
   return (
     <Fragment>
@@ -433,9 +505,9 @@ const StudentPage: React.FC = () => {
           <PCMainWrap className="amaui-classroom__main__content">
             {status === ClassroomStatusEnum.started ? (
               mode === ClassroomModeEnum.Open ? (
-                renderOpenModeContent()
+                openModeScreen
               ) : (
-                renderOtherModeContent()
+                otherModeMainScreen
               )
             ) : (
               <NotStartedPlaceholder />
@@ -446,10 +518,11 @@ const StudentPage: React.FC = () => {
         <RoomAside
           className="amaui-classroom__aside"
           playerType={asidePlayerType}
-          customPlayer={asidePlayer}
+          customPlayer={asideScreen}
         />
       </div>
       <StudentBottom />
+      <StudentCheckIn />
     </Fragment>
   );
 };

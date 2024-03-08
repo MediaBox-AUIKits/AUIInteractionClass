@@ -506,6 +506,81 @@ class Services {
       throw error;
     }
   }
+
+  // 设置签到
+  public async setCheckIn(params: {
+    class_id: string;
+    user_id: string;
+    duration: number;
+  }) {
+    try {
+      const res = await this.request.post(ApiNames.setCheckIn, params);
+      return convertToCamel(res);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // 查询正在运行的签到
+  public async getRunningCheckIn(class_id: string) {
+    try {
+      const res = await this.request.post(ApiNames.getRunningCheckIn, {
+        class_id,
+      });
+      return convertToCamel(res);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // 查询所有设置过的签到
+  public async getAllCheckIns(class_id: string) {
+    try {
+      const res = await this.request.post(ApiNames.getAllCheckIns, {
+        class_id,
+      });
+      return convertToCamel(res);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // 学生签到
+  public async checkIn(check_in_id: string, user_id: string) {
+    try {
+      await this.request.post(ApiNames.checkIn, {
+        check_in_id,
+        user_id,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // 查询某个签到的历史记录
+  public async getCheckInRecords(check_in_id: string) {
+    try {
+      const res = await this.request.post(ApiNames.getCheckInRecords, {
+        check_in_id,
+      });
+      return convertToCamel(res);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // 查询某个学生是否已签到
+  public async getCheckInRecordByUserId(check_in_id: string, user_id: string) {
+    try {
+      const res = await this.request.post(ApiNames.getCheckInRecordByUserId, {
+        check_in_id,
+        user_id,
+      });
+      return convertToCamel(res);
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
 export default new Services();

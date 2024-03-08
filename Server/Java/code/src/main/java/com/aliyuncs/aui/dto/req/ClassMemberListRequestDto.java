@@ -1,7 +1,6 @@
 package com.aliyuncs.aui.dto.req;
 
 import com.aliyuncs.aui.dto.enums.ClassMemberStatus;
-import com.aliyuncs.aui.dto.enums.Identity;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
@@ -18,7 +17,6 @@ public class ClassMemberListRequestDto {
     @JsonProperty("class_id")
     private String classId;
 
-    @NotNull(message="identity不能为空")
     @JsonProperty("identity")
     private Integer identity;
 
@@ -34,9 +32,6 @@ public class ClassMemberListRequestDto {
 
 
     public boolean valid() {
-        if (Identity.of(identity) == null) {
-            return false;
-        }
 
         if (ClassMemberStatus.of(status) == null) {
             return false;
