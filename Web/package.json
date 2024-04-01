@@ -1,6 +1,6 @@
 {
-  "version": "1.4.0",
-  "author": "zhushijiong",
+  "version": "1.4.2",
+  "author": "alibaba cloud",
   "scripts": {
     "dev": "umi dev",
     "build": "umi build",
@@ -12,8 +12,8 @@
   "dependencies": {
     "@aliyun-sls/web-track-browser": "^0.2.8",
     "@ant-design/icons": "^4.7.0",
-    "@rongcloud/engine": "^5.7.9",
-    "@rongcloud/imlib-next": "^5.7.9",
+    "@rongcloud/engine": "5.9.5",
+    "@rongcloud/imlib-next": "5.9.5",
     "ahooks": "^3.7.8",
     "antd": "^4.24.0",
     "antd-mobile": "^5.31.1",

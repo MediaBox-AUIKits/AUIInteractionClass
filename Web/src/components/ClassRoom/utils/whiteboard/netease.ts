@@ -7,6 +7,19 @@ const jsUrls = [
   `${PUBLIC_PATH}script/pptRenderer_v${NeteaseSDKVersion}.js`,
 ];
 
+const UploadCenterToolOptions: any = {
+  position: 'left',
+  insertAfterTool: 'pan',
+  item: {
+    tool: 'uploadCenter',
+    hint: '上传文档',
+    supportPptToH5: true,
+    supportDocToPic: true,
+    supportUploadMedia: false,
+    supportTransMedia: false,
+  },
+};
+
 interface InitOptions {
   container: HTMLElement;
   appKey: string;
@@ -215,18 +228,7 @@ class NetEase {
           platform: 'web',
         },
       });
-    toolCollection.addOrSetTool({
-      position: 'left',
-      insertAfterTool: 'pan',
-      item: {
-        tool: 'uploadCenter',
-        hint: '上传文档',
-        supportPptToH5: true,
-        supportDocToPic: true,
-        supportUploadMedia: false,
-        supportTransMedia: false,
-      },
-    });
+    toolCollection.addOrSetTool(UploadCenterToolOptions);
     toolCollection.removeTool({ name: 'image' });
     toolCollection.removeTool({ name: 'uploadLog' });
 
@@ -262,14 +264,7 @@ class NetEase {
   // 激活工具栏中的「上传文档」
   public toggleUploadCenter(bool: boolean) {
     if (bool) {
-      this.toolCollection?.addOrSetTool({
-        position: 'left',
-        insertAfterTool: 'pan',
-        item: {
-          tool: 'uploadCenter',
-          hint: '上传文档',
-        },
-      });
+      this.toolCollection?.addOrSetTool(UploadCenterToolOptions);
     } else {
       this.toolCollection?.removeTool({
         name: 'uploadCenter',

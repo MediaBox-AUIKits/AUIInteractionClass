@@ -36,7 +36,11 @@ const Announcement: React.FC<IProps> = props => {
 
   useEffect(() => {
     setModalOpened(visible);
-  }, [visible]);
+
+    if (visible && !enteringAnnouncement) {
+      setEditing(true);
+    }
+  }, [visible, enteringAnnouncement]);
 
   const closeModal = useCallback(() => {
     setModalOpened(false);

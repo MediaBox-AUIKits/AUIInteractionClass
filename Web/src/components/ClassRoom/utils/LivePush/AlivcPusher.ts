@@ -146,7 +146,12 @@ class AlivcPusher extends window.AlivcLivePush.AlivcLivePusher {
     config.height = StreamHeight;
     // 指定旁路混流的码率
     config.bitrate = 3000;
-    config.cropMode = 2;
+    /**
+     * 0 缩放，源流按比例缩放到窗格，与窗格中心点对齐，左右或者上下可能有黑边
+     * 1 裁剪模式，源流填满窗格，与窗格中心点对齐
+     * 2 拉伸模式，将源流按照窗格尺寸填满窗格，与窗格中心点对齐
+     */
+    config.cropMode = 0;
     config.mixStreams = mixStreams;
 
     // 若启用了 shadow，则由 shadow_shareScreen 流承载老师的「摄像头」+「白板/屏幕共享/本地插播」混流
@@ -174,7 +179,12 @@ class AlivcPusher extends window.AlivcLivePush.AlivcLivePusher {
     const config = new window.AlivcLivePush.AlivcLiveTranscodingConfig();
     config.width = CameraWidth;
     config.height = CameraHeight;
-    config.cropMode = 2;
+    /**
+     * 0 缩放，源流按比例缩放到窗格，与窗格中心点对齐，左右或者上下可能有黑边
+     * 1 裁剪模式，源流填满窗格，与窗格中心点对齐
+     * 2 拉伸模式，将源流按照窗格尺寸填满窗格，与窗格中心点对齐
+     */
+    config.cropMode = 0;
     config.mixStreams = getLayoutArray(
       users,
       CameraWidth,
