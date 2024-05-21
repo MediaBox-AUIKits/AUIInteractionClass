@@ -22,7 +22,7 @@ CREATE TABLE `class_infos` (
   `rong_cloud_id` varchar(256) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_create_at` (`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 
 
 CREATE TABLE `doc_infos` (
