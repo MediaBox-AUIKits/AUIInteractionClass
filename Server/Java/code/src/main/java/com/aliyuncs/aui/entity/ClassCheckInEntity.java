@@ -66,7 +66,7 @@ public class ClassCheckInEntity implements Serializable {
 
 		Date endTime = DateUtils.addSeconds(this.getStartTime(), this.duration);
 
-		return this.getStartTime().before(date) && date.before(endTime);
+		return (this.getStartTime().getTime() <= date.getTime()) && (date.getTime() <= endTime.getTime());
 
 	}
 }
