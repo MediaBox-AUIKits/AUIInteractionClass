@@ -75,11 +75,11 @@ biz:
     access:
       key: "*********"
       secret: "*********"
-    # 融云相关配置   
+    # 融云相关配置，默认使用阿里云IM服务，该部分无需配置。
     live_rongcloud_im:
     	app_key: "*********"
     	app_secret: "*********"
-  # IM服务的应用Id    
+  # 旧IM，旧IM无需配置 
   live_im:
     app_id: TY3****
   # 新IM服务配置
