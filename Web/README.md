@@ -341,7 +341,7 @@ StreamName 后缀为 `${teacherId}_camera`：主次画面混流，即教师摄�
 
 ![录制模板](https://help-static-aliyun-doc.aliyuncs.com/assets/img/zh-CN/0416806071/p761852.png)
 
-- AppName：跟 AppServer 中的 `live_stream.app_name` 保持一致，默认为 `live`；
+- AppName：`live`；
 - StreamName：由于课堂直播流 StreamName 每次都会随开课变动，建议您配置为`*`（通配符）。
 
 #### 查看录制文件
