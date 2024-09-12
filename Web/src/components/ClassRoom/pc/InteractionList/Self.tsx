@@ -1,10 +1,11 @@
-import React, { useMemo, useEffect, useContext } from 'react';
+import React, { useMemo, useEffect, useContext, useState, useRef } from 'react';
 import classNames from 'classnames';
 import MicIcon from './MicIcon';
 import { CameraCloseSolidSvg } from '../../components/icons';
 import useClassroomStore from '../../store';
 import { ClassContext } from '../../ClassContext';
 import livePush from '../../utils/LivePush';
+import useVoiceActiveDetector from '@/utils/hooks/useVoiceActiveDetector';
 import styles from './index.less';
 
 const SelfPlayerID = 'selfCardPlayer';
@@ -35,11 +36,23 @@ const Self: React.FC<ISelfProps> = props => {
     }
   }, [isStudent, livePusher]);
 
+  const previewVideoRef = useRef<HTMLVideoElement>(null);
+  const [voiceActive, setVoiceActive] = useState(false);
+  useVoiceActiveDetector({
+    previewElementRef: previewVideoRef,
+    userNick: '我',
+    onVoiceActive: setVoiceActive,
+  });
+
   if (isTeacher && !interacting) return null;
 
   return (
-    <div className={classNames(styles['interaction-player'], wrapClassName)}>
-      <video id={SelfPlayerID} muted controls={false}></video>
+    <div
+      className={classNames(styles['interaction-player'], wrapClassName, {
+        [styles['active']]: voiceActive,
+      })}
+    >
+      <video id={SelfPlayerID} ref={previewVideoRef} muted controls={false} />
       {cameraEnable ? null : (
         <div className={styles['interaction-player__camera-closed']}>
           <CameraCloseSolidSvg />

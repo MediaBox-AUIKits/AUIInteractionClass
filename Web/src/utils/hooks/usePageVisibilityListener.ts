@@ -14,7 +14,9 @@ const handleDocumentVisiblityChange =
     }
   };
 
-export function usePageVisibilityListener(props?: IPageVisibilityListener) {
+export default function usePageVisibilityListener(
+  props?: IPageVisibilityListener,
+) {
   useEffect(() => {
     const listener = handleDocumentVisiblityChange(props);
     document.addEventListener('visibilitychange', listener);

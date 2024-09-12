@@ -28,7 +28,8 @@ import NeteaseBoard from '../../components/Whiteboard/NeteaseBoard';
 import PCMainWrap from '../../components/PCMainWrap';
 import NotStartedPlaceholder from './NotStartedPlaceholder';
 import StudentCheckIn from '../../components/CheckInManagement/StudentCheckIn';
-import { usePageVisibilityListener } from '@/utils/hooks';
+import usePageVisibilityListener from '@/utils/hooks/usePageVisibilityListener';
+import useVoiceActiveDetector from '@/utils/hooks/useVoiceActiveDetector';
 import styles from '../styles.less';
 
 /**
@@ -65,7 +66,7 @@ const StudentPage: React.FC = () => {
   // 分主次画面显示（主次画面，老师摄像头 + 老师白板/屏幕共享/本地插播）：非大班课，且支持 WebRTC，且未发生 rts 降级
   const splitScreen = useMemo(
     () => supportWebRTC && !rtsFallback && mode !== ClassroomModeEnum.Open,
-    [supportWebRTC, rtsFallback, mode]
+    [supportWebRTC, rtsFallback, mode],
   );
 
   useEffect(() => {
@@ -101,16 +102,15 @@ const StudentPage: React.FC = () => {
 
   const teacherInteractionInfo = useMemo(
     () => connectedSpectators.find(({ userId }) => userId === teacherId),
-    [connectedSpectators, teacherId]
+    [connectedSpectators, teacherId],
   );
 
   const [micOpened, setMicOpened] = useState<boolean>(false);
   const [hasCamera, setHasCamera] = useState<boolean>(false);
   const [hasMaterial, setHasMaterial] = useState<boolean>(false);
   // 白板启用
-  const [whiteBoardActivated, setWhiteBoardActivated] = useState(
-    !whiteBoardHidden
-  );
+  const [whiteBoardActivated, setWhiteBoardActivated] =
+    useState(!whiteBoardHidden);
 
   useEffect(() => {
     const teacherPubStatus = teacherInteractionInfo ?? {
@@ -129,7 +129,7 @@ const StudentPage: React.FC = () => {
     if (!whiteBoardHidden) {
       // 若当前老师正在本地插播/屏幕共享，则不展示白板
       setWhiteBoardActivated(
-        !teacherPubStatus.mutilMedia && !teacherPubStatus.screenShare
+        !teacherPubStatus.mutilMedia && !teacherPubStatus.screenShare,
       );
     }
   }, [teacherInteractionInfo, whiteBoardHidden]);
@@ -174,7 +174,7 @@ const StudentPage: React.FC = () => {
           break;
       }
     },
-    [teacherId, userInfo]
+    [teacherId, userInfo],
   );
 
   useEffect(() => {
@@ -183,12 +183,12 @@ const StudentPage: React.FC = () => {
 
     auiMessage.addListener(
       AUIMessageEvents.onMessageReceived,
-      handleReceivedMessage
+      handleReceivedMessage,
     );
     return () => {
       auiMessage.removeListener(
         AUIMessageEvents.onMessageReceived,
-        handleReceivedMessage
+        handleReceivedMessage,
       );
     };
   }, [auiMessage, handleReceivedMessage, whiteBoardHidden]);
@@ -202,12 +202,6 @@ const StudentPage: React.FC = () => {
     };
     // 使用 connectedSpectators.length 判断，减少不必要的更新
   }, [teacherLinkInfo, shadowLinkInfo, connectedSpectators.length]);
-  // const bigClassLiveUrlsForWebRTCSupported = useMemo(() => {
-  //   return {
-  //     [SourceType.Material]: teacherLinkInfo?.cdnPullInfo ?? {},
-  //     [SourceType.Camera]: shadowLinkInfo?.cdnPullInfo ?? {},
-  //   };
-  // }, [teacherLinkInfo, shadowLinkInfo]);
 
   const bigClassLiveUrlsForWebRTCNotSupported = useMemo(() => {
     return {
@@ -218,8 +212,14 @@ const StudentPage: React.FC = () => {
 
   const openClassLiveUrls = useMemo(
     () => ({ [SourceType.Camera]: teacherLinkInfo?.cdnPullInfo ?? {} }),
-    [teacherLinkInfo]
+    [teacherLinkInfo],
   );
+
+  // 仅toast提示发言
+  useVoiceActiveDetector({
+    previewElementRef: teacherInteractingCamera,
+    userNick: `老师（${teacherId}）`,
+  });
 
   const pullTeacherInteractingCamera = useCallback(async () => {
     if (
@@ -233,7 +233,7 @@ const StudentPage: React.FC = () => {
       try {
         await player.startPlay(
           teacherInteractionInfo?.rtcPullUrl as string,
-          teacherInteractingCamera.current!
+          teacherInteractingCamera.current!,
         );
       } catch (error) {
         console.log(error);
@@ -265,7 +265,7 @@ const StudentPage: React.FC = () => {
         await player.startPlay(
           teacherInteractionInfo?.rtcPullUrl as string,
           '',
-          teacherInteractingScreen.current!
+          teacherInteractingScreen.current!,
         );
         setTeacherInteractingScreenPulling(true);
       } catch (error) {
@@ -310,7 +310,7 @@ const StudentPage: React.FC = () => {
           setTeacherInteractingScreenPulling(false);
           setRtsFallback(false);
         }
-      }
+      },
     );
     return sub;
   }, []);
@@ -329,7 +329,7 @@ const StudentPage: React.FC = () => {
           }
           player.stopPlay();
         }
-      }
+      },
     );
     return sub;
   }, [teacherInteractingCameraPulled, teacherInteractingScreenPulled, player]);
@@ -469,7 +469,7 @@ const StudentPage: React.FC = () => {
         sourceType={SourceType.Camera}
       />
     ),
-    [teacherInteractionInfo, openClassLiveUrls]
+    [teacherInteractionInfo, openClassLiveUrls],
   );
 
   // 渲染非公开课模式，目前即大班课的内容

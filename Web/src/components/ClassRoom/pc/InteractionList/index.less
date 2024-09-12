@@ -2,7 +2,7 @@
 
 .speaker-view__wrap {
   position: relative;
-  padding: 12px 31px;
+  padding: 10px 31px;
   background-color: #fff;
 }
 
@@ -30,8 +30,13 @@
   vertical-align: top;
   width: 176px;
   height: 100px;
+  box-sizing: content-box;
   border-radius: 2px;
   background-color: #e6e7ec;
+  border: 2px solid #fff;
+  &.active {
+    border-color: #1597ff;
+  }
 
   & + .speaker-view__card {
     margin-left: 4px;

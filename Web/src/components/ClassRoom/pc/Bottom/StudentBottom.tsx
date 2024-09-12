@@ -63,7 +63,7 @@ const StudentBottom: React.FC = () => {
 
   const deviceDisabled = useMemo(
     () => !interacting || !supportWebRTC,
-    [interacting, supportWebRTC]
+    [interacting, supportWebRTC],
   );
   const disabledTooltip = useMemo(() => {
     if (!supportWebRTC) {
@@ -82,7 +82,7 @@ const StudentBottom: React.FC = () => {
         turnOn,
       });
     },
-    [interactionManager]
+    [interactionManager],
   );
 
   const handleMicStatusChanged = useCallback(
@@ -92,10 +92,10 @@ const StudentBottom: React.FC = () => {
           studentId: userInfo?.userId ?? '',
           teacherId: '',
           turnOn,
-        }
+        },
       );
     },
-    [interactionManager]
+    [interactionManager],
   );
 
   useEffect(() => {
@@ -112,8 +112,9 @@ const StudentBottom: React.FC = () => {
 
         // 摄像头有变化
         if (
-          camera.enable !== prevCamera.enable ||
-          camera.deviceId !== prevCamera.deviceId
+          (camera.enable !== prevCamera.enable ||
+            camera.deviceId !== prevCamera.deviceId) &&
+          !camera.fromInit
         ) {
           let success = false;
           if (camera.enable) {
@@ -149,7 +150,7 @@ const StudentBottom: React.FC = () => {
                 EMsgid.START_CAMERA_RESULT,
                 false,
                 '',
-                error
+                error,
               );
             }
           } else if (prevCamera.enable) {
@@ -174,7 +175,7 @@ const StudentBottom: React.FC = () => {
                 EMsgid.STOP_CAMERA_RESULT,
                 false,
                 '',
-                error
+                error,
               );
             }
           }
@@ -190,7 +191,7 @@ const StudentBottom: React.FC = () => {
             setCameraControlling(false);
           }
         }
-      }
+      },
     );
     return sub;
   }, [livePusher, interactionManager, handleCameraStatusChanged]);
@@ -209,8 +210,9 @@ const StudentBottom: React.FC = () => {
 
         // 麦克风有变化
         if (
-          microphone.enable !== prevMicrophone.enable ||
-          microphone.deviceId !== prevMicrophone.deviceId
+          (microphone.enable !== prevMicrophone.enable ||
+            microphone.deviceId !== prevMicrophone.deviceId) &&
+          !microphone.fromInit
         ) {
           let success = false;
           if (microphone.enable) {
@@ -249,7 +251,7 @@ const StudentBottom: React.FC = () => {
                 EMsgid.START_MIC_RESULT,
                 false,
                 '',
-                error
+                error,
               );
             }
           } else if (prevMicrophone.enable) {
@@ -274,7 +276,7 @@ const StudentBottom: React.FC = () => {
                 EMsgid.STOP_MIC_RESULT,
                 false,
                 '',
-                error
+                error,
               );
             }
           }
@@ -285,12 +287,12 @@ const StudentBottom: React.FC = () => {
                 studentId: userInfo?.userId ?? '',
                 teacherId: teacherId,
                 failed: !success,
-              }
+              },
             );
             setMicrophoneControlling(false);
           }
         }
-      }
+      },
     );
     return sub;
   }, [livePusher, interactionManager, handleMicStatusChanged]);

@@ -8,7 +8,7 @@ import BigClass from './bigClass';
 import { LeftOutlinedSvg } from '../components/icons';
 import Icon from '@ant-design/icons';
 import StudentCheckIn from '@/components/ClassRoom/components/CheckInManagement/StudentCheckIn';
-import { usePageVisibilityListener } from '@/utils/hooks';
+import usePageVisibilityListener from '@/utils/hooks/usePageVisibilityListener';
 import styles from './index.less';
 
 const MobileClassRoom: React.FC = () => {

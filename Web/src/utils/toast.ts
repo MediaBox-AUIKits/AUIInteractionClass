@@ -7,6 +7,8 @@ import { UA } from '@/utils/common';
 interface PcToastConfig {
   type?: NoticeType;
   duration?: number;
+  key?: number | string;
+  className?: string;
 }
 
 interface MobileToastConfig {
@@ -22,12 +24,13 @@ const IconMapByType = {
 const toast = (
   content: string,
   pcConfig?: PcToastConfig,
-  mobileConfig?: MobileToastConfig
+  mobileConfig?: MobileToastConfig,
 ) => {
   if (UA.isPC) {
     const type = pcConfig?.type ?? 'info';
     const duration = pcConfig?.duration ?? 3;
     return message.open({
+      ...(pcConfig ?? {}),
       type,
       duration,
       content,
@@ -82,6 +85,14 @@ toast.warning = (content: string, pcDuration = 3, mobileDuration = 2000) => {
         content,
         duration: mobileDuration,
       });
+};
+
+toast.destroy = (key?: string | number) => {
+  if (UA.isPC) {
+    message.destroy(key);
+  } else {
+    Toast.clear();
+  }
 };
 
 export default toast;

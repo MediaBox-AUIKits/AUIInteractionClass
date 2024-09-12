@@ -3,6 +3,7 @@ import classNames from 'classnames';
 import MicIcon from './MicIcon';
 import { ISpectatorInfo } from '../../types';
 import livePush from '../../utils/LivePush';
+import useVoiceActiveDetector from '@/utils/hooks/useVoiceActiveDetector';
 import styles from './index.less';
 
 interface MemberProps extends ISpectatorInfo {
@@ -13,9 +14,18 @@ interface MemberProps extends ISpectatorInfo {
 const Member: React.FC<MemberProps> = (props: MemberProps) => {
   const { userId, userNick, rtcPullUrl, micOpened, wrapClassName, onUserLeft } =
     props;
+
   const player = useMemo(() => livePush.createPlayerInstance(), []);
-  const [pulling, setPulling] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [pulling, setPulling] = useState(false);
+
+  const [voiceActive, setVoiceActive] = useState(false);
+
+  useVoiceActiveDetector({
+    previewElementRef: videoRef,
+    userNick,
+    onVoiceActive: setVoiceActive,
+  });
 
   useEffect(() => {
     if (player && rtcPullUrl && videoRef.current && !pulling) {
@@ -23,12 +33,11 @@ const Member: React.FC<MemberProps> = (props: MemberProps) => {
         try {
           const playInfo = await player.startPlay(
             rtcPullUrl,
-            videoRef.current!
+            videoRef.current!,
           );
           playInfo.on('userleft', () => {
             onUserLeft(userId);
           });
-
           setPulling(true);
         } catch (error) {
           console.log(error);
@@ -47,7 +56,11 @@ const Member: React.FC<MemberProps> = (props: MemberProps) => {
   }, [player, pulling]);
 
   return (
-    <div className={classNames(styles['interaction-player'], wrapClassName)}>
+    <div
+      className={classNames(styles['interaction-player'], wrapClassName, {
+        [styles['active']]: voiceActive,
+      })}
+    >
       <video ref={videoRef} controls={false} />
       <div className={styles['interaction-player__bottom']}>
         <div className={styles['interaction-player__info']}>

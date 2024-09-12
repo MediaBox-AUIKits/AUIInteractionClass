@@ -90,3 +90,22 @@
   height: @pc-footer-height;
   box-shadow: inset 0 1px 0 0 #e6e7ec;
 }
+
+.voice-active-toast {
+  margin-top: @pc-header-height + @speaker-top-height;
+  text-align: left;
+
+  .ant-message-notice-content {
+    padding: 7px 12px;
+    color: rgba(255, 255, 255, 0.8);
+    background: rgba(28, 29, 34, 0.7);
+
+    .anticon {
+      display: none;
+    }
+  }
+
+  & + .voice-active-toast {
+    margin-top: -12px;
+  }
+}
