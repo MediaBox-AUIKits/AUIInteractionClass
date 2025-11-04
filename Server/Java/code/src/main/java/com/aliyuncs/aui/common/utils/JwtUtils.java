@@ -15,7 +15,7 @@ import java.util.Date;
 public class JwtUtils {
 
     // 运行前先随机配置个jwt密钥
-    private static final String SECRET = "";
+    private static final String SECRET = "#ab2dfsc23@al2l";
 
     public static void check() {
         if (StringUtils.isEmpty(SECRET)) {

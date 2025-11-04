@@ -28,12 +28,12 @@
 
 # 应用详情
 
-- 关于技术选型 
-  - 基于主流的Java8 + Springboot2搭建框架
-  - 基于Mybatis plus(https://baomidou.com/)作为Repository层选型
-  - 基于SpringSecurity + JWT 来实现权限控制
+- 关于技术选型
+    - 基于主流的Java8 + Springboot2搭建框架
+    - 基于Mybatis plus(https://baomidou.com/)作为Repository层选型
+    - 基于SpringSecurity + JWT 来实现权限控制
 - 关于部署
-  - 理论上只要安装了Java8即可运行在各个ECS或容器上。可以考虑使用Serverless平台(https://help.aliyun.com/product/50980.html)来快速部署
+    - 理论上只要安装了Java8即可运行在各个ECS或容器上。可以考虑使用Serverless平台(https://help.aliyun.com/product/50980.html)来快速部署
 
 </appdetail>
 

@@ -1,7 +1,6 @@
 package com.aliyuncs.aui.dto.req;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 import org.hibernate.validator.constraints.Length;
 
@@ -23,7 +22,7 @@ public class kickClassRequestDto {
     @JsonProperty("user_id")
     private String userId;
 
-    @ApiModelProperty(value = "im群列表")
+    
     @JsonProperty("im_server")
     private List<String> imServer;
 }

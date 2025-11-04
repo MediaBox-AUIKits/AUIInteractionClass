@@ -6,7 +6,7 @@ import com.aliyuncs.aui.entity.ClassKickMemberEntity;
 import com.aliyuncs.aui.service.ClassKickMemberService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang.time.DateUtils;
+import org.apache.commons.lang3.time.DateUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
